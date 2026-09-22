@@ -1,0 +1,69 @@
+name: scenario_10_fieldlike
+description: Field-like engineered site - micro background + occasional structural set
+
+seed: 51
+tags:
+  quality_regime: fieldlike
+  density_regime: mixed
+  orientation_regime: structured
+
+domain:
+  nx: 60
+  ny: 30
+  nz: 30
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+
+tunnel:
+  center_y: 15.0
+  center_z: 15.0
+  radius: 5.0
+
+boreholes:
+  - { dy: 0.0, dz:  0.0 }
+
+rqd:
+  scan_length: 5.0
+
+global_params:
+  Jw_mean: 0.8
+  Jw_std: 0.1
+  SRF_mean: 1.0
+  SRF_std: 0.3
+
+joint_sets:
+  - set_id: 1
+    name: micro_background
+    mean_dip: 45
+    mean_dip_dir: 90
+    fisher_kappa: 40
+    size_alpha: 3.8
+    size_r_min: 0.1
+    size_r_max: 2.0
+    density_type: P32
+    P32: 4.0
+    mean_spacing: 0.5
+    Jr_mean: 1.2
+    Jr_std: 0.2
+    Ja_mean: 2.0
+    Ja_std: 0.5
+  - set_id: 2
+    name: structural_occasional
+    mean_dip: 70
+    mean_dip_dir: 200
+    fisher_kappa: 10
+    size_alpha: 2.5
+    size_r_min: 5.0
+    size_r_max: 30.0
+    density_type: P32
+    P32: 0.1
+    mean_spacing: 10.0
+    Jr_mean: 1.4
+    Jr_std: 0.4
+    Ja_mean: 3.0
+    Ja_std: 1.0
+
+cost:
+  cost_fp: 1
+  cost_fn: 5

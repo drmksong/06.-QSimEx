@@ -1,0 +1,2 @@
+Scenario,AUC,Best threshold,Sensitivity,Specificity,FP rate,FN rate
+scenario_02_dense_small,,24.225593637475374,1.0,,,0.0

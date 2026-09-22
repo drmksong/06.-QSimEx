@@ -1,0 +1,1 @@
+"""Q-Rock Simulator GUI (PyQt6)"""

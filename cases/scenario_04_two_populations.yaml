@@ -1,0 +1,69 @@
+
+name: scenario_04_two_populations
+description: Two populations - dominant small + rare large
+seed: 45
+tags:
+  quality_regime: mixed_sizes
+  density_regime: mixed
+  orientation_regime: mixed
+
+domain:
+  nx: 60
+  ny: 30
+  nz: 30
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+
+tunnel:
+  center_y: 15.0
+  center_z: 15.0
+  radius: 5.0
+
+boreholes:
+  - { dy: 0.0, dz:  0.0 }
+
+rqd:
+  scan_length: 5.0
+
+global_params:
+  Jw_mean: 0.8
+  Jw_std: 0.1
+  SRF_mean: 1.0
+  SRF_std: 0.3
+
+joint_sets:
+  - set_id: 1
+    name: small_population
+    mean_dip: 40
+    mean_dip_dir: 180
+    fisher_kappa: 30
+    size_alpha: 3.5
+    size_r_min: 0.2
+    size_r_max: 5.0
+    density_type: P32
+    P32: 6.0
+    mean_spacing: 0.3
+    Jr_mean: 1.4
+    Jr_std: 0.3
+    Ja_mean: 2.0
+    Ja_std: 0.5
+  - set_id: 2
+    name: rare_large
+    mean_dip: 50
+    mean_dip_dir: 200
+    fisher_kappa: 8
+    size_alpha: 2.2
+    size_r_min: 10.0
+    size_r_max: 75.0
+    density_type: P32
+    P32: 0.2
+    mean_spacing: 8.0
+    Jr_mean: 1.0
+    Jr_std: 0.5
+    Ja_mean: 4.0
+    Ja_std: 1.5
+
+cost:
+  cost_fp: 1
+  cost_fn: 5

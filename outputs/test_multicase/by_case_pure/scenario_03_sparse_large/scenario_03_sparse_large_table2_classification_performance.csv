@@ -1,0 +1,2 @@
+Scenario,AUC,Best threshold,Sensitivity,Specificity,FP rate,FN rate
+scenario_03_sparse_large,,15.485219629095813,1.0,,,0.0

@@ -1,0 +1,55 @@
+name: scenario_03_sparse_large
+description: Sparse but large fractures (rare large discontinuities)
+
+seed: 44
+tags:
+  quality_regime: sparse_large
+  density_regime: sparse
+  orientation_regime: broad
+
+domain:
+domain:
+  nx: 60
+  ny: 30
+  nz: 30
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+
+tunnel:
+  center_y: 15.0
+  center_z: 15.0
+  radius: 5.0
+
+boreholes:
+  - { dy: 0.0, dz:  0.0 }
+
+rqd:
+  scan_length: 5.0
+
+global_params:
+  Jw_mean: 0.8
+  Jw_std: 0.1
+  SRF_mean: 1.0
+  SRF_std: 0.3
+
+joint_sets:
+  - set_id: 1
+    name: sparse_large
+    mean_dip: 60
+    mean_dip_dir: 45
+    fisher_kappa: 5
+    size_alpha: 2.5
+    size_r_min: 5.0
+    size_r_max: 75.0
+    density_type: P32
+    P32: 0.05
+    mean_spacing: 10.0
+    Jr_mean: 1.0
+    Jr_std: 0.4
+    Ja_mean: 3.0
+    Ja_std: 1.0
+
+cost:
+  cost_fp: 1
+  cost_fn: 5

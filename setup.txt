@@ -1,0 +1,46 @@
+text
+QSim
+│
+├── README.md
+├── requirements.txt
+├── setup.py
+├── run_cli.py                     # CLI 진입점
+├── run_gui.py                     # GUI 진입점
+├── run_verify.py                  # 분포 검증 스크립트
+│
+├── core/
+│   ├── __init__.py
+│   ├── joint_models.py            # 절리 정의, Fisher, PowerLaw
+│   ├── dfn_generator.py           # DFN 생성기
+│   ├── rqd_calculator.py          # RQD 계산기
+│   ├── grid_assigner.py           # 격자 파라미터 할당
+│   ├── domain.py                  # 3D 암반 도메인
+│   ├── tunnel.py                  # 터널, 시추공, 막장면
+│   ├── q_calculator.py            # Q, Q' 계산
+│   ├── comparison.py              # 시추공 vs 막장면 비교
+│   └── case_library.py            # 프리셋 케이스
+│
+├── export/
+│   ├── __init__.py
+│   ├── vtk_writer.py              # ParaView VTI/VTP/PVD 출력
+│   ├── cadquery_traces.py         # CadQuery 절리 Trace
+│   └── export_manager.py          # 통합 내보내기
+│
+├── visualization/
+│   ├── __init__.py
+│   └── plots.py                   # Matplotlib 시각화
+│
+├── gui/
+│   ├── __init__.py
+│   └── main_window.py             # PySide6 GUI
+│
+├── cli/
+│   ├── __init__.py
+│   └── commands.py                # CLI 커맨드
+│
+├── tests/
+│   ├── __init__.py
+│   ├── test_power_law.py
+│   ├── test_fisher.py
+│   └── test_rqd.py
+│

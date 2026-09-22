@@ -1,0 +1,84 @@
+name: scenario_08_clustered_mixed
+description: Highly clustered mixture - few very large + many medium + many micro
+
+seed: 49
+tags:
+  quality_regime: clustered_mixed
+  density_regime: mixed
+  orientation_regime: mixed
+
+domain:
+  nx: 60
+  ny: 30
+  nz: 30
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+
+tunnel:
+  center_y: 15.0
+  center_z: 15.0
+  radius: 5.0
+
+boreholes:
+  - { dy: 0.0, dz:  0.0 }
+
+rqd:
+  scan_length: 5.0
+
+global_params:
+  Jw_mean: 0.8
+  Jw_std: 0.1
+  SRF_mean: 1.0
+  SRF_std: 0.3
+
+joint_sets:
+  - set_id: 1
+    name: large_cluster
+    mean_dip: 50
+    mean_dip_dir: 160
+    fisher_kappa: 5
+    size_alpha: 2.0
+    size_r_min: 20.0
+    size_r_max: 75.0
+    density_type: P32
+    P32: 0.05
+    mean_spacing: 20.0
+    Jr_mean: 1.0
+    Jr_std: 0.5
+    Ja_mean: 4.0
+    Ja_std: 1.5
+  - set_id: 2
+    name: medium
+    mean_dip: 45
+    mean_dip_dir: 180
+    fisher_kappa: 20
+    size_alpha: 2.8
+    size_r_min: 1.0
+    size_r_max: 15.0
+    density_type: P32
+    P32: 1.0
+    mean_spacing: 1.0
+    Jr_mean: 1.5
+    Jr_std: 0.4
+    Ja_mean: 2.5
+    Ja_std: 0.7
+  - set_id: 3
+    name: micro
+    mean_dip: 30
+    mean_dip_dir: 100
+    fisher_kappa: 50
+    size_alpha: 4.0
+    size_r_min: 0.1
+    size_r_max: 1.0
+    density_type: P32
+    P32: 8.0
+    mean_spacing: 0.2
+    Jr_mean: 1.2
+    Jr_std: 0.2
+    Ja_mean: 1.8
+    Ja_std: 0.4
+
+cost:
+  cost_fp: 1
+  cost_fn: 5

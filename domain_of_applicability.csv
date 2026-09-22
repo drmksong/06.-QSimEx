@@ -1,0 +1,5 @@
+scenario_id,case_name,avg_fracture_density,avg_orientation_gap,optimal_threshold,max_net_benefit,is_applicable,reliability_index
+nuclear_high_risk,A,0.0,0.0,1.0,1.0,True,1.0
+nuclear_high_risk,B,0.0,0.0,1.0,1.0,True,1.0
+resource_opt,A,0.0,0.0,1.0,1.0,True,1.0
+resource_opt,B,0.0,0.0,1.0,1.0,True,1.0

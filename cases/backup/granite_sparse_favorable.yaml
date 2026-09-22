@@ -1,0 +1,71 @@
+cost:
+  cost_fp: 1
+  cost_fn: 5
+
+name: "granite_sparse_favorable"
+description: "화강암 2개 절리군 — 양호 암반"
+seed: 42
+
+domain:
+  nx: 100
+  ny: 50
+  nz: 50
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+
+tunnel:
+  center_y: 25.0
+  center_z: 25.0
+  radius: 5.0
+
+boreholes:
+  - { dy: 0.0, dz: 0.0 }
+
+rqd:
+  scan_length: 5.0
+
+global_params:
+  Jw_mean: 0.8
+  Jw_std: 0.1
+  SRF_mean: 1.0
+  SRF_std: 0.3
+
+joint_sets:
+  - set_id: 1
+    name: JS-1-sparse-fav
+    mean_dip: 80
+    mean_dip_dir: 90
+    fisher_kappa: 70
+    size_alpha: 3.0
+    size_r_min: 0.5
+    size_r_max: 20.0
+    density_type: "P32"
+    P32: 0.18
+    mean_spacing: 0.5
+    Jr_mean: 1.3
+    Jr_std: 0.3
+    Ja_mean: 2.5
+    Ja_std: 0.5
+
+  - set_id: 2
+    name: JS-2-sparse-fav
+    mean_dip: 75
+    mean_dip_dir: 270
+    fisher_kappa: 70
+    size_alpha: 3.0
+    size_r_min: 0.5
+    size_r_max: 20.0
+    density_type: "P32"
+    P32: 0.12
+    mean_spacing: 0.5
+    Jr_mean: 1.3
+    Jr_std: 0.3
+    Ja_mean: 2.5
+    Ja_std: 0.5
+
+tags:
+  quality_regime: uncertain
+  density_regime: sparse
+  orientation_regime: favorable
+  anisotropy_regime: high

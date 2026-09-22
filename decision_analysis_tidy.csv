@@ -1,0 +1,3 @@
+scenario_id,cost_fp,cost_fn,threshold,n_samples,prior_suitable,TP,FP,FN,TN,TPR,FNR,precision,FPR,expected_cost,net_benefit,accuracy,balanced_accuracy,auc
+nuclear_high_risk,20.0,1.0,1.0,2,1.0,2,0,0,0,1.0,0.0,1.0,,0.0,1.0,1.0,1.0,
+resource_opt,10.0,5.0,1.0,2,1.0,2,0,0,0,1.0,0.0,1.0,,0.0,1.0,1.0,1.0,

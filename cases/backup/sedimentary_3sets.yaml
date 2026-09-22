@@ -1,0 +1,83 @@
+cost:
+  cost_fp: 1
+  cost_fn: 5
+
+name: "sedimentary_3sets"
+description: "퇴적암 3개 절리군 — 보통 암반"
+seed: 123
+
+domain:
+  nx: 100
+  ny: 50
+  nz: 50
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+
+tunnel:
+  center_y: 25.0
+  center_z: 25.0
+  radius: 5.0
+
+boreholes:
+  - { dy: 0.0, dz: 0.0 }
+  - { dy: 0.0, dz: 3.0 }
+  - { dy: 0.0, dz: -3.0 }
+
+rqd:
+  scan_length: 5.0
+
+global_params:
+  Jw_mean: 0.5
+  Jw_std: 0.2
+  SRF_mean: 2.5
+  SRF_std: 1.0
+
+joint_sets:
+  - set_id: 1
+    name: "층리면 (Bedding)"
+    mean_dip: 15
+    mean_dip_dir: 180
+    fisher_kappa: 40
+    size_alpha: 2.5
+    size_r_min: 1.0
+    size_r_max: 30.0
+    density_type: "P32"
+    P32: 1.5
+    mean_spacing: 0.5
+    Jr_mean: 1.0
+    Jr_std: 0.2
+    Ja_mean: 3.0
+    Ja_std: 0.8
+
+  - set_id: 2
+    name: "수직 절리 Set A"
+    mean_dip: 80
+    mean_dip_dir: 45
+    fisher_kappa: 25
+    size_alpha: 3.0
+    size_r_min: 0.5
+    size_r_max: 15.0
+    density_type: "P32"
+    P32: 1.0
+    mean_spacing: 0.5
+    Jr_mean: 1.5
+    Jr_std: 0.3
+    Ja_mean: 2.0
+    Ja_std: 0.5
+
+  - set_id: 3
+    name: "수직 절리 Set B"
+    mean_dip: 75
+    mean_dip_dir: 135
+    fisher_kappa: 20
+    size_alpha: 3.2
+    size_r_min: 0.3
+    size_r_max: 10.0
+    density_type: "P32"
+    P32: 0.8
+    mean_spacing: 0.5
+    Jr_mean: 1.5
+    Jr_std: 0.4
+    Ja_mean: 2.5
+    Ja_std: 0.6

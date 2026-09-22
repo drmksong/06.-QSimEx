@@ -1,0 +1,104 @@
+# ============================================================
+# Q-Rock Simulator — 분석 케이스 입력 템플릿
+# ============================================================
+# 이 파일을 복사하여 새 케이스를 만드세요.
+# 예: cp _template.yaml my_project_tunnel.yaml
+# 실행: python run_cli.py --case-file cases/my_project_tunnel.yaml
+# ============================================================
+
+cost:
+  cost_fp: 1
+  cost_fn: 5
+
+# ── 기본 정보 ──
+name: "my_case"
+description: "나의 커스텀 케이스 설명"
+seed: 42
+
+# ── 도메인 ──
+domain:
+  nx: 100 # x방향 격자 수 (터널 축방향)
+  ny: 50 # y방향 격자 수 (횡방향)
+  nz: 50 # z방향 격자 수 (연직)
+  dx: 1.0 # x격자 간격 (m)
+  dy: 1.0 # y격자 간격 (m)
+  dz: 1.0 # z격자 간격 (m)
+
+# ── 터널 ──
+tunnel:
+  center_y: 25.0 # 터널 중심 y좌표 (m)
+  center_z: 25.0 # 터널 중심 z좌표 (m)
+  radius: 5.0 # 터널 반경 (m)
+
+# ── 시추공 ──
+# 터널 중심 기준 오프셋 (dy, dz)
+# 기본: 중앙(0,0), 상부(0,+3), 하부(0,-3)
+boreholes:
+  - dy: 0.0
+    dz: 0.0 # 중앙
+  - dy: 0.0
+    dz: 3.0 # 상부
+  - dy: 0.0
+    dz: -3.0 # 하부
+
+# ── RQD 계산 설정 ──
+rqd:
+  scan_length: 5.0 # RQD 측정 스캔라인 길이 (m)
+
+# ── 전역 역학 파라미터 (정규분포) ──
+# Jw: 지하수 저감계수
+# SRF: 응력저감계수
+global_params:
+  Jw_mean: 0.66
+  Jw_std: 0.15
+  SRF_mean: 2.5
+  SRF_std: 1.0
+
+# ── 절리군 정의 ──
+# 절리군 수 = 아래 리스트 개수 → Jn 자동 결정
+# Jn 매핑: 1군=2.0, 2군=4.0, 3군=9.0, 4군=15.0
+#
+# 각 절리군 파라미터:
+#   [방향] mean_dip(°), mean_dip_dir(°), fisher_kappa
+#   [크기] size_alpha(멱지수), size_r_min(m), size_r_max(m)
+#   [밀도] density_type('P32' or 'spacing'), P32(m²/m³), mean_spacing(m)
+#   [역학] Jr_mean, Jr_std, Ja_mean, Ja_std
+#
+joint_sets:
+  - set_id: 1
+    name: "절리군 1"
+    # 방향 (Fisher 분포)
+    mean_dip: 45.0 # 경사각 (°)
+    mean_dip_dir: 180.0 # 경사방향 (°)
+    fisher_kappa: 20.0 # Fisher κ (클수록 집중)
+    # 크기 (Power Law)
+    size_alpha: 3.0 # 멱지수 α (2.5~4.0 일반적)
+    size_r_min: 0.5 # 최소 반경 (m)
+    size_r_max: 15.0 # 최대 반경 (m)
+    # 밀도
+    density_type: "P32" # 'P32' 또는 'spacing'
+    P32: 1.0 # 체적 면적밀도 (m²/m³)
+    mean_spacing: 0.5 # density_type='spacing'일 때 사용 (m)
+    # 역학 (정규분포)
+    Jr_mean: 1.5 # 절리면 거칠기 평균
+    Jr_std: 0.3 # 표준편차
+    Ja_mean: 2.0 # 절리면 변질도 평균
+    Ja_std: 0.5
+
+  - set_id: 2
+    name: "절리군 2"
+    mean_dip: 80.0
+    mean_dip_dir: 90.0
+    fisher_kappa: 30.0
+    size_alpha: 3.0
+    size_r_min: 0.3
+    size_r_max: 12.0
+    density_type: "P32"
+    P32: 0.6
+    mean_spacing: 0.8
+    Jr_mean: 1.5
+    Jr_std: 0.4
+    Ja_mean: 1.5
+    Ja_std: 0.3
+
+# ── 끝 ──

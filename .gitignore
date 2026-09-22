@@ -1,0 +1,28 @@
+# '#'으로 시작하는 줄은 주석입니다 (코드에 영향을 주지 않음)
+
+# 1. 특정 파일 제외하기
+.DS_Store
+
+# 2. 특정 확장자 파일 전부 제외하기 (와일드카드 '*')
+*.log
+*.zip
+
+# 3. 특정 폴더 전체 제외하기 (끝에 '/'를 붙임)
+node_modules/
+build/
+build-macos/
+.cache/
+.conda/
+.vscode/
+venv/
+__pycache__/
+dist/
+out/
+src_dlo/out/
+dlo_demo/
+
+# 4. 현재 위치의 특정 파일만 제외 (하위 폴더의 동일 이름은 제외 안 됨)
+/config.json
+
+# 5. 예외 처리하기 (앞에 '!'를 붙이면 이 파일은 무시하지 않고 추적함)
+!important.log

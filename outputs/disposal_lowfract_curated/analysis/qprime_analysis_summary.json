@@ -1,0 +1,9 @@
+{
+  "n_rows": 300,
+  "n_cases": 5,
+  "n_eval_rows": 21,
+  "mean_uplift": -0.043333333333333314,
+  "recommend_count": 0,
+  "nonrecommend_count": 1,
+  "uncertain_count": 4
+}
