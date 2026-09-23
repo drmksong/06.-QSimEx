@@ -171,6 +171,29 @@ def _run_threshold_sweep(
     return pd.DataFrame(rows)
 
 
+def _canonicalize_threshold_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Map legacy metric column names in threshold DataFrame to canonical names if present."""
+    from src.core.constants import CANONICAL
+
+    if df is None or df.empty:
+        return df
+
+    # create a copy to avoid mutating caller
+    out = df.copy()
+    # rename columns if legacy keys found
+    rename_map = {}
+    for canon_key, canon_col in CANONICAL.items():
+        # CANONICAL maps short keys to canonical column names (e.g. 'FP' -> 'FP_false_safe')
+        # If the DF contains the canonical column we leave it; if it contains the short key, map it.
+        if canon_key in out.columns and canon_col not in out.columns:
+            rename_map[canon_key] = canon_col
+
+    if rename_map:
+        out = out.rename(columns=rename_map)
+
+    return out
+
+
 def _run_by_case_analysis(df: pd.DataFrame, out_path: Path):
     """
     case별 핵심 pairwise 분석.
@@ -401,6 +424,8 @@ def main():
 
     summary_df.to_csv(out_path / "rqd_summary.csv", index=False)
     pairwise_df.to_csv(out_path / "rqd_pairwise.csv", index=False)
+    # canonicalize threshold metrics column names before saving
+    threshold_df = _canonicalize_threshold_df(threshold_df)
     threshold_df.to_csv(out_path / "rqd_threshold_metrics.csv", index=False)
 
     print(f"[OK] Saved: {out_path / 'rqd_summary.csv'}")
@@ -419,6 +444,8 @@ def main():
         cost_false_alarm=args.cost_false_alarm,
     )
 
+    # canonicalize sweep results columns as well
+    sweep_df = _canonicalize_threshold_df(sweep_df)
     sweep_df.to_csv(out_path / "rqd_threshold_sweep.csv", index=False)
     print(f"[OK] Saved: {out_path / 'rqd_threshold_sweep.csv'}")
 

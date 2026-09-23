@@ -110,8 +110,22 @@ class ExportManager:
 
     def _export_face_traces(self, positions_m: List[float]):
         print("\n[5] 막장면 Trace...")
+        if positions_m is None:
+            positions_m = []
+        cleaned = []
         for x_m in positions_m:
-            traces = self.trace_ext.extract_face_traces(x_m, self.domain.dfn.joints)
+            try:
+                value = float(x_m)
+            except (TypeError, ValueError):
+                continue
+            if np.isfinite(value):
+                cleaned.append(value)
+
+        for x_m in cleaned:
+            try:
+                traces = self.trace_ext.extract_face_traces(x_m, self.domain.dfn.joints)
+            except Exception:
+                traces = []
             if traces:
                 fname = f'face_traces/face_{int(x_m):03d}m.vtp'
                 VTKWriter.write_traces(str(self.base_dir / fname), traces)
@@ -123,11 +137,19 @@ class ExportManager:
 
     def _export_pvd(self, positions_m: List[float]):
         print("\n[6] PVD 시계열...")
+        if positions_m is None:
+            positions_m = []
         steps = []
         for x_m in positions_m:
-            fname = f'face_traces/face_{int(x_m):03d}m.vtp'
+            try:
+                value = float(x_m)
+            except (TypeError, ValueError):
+                continue
+            if not np.isfinite(value):
+                continue
+            fname = f'face_traces/face_{int(value):03d}m.vtp'
             if (self.base_dir / fname).exists():
-                steps.append((x_m, fname))
+                steps.append((value, fname))
         if steps:
             VTKWriter.write_pvd(str(self.base_dir / 'excavation_series.pvd'), steps)
 

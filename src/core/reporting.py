@@ -8,8 +8,9 @@ from typing import List, Dict, Any
 
 import pandas as pd
 import numpy as np
-
 from .bayesian_update import SiteContext, DecisionCost
+from .constants import standardize_metrics
+import logging
 
 
 class ResearchReporter:
@@ -31,13 +32,37 @@ class ResearchReporter:
 
         os.makedirs(output_dir, exist_ok=True)
 
+        # Normalize incoming rows to canonical metric keys for consistent CSV headers
+        face_rows = face_rows or []
+        summary_rows = summary_rows or []
+        import logging
+
+        normalized_face = []
+        for r in face_rows:
+            try:
+                normalized_face.append(standardize_metrics(dict(r)))
+            except Exception as e:
+                logging.warning("standardize_metrics failed for face row: %s", e)
+                normalized_face.append(dict(r))
+
+        normalized_summary = []
+        for s in summary_rows:
+            try:
+                normalized_summary.append(standardize_metrics(dict(s)))
+            except Exception as e:
+                logging.warning("standardize_metrics failed for summary row: %s", e)
+                normalized_summary.append(dict(s))
+
+        face_rows = normalized_face
+        summary_rows = normalized_summary
+
         # Table 1
         t1_rows = []
         for s in summary_rows:
             t1_rows.append(
                 {
-                    "Scenario": s.get("case_name", "Unknown"),
-                    "Corr": float(s.get("Qp_correlation", np.nan)),
+                    "Scenario": s.get("case_name", s.get("case_name_meta", "Unknown")),
+                    "Corr": float(s.get("Qp_correlation", s.get("Qp_corr", np.nan))),
                     "Bias": float(s.get("Q_log_ratio_mean", np.nan)),
                     "RMSE": float(s.get("Q_log_RMSE", np.nan)),
                     "RQD dependency": (
@@ -60,9 +85,13 @@ class ResearchReporter:
             for scen in sorted(df_faces["case_name"].unique()):
                 rows = df_faces[df_faces["case_name"] == scen].to_dict(orient="records")
                 tester = DecisionUsefulnessTester(rows)
-                scen_summaries.append(
-                    tester.summarize_scenario_performance(scenario_id=scen)
-                )
+                # ensure any legacy metric names returned by testers are canonicalized
+                summary = tester.summarize_scenario_performance(scenario_id=scen)
+                try:
+                    summary = standardize_metrics(summary)
+                except Exception as e:
+                    logging.warning("standardize_metrics failed for scenario summary: %s", e)
+                scen_summaries.append(summary)
         t2_rows = [
             {
                 "Scenario": s.get("scenario_id"),
@@ -98,6 +127,8 @@ class ResearchReporter:
             _, best = overall_tester.compute_cost_curve(
                 df_proc, sweep_th, cost_fp=cost_fp, cost_fn=cost_fn
             )
+            # canonicalize best-row keys in case legacy names are present
+            best = standardize_metrics(best)
             t3_rows.append(
                 {
                     "Cost ratio FP:FN": f"{cost_fp}:{cost_fn}",
@@ -135,15 +166,26 @@ class ResearchReporter:
                     bh_class = 1 if obs >= ctx.borehole_threshold else 0
                     expected_exc = res.get("expected_loss_excavate", float("nan"))
                     expected_skip = res.get("expected_loss_skip", float("nan"))
+                    posterior = res.get("posterior_suitable", float("nan"))
+                    decision = res.get("decision", "unknown")
+                    # safe min for expected loss
+                    try:
+                        expected_min = (
+                            min(v for v in (expected_exc, expected_skip) if not np.isnan(v))
+                            if not (np.isnan(expected_exc) and np.isnan(expected_skip))
+                            else float("nan")
+                        )
+                    except Exception:
+                        expected_min = float("nan")
                     t4_rows.append(
                         {
                             "Prior suitable": prior,
                             "Borehole class": bh_class,
-                            "Posterior suitable": res["posterior_suitable"],
-                            "Decision": res["decision"],
+                            "Posterior suitable": posterior,
+                            "Decision": decision,
                             "Expected loss excavate": expected_exc,
                             "Expected loss skip": expected_skip,
-                            "Expected loss (min)": min(expected_exc, expected_skip),
+                            "Expected loss (min)": expected_min,
                         }
                     )
         df4 = pd.DataFrame(t4_rows)

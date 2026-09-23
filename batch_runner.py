@@ -70,11 +70,23 @@ class BatchResult:
         """dict list → csv"""
         if not rows:
             return
+        # Normalize metric keys in each row to canonical names where applicable
+        # normalize row-by-row with per-row fallback and logging to aid debugging
+        from src.core.constants import standardize_metrics
+        import logging
 
-        # 모든 key 합집합
+        normalized_rows = []
+        for r in rows:
+            try:
+                normalized_rows.append(standardize_metrics(dict(r), copy=True))
+            except Exception as e:
+                logging.warning("standardize_metrics failed for a row: %s", e)
+                normalized_rows.append(dict(r))
+
+        # 모든 key 합집합 (preserve insertion order roughly)
         fieldnames = []
         seen = set()
-        for row in rows:
+        for row in normalized_rows:
             for k in row.keys():
                 if k not in seen:
                     seen.add(k)
@@ -83,7 +95,7 @@ class BatchResult:
         with open(path, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            writer.writerows(rows)
+            writer.writerows(normalized_rows)
 
 
 class BatchRunner:

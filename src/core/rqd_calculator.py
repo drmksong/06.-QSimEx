@@ -25,6 +25,7 @@ RQD 계산기
 
 import numpy as np
 from typing import Any, Dict, List, Optional, Tuple
+from .constants import standardize_metrics
 
 
 class RQDCalculator:
@@ -88,8 +89,7 @@ class RQDCalculator:
         total_length:
             scanline 또는 시추공 평가 구간 길이.
         threshold:
-            RQD에 포함할 최소 intact segment 길이.
-            일반적으로 0.1 m.
+            RQD에 포함할 최소 intact segment 길이. 일반적으로 0.1 m.
 
         Returns
         -------
@@ -409,7 +409,7 @@ class RQDCalculator:
                 use_p32 = True
 
             if use_p32:
-                value = float(p32_val)
+                value = float(p32_val) if p32_val is not None else 0.0
                 source = "P32_proxy"
             elif spacing_val is not None and np.isfinite(spacing_val) and spacing_val > 0:
                 value = float(1.0 / spacing_val)
@@ -465,10 +465,12 @@ class DirectionalRQDCalculator:
     @staticmethod
     def _normalize_direction(direction: np.ndarray) -> np.ndarray:
         d = np.asarray(direction, dtype=float)
-        norm = np.linalg.norm(d)
+        if d.size == 0:
+            return np.array([1.0, 0.0, 0.0], dtype=float)
 
-        if norm == 0:
-            raise ValueError("Direction vector must be non-zero.")
+        norm = np.linalg.norm(d)
+        if not np.isfinite(norm) or norm <= 0:
+            return np.array([1.0, 0.0, 0.0], dtype=float)
 
         return d / norm
 
@@ -544,7 +546,10 @@ class DirectionalRQDCalculator:
                 "direct_details": None,
             }
 
-        direction_unit = self._normalize_direction(direction)
+        try:
+            direction_unit = self._normalize_direction(direction)
+        except Exception:
+            direction_unit = np.array([1.0, 0.0, 0.0], dtype=float)
 
         t_values = self._get_line_intersection_positions(
             origin=origin,
@@ -630,6 +635,37 @@ class DirectionalRQDCalculator:
             "RQD_borehole_hudson": result["rqd_hudson"],
             "direct_details": result["direct_details"],
         }
+
+        try:
+            return standardize_metrics({
+                k: v for k, v in {
+                    "method": "borehole_direct_and_hudson",
+                    "origin": result["origin"],
+                    "direction": result["direction"],
+                    "length": result["length"],
+                    "threshold": result["threshold"],
+                    "intersection_positions": result["intersection_positions"],
+                    "borehole_n_intersections": result["n_intersections"],
+                    "lambda_borehole": result["lambda"],
+                    "RQD_borehole_direct": result["rqd_direct"],
+                    "RQD_borehole_hudson": result["rqd_hudson"],
+                    "direct_details": result["direct_details"],
+                }.items()
+            })
+        except Exception:
+            return {
+                "method": "borehole_direct_and_hudson",
+                "origin": result["origin"],
+                "direction": result["direction"],
+                "length": result["length"],
+                "threshold": result["threshold"],
+                "intersection_positions": result["intersection_positions"],
+                "borehole_n_intersections": result["n_intersections"],
+                "lambda_borehole": result["lambda"],
+                "RQD_borehole_direct": result["rqd_direct"],
+                "RQD_borehole_hudson": result["rqd_hudson"],
+                "direct_details": result["direct_details"],
+            }
 
     def rqd_along_borehole(
         self,
@@ -759,23 +795,40 @@ class DirectionalRQDCalculator:
             threshold=threshold,
             label="face_single_horizontal_scanline",
         )
-
-        return {
-            "method": "face_single_horizontal_scanline",
-            "face_x": float(face_x),
-            "y_range": (float(y_min), float(y_max)),
-            "z_center": float(z_center),
-            "origin": result["origin"],
-            "direction": result["direction"],
-            "length": result["length"],
-            "threshold": result["threshold"],
-            "intersection_positions": result["intersection_positions"],
-            "face_scanline_n_intersections": result["n_intersections"],
-            "lambda_face_scanline": result["lambda"],
-            "RQD_face_scanline": result["rqd_direct"],
-            "RQD_face_scanline_hudson": result["rqd_hudson"],
-            "direct_details": result["direct_details"],
-        }
+        try:
+            return standardize_metrics({
+                "method": "face_single_horizontal_scanline",
+                "face_x": float(face_x),
+                "y_range": (float(y_min), float(y_max)),
+                "z_center": float(z_center),
+                "origin": result["origin"],
+                "direction": result["direction"],
+                "length": result["length"],
+                "threshold": result["threshold"],
+                "intersection_positions": result["intersection_positions"],
+                "face_scanline_n_intersections": result["n_intersections"],
+                "lambda_face_scanline": result["lambda"],
+                "RQD_face_scanline": result["rqd_direct"],
+                "RQD_face_scanline_hudson": result["rqd_hudson"],
+                "direct_details": result["direct_details"],
+            })
+        except Exception:
+            return {
+                "method": "face_single_horizontal_scanline",
+                "face_x": float(face_x),
+                "y_range": (float(y_min), float(y_max)),
+                "z_center": float(z_center),
+                "origin": result["origin"],
+                "direction": result["direction"],
+                "length": result["length"],
+                "threshold": result["threshold"],
+                "intersection_positions": result["intersection_positions"],
+                "face_scanline_n_intersections": result["n_intersections"],
+                "lambda_face_scanline": result["lambda"],
+                "RQD_face_scanline": result["rqd_direct"],
+                "RQD_face_scanline_hudson": result["rqd_hudson"],
+                "direct_details": result["direct_details"],
+            }
 
     def rqd_at_face(
         self,

@@ -95,6 +95,19 @@ class DecisionCost:
     cost_fp: float = 1.0
     cost_fn: float = 5.0
 
+    def __post_init__(self):
+        try:
+            self.cost_fp = float(self.cost_fp)
+            self.cost_fn = float(self.cost_fn)
+        except (TypeError, ValueError):
+            self.cost_fp = 1.0
+            self.cost_fn = 5.0
+
+        if not np.isfinite(self.cost_fp) or self.cost_fp < 0:
+            self.cost_fp = 1.0
+        if not np.isfinite(self.cost_fn) or self.cost_fn < 0:
+            self.cost_fn = 5.0
+
     @property
     def p_threshold(self) -> float:
         """경제성 관점의 사후 확률 임계치: P(suitable) > p_threshold 이면 굴착 선택"""
@@ -110,46 +123,27 @@ def bayesian_update_binary(
 ) -> float:
     """
     시추공 관측 등급을 이용한 이진 암반 적합성 베이지안 업데이트.
-
-    Parameters
-    ----------
-    prior_suitable : float
-        적합 암반(Z=1)일 사전 확률 P(Z=1). 지역적 통계나 이전 구간 데이터를 통해 설정.
-    observed_borehole_class : int
-        시추공 관측 결과 (1: 적합 판단, 0: 부적합 판단).
-    sensitivity : float
-        민감도 P(B=1 | Z=1). 실제 적합할 때 시추공이 적합하다고 할 확률.
-    specificity : float
-        특이도 P(B=0 | Z=0). 실제 부적합할 때 시추공이 부적합하다고 할 확률.
-
-    Returns
-    -------
-    float
-        사후 확률 P(Z=1 | B_obs). 분모가 0일 경우 NaN 반환.
-
-    Notes
-    -----
-    [암반 등급(Rock Grade) 확장을 위한 가이드]
-    향후 Very Poor ~ Very Good 등의 등급형 베이지안 분석으로 확장할 경우:
-    1. 사전 확률(Prior): 단일 float 대신 N개 등급에 대한 확률 분포 벡터 [p1, p2, ..., pN]를 입력받습니다.
-    2. 가능도(Likelihood): 민감도/특이도 대신 '혼동행렬(Confusion Matrix)'을 Likelihood Matrix L로 사용합니다.
-       L[i, j] = P(Borehole Grade = i | Actual Face Grade = j)
-    3. 업데이트 식:
-       - 분자(Vector): Numerator[j] = L[observed_i, j] * Prior[j]
-       - 분모(Scalar): Evidence = Sum(Numerator)
-       - 사후확률(Vector): Posterior[j] = Numerator[j] / Evidence
     """
-    p = prior_suitable
+    try:
+        p = float(prior_suitable)
+        sens = float(sensitivity)
+        spec = float(specificity)
+    except (TypeError, ValueError):
+        return np.nan
 
-    # 관측 결과에 따른 가능도(Likelihood) 할당
+    if not np.isfinite(p) or not 0.0 <= p <= 1.0:
+        return np.nan
+    if not np.isfinite(sens) or not 0.0 <= sens <= 1.0:
+        return np.nan
+    if not np.isfinite(spec) or not 0.0 <= spec <= 1.0:
+        return np.nan
+
     if observed_borehole_class == 1:
-        # 시추공이 '적합'이라고 함
-        likelihood_suitable = sensitivity  # P(B=1 | Z=1)
-        likelihood_unsuitable = 1.0 - specificity  # P(B=1 | Z=0), False Positive Rate
+        likelihood_suitable = sens
+        likelihood_unsuitable = 1.0 - spec
     elif observed_borehole_class == 0:
-        # 시추공이 '부적합'이라고 함
-        likelihood_suitable = 1.0 - sensitivity  # P(B=0 | Z=1), False Negative Rate
-        likelihood_unsuitable = specificity  # P(B=0 | Z=0)
+        likelihood_suitable = 1.0 - sens
+        likelihood_unsuitable = spec
     else:
         return np.nan
 
@@ -164,37 +158,31 @@ def bayesian_decision_from_posterior(
 ) -> Dict[str, Any]:
     """
     사후 확률(Posterior)과 비대칭 손실 비용(Asymmetric Costs)을 바탕으로 굴착 여부를 결정합니다.
-
-    Parameters
-    ----------
-    posterior_suitable : float
-        업데이트된 암반 적합성 사후 확률 P(suitable | data).
-    cost_config : DecisionCost, optional
-        비용 구조 설정. None일 경우 기본값(10:1)을 사용합니다.
-
-    Returns
-    -------
-    dict
-        결정 결과 (decision: 'excavate' 또는 'skip') 및 기대 손실 정보.
     """
     if cost_config is None:
         cost_config = DecisionCost()
 
-    p = posterior_suitable
-    c_fp = cost_config.cost_fp
-    c_fn = cost_config.cost_fn
+    try:
+        p = float(posterior_suitable)
+    except (TypeError, ValueError):
+        p = np.nan
 
-    # 기대 손실 계산
-    expected_loss_excavate = c_fp * (1.0 - p)
-    expected_loss_skip = c_fn * p
-
-    # 손실이 최소화되는 방향으로 결정
-    decision = "excavate" if expected_loss_excavate < expected_loss_skip else "skip"
+    if not np.isfinite(p) or not 0.0 <= p <= 1.0:
+        p = np.nan
+        expected_loss_excavate = np.nan
+        expected_loss_skip = np.nan
+        decision = "skip"
+    else:
+        c_fp = cost_config.cost_fp
+        c_fn = cost_config.cost_fn
+        expected_loss_excavate = c_fp * (1.0 - p)
+        expected_loss_skip = c_fn * p
+        decision = "excavate" if expected_loss_excavate < expected_loss_skip else "skip"
 
     return {
-        "posterior_suitable": float(p),
+        "posterior_suitable": float(p) if np.isfinite(p) else np.nan,
         "p_threshold": float(cost_config.p_threshold),
-        "expected_loss_excavate": float(expected_loss_excavate),
-        "expected_loss_skip": float(expected_loss_skip),
+        "expected_loss_excavate": float(expected_loss_excavate) if np.isfinite(expected_loss_excavate) else np.nan,
+        "expected_loss_skip": float(expected_loss_skip) if np.isfinite(expected_loss_skip) else np.nan,
         "decision": decision,
     }

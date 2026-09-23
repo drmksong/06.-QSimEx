@@ -13,6 +13,8 @@ from typing import List, Dict, Any, Optional, Tuple
 import numpy as np
 import pandas as pd
 from scipy import integrate, stats
+from .constants import standardize_metrics
+import logging
 
 # sklearn imports moved into compute_roc_analysis to avoid module-level
 # possibly-unbound warnings from static analyzers.
@@ -109,7 +111,7 @@ class DecisionUsefulnessTester:
         sensitivity = tp / actual_good if actual_good > 0 else np.nan
         specificity = tn / actual_bad if actual_bad > 0 else np.nan
 
-        return {
+        metrics = {
             "n": n,
             "TP_correct_excavate": tp,
             "FP_false_safe": fp,
@@ -125,6 +127,8 @@ class DecisionUsefulnessTester:
             "specificity_actual_bad_detected": specificity,
             "false_safe_rate": fp / actual_bad if actual_bad > 0 else np.nan,
             "false_alarm_rate": fn / actual_good if actual_good > 0 else np.nan,
+            "R_FS_pass": fp / pred_good if pred_good > 0 else np.nan,
+            "R_FN_reject": fn / pred_bad if pred_bad > 0 else np.nan,
             "PPV_when_BH_good": tp / pred_good if pred_good > 0 else np.nan,
             "NPV_when_BH_bad": tn / pred_bad if pred_bad > 0 else np.nan,
             "TPR": sensitivity,
@@ -135,6 +139,14 @@ class DecisionUsefulnessTester:
             "precision": tp / pred_good if pred_good > 0 else np.nan,  # Precision (PPV)
         }
 
+        # Ensure returned dict contains canonical metric keys as accepted across the codebase
+        try:
+            metrics = standardize_metrics(metrics)
+        except Exception:
+            pass
+
+        return metrics
+
     # ------------------------------------------------------------
     # Layer 3 & 4: Explicit Labeling and Decision Logic
     # ------------------------------------------------------------
@@ -144,10 +156,11 @@ class DecisionUsefulnessTester:
     ) -> pd.DataFrame:
         """
         Layer 3: Reference Label Generator
-        처분 적합/부적합을 정의하는 기준 라벨 생성
+        처분 적합/부적합을 정의하는 기준 라벨 생성.
+
+        핵심은 reference label이 borehole score와 분리되어야 한다는 점이다.
         """
         df = df.copy()
-        # 수치형 변환 보장
         val = pd.to_numeric(df[reference_col], errors="coerce")
         df["reference_q"] = val
         df["suitable"] = np.where(val >= threshold, 1, 0)
@@ -159,10 +172,28 @@ class DecisionUsefulnessTester:
     ) -> pd.DataFrame:
         """
         Layer 4: Decision Score Generator
-        의사결정에 사용할 시추공 score 정의
+        의사결정에 사용할 시추공 score 정의.
+
+        이 값은 reference 라벨 계산과 분리되어야 하며,
+        반드시 실제 시추공 관측값(score_col)만을 반영한다.
         """
         df = df.copy()
         df["decision_score"] = pd.to_numeric(df[score_col], errors="coerce")
+        return df
+
+    @staticmethod
+    def prepare_decision_frame(
+        df: pd.DataFrame,
+        reference_col: str = "Qp_face_mean",
+        score_col: str = "Qp_borehole_mean",
+        threshold: float = 4.0,
+    ) -> pd.DataFrame:
+        """Reference label과 decision score를 명시적으로 분리해 준비한다."""
+        df = df.copy()
+        df = DecisionUsefulnessTester.assign_reference_label(
+            df, reference_col=reference_col, threshold=threshold
+        )
+        df = DecisionUsefulnessTester.assign_decision_score(df, score_col=score_col)
         return df
 
     @classmethod
@@ -186,6 +217,11 @@ class DecisionUsefulnessTester:
         y_pred = np.where(y_score_arr >= threshold, 1, 0)
 
         metrics = cls.confusion_metrics(y_true, y_pred)
+        # Normalize legacy/canonical metric names into canonical keys
+        try:
+            metrics = standardize_metrics(metrics)
+        except Exception:
+            logging.warning("standardize_metrics failed in confusion_metrics; returning raw metrics")
         metrics["threshold"] = threshold
         # FNR 계산 추가 (기존 confusion_metrics와 통합)
         metrics["FNR"] = metrics.get("FN_false_alarm", 0) / metrics.get(
@@ -214,6 +250,9 @@ class DecisionUsefulnessTester:
                 df, threshold=th, score_col=score_col, label_col=label_col
             )
 
+            # ensure metric keys are standardized before cost computation
+            metrics = standardize_metrics(metrics)
+
             n = metrics.get("n", 0)
             fp = metrics.get("FP_false_safe", 0)
             fn = metrics.get("FN_false_alarm", 0)
@@ -241,6 +280,8 @@ class DecisionUsefulnessTester:
                     "net_benefit": nb,
                 }
             )
+            # finalize canonical naming
+            metrics = standardize_metrics(metrics)
             rows.append(metrics)
 
         cost_df = pd.DataFrame(rows)
@@ -470,12 +511,21 @@ class DecisionUsefulnessTester:
             "threshold": threshold,
             "cost_false_safe": cost_false_safe,
             "cost_false_alarm": cost_false_alarm,
+            # provide canonical cost keys for downstream consumers
+            "cost_fp": cost_false_safe,
+            "cost_fn": cost_false_alarm,
             "prior_face_good_rate": prior_good_rate,
             "borehole_strategy": bh_metrics,
             "baseline_always_excavate": always_excavate,
             "baseline_always_reject": always_reject,
             "baseline_majority": majority,
         }
+
+        # ensure canonical keys are present (safe normalization)
+        try:
+            out = standardize_metrics(out)
+        except Exception:
+            pass
 
         self.face_rows = original_rows
         return out

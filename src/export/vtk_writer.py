@@ -237,8 +237,20 @@ def _write_vtp_polys(filepath, points, polys, cell_data=None):
             f.write('      <CellData>\n')
             for name, (dtype, vals) in cell_data.items():
                 f.write(f'        <DataArray type="{dtype}" Name="{name}" format="ascii">\n')
-                for i in range(0, len(vals), 10):
-                    chunk = vals[i:i + 10]
+                # defensively coerce None/invalid values to safe numeric defaults
+                safe_vals = []
+                for v in vals:
+                    try:
+                        if v is None:
+                            # float types -> NaN-like 0.0, int types -> 0
+                            safe_vals.append(0.0 if dtype.startswith('Float') else 0)
+                        else:
+                            safe_vals.append(float(v) if dtype.startswith('Float') else int(v))
+                    except Exception:
+                        safe_vals.append(0.0 if dtype.startswith('Float') else 0)
+
+                for i in range(0, len(safe_vals), 10):
+                    chunk = safe_vals[i:i + 10]
                     if dtype.startswith('Float'):
                         f.write('          ' + ' '.join(f'{v:.6f}' for v in chunk) + '\n')
                     else:

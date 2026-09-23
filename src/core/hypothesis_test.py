@@ -118,6 +118,22 @@ class BatchHypothesisTester:
         # scipy 없으면 rank corr 미제공
         return {"n": len(x), "rho": np.nan, "p": np.nan}
 
+    def _safe_corr(self, x: np.ndarray, y: np.ndarray) -> float:
+        """Return Pearson correlation or np.nan if undefined (zero-variance)."""
+        try:
+            xv, yv = self._valid(x, y)
+        except Exception:
+            return float('nan')
+        if len(xv) == 0:
+            return float('nan')
+        # if either has zero variance, correlation undefined
+        if np.nanstd(xv) == 0 or np.nanstd(yv) == 0:
+            return float('nan')
+        try:
+            return float(np.corrcoef(xv, yv)[0, 1])
+        except Exception:
+            return float('nan')
+
     def _linear_regression(self, x: np.ndarray, y: np.ndarray) -> Dict[str, Any]:
         x, y = self._valid(x, y)
         n = len(x)
@@ -300,12 +316,16 @@ class BatchHypothesisTester:
         test = self._one_sample_ttest(diff, mu=0.0, alternative="two-sided")
         abs_log_err = self._face_abs_log_qp_error()
         mean_abs_log_err = float(np.nanmean(abs_log_err)) if len(abs_log_err) else np.nan
+        # also provide Qp correlation (borehole vs face) with safe handling
+        qp_corr = self._safe_corr(self._get_array(self.face_rows, 'Qp_face_mean'),
+                      self._get_array(self.face_rows, 'Qp_borehole_mean'))
 
         return {
             "hypothesis": "H1",
             "metric": "Qp_difference",
             "test": test,
             "mean_abs_log10_error": mean_abs_log_err,
+            "Qp_correlation": qp_corr,
         }
 
     def test_h2(self) -> Dict[str, Any]:

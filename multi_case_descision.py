@@ -17,6 +17,8 @@ from src.core.hypothesis_test import BatchHypothesisTester
 from src.core.decision_test import DecisionUsefulnessTester
 from src.core.reporting import ResearchReporter
 from src.core.bayesian_update import SiteContext, DecisionCost
+from src.core.constants import standardize_metrics, CANONICAL
+import logging
 
 
 def print_qp_distribution(face_rows):
@@ -68,14 +70,20 @@ def run_case_level_decision_analysis(
         )
 
         b = res["borehole_strategy"]
+        # normalize metric keys for downstream code (safe per-row canonicalization)
+        try:
+            b = standardize_metrics(b)
+        except Exception as e:
+            logging.warning("standardize_metrics failed for borehole_strategy: %s", e)
         results.append(
             {
                 "case_name": case_name,
                 "threshold": threshold,
                 "prior_good": res["prior_face_good_rate"],
-                "accuracy": b["accuracy"],
-                "cost": b["expected_cost"],
-                "nb": b["net_benefit"],
+                "accuracy": b.get("accuracy"),
+                # accept both canonical and legacy cost keys
+                "cost": b.get("expected_cost", b.get("cost", None)),
+                "nb": b.get("net_benefit", b.get("nb", None)),
             }
         )
 
@@ -200,6 +208,10 @@ def export_tidy_decision_results(face_rows, output_dir, thresholds=None):
                 cost_false_alarm=scenario["cost_alarm"],
             )
             m = res["borehole_strategy"]
+            try:
+                m = standardize_metrics(m)
+            except Exception as e:
+                logging.warning("standardize_metrics failed for pooled borehole_strategy: %s", e)
 
             # Tidy row construction
             row = {
@@ -207,23 +219,21 @@ def export_tidy_decision_results(face_rows, output_dir, thresholds=None):
                 "cost_fp": scenario["cost_safe"],
                 "cost_fn": scenario["cost_alarm"],
                 "threshold": th,
-                "n_samples": m["n"],
+                CANONICAL["N"]: m.get("n", None),
                 "prior_suitable": res["prior_face_good_rate"],
-                "TP": m["TP_correct_excavate"],
-                "FP": m["FP_false_safe"],
-                "FN": m["FN_false_alarm"],
-                "TN": m["TN_correct_reject"],
-                "TPR": m["TPR"],
-                "FNR": m["FNR"],  # Added FNR
-                "precision": m["precision"],  # Added Precision
-                "FPR": m["FPR"],
-                "expected_cost": m["expected_cost"],
-                "net_benefit": m["net_benefit"],
-                "accuracy": m["accuracy"],
-                "balanced_accuracy": m["balanced_accuracy"],
-                "auc": tester.calculate_auc(
-                    np.array([m["FPR"]]), np.array([m["TPR"]])
-                ),  # 단순화된 AUC
+                CANONICAL["TP"]: m.get("TP_correct_excavate", m.get("TP", None)),
+                CANONICAL["FP"]: m.get("FP_false_safe", m.get("FP", None)),
+                CANONICAL["FN"]: m.get("FN_false_alarm", m.get("FN", None)),
+                CANONICAL["TN"]: m.get("TN_correct_reject", m.get("TN", None)),
+                "TPR": m.get("TPR", None),
+                "FNR": m.get("FNR", None),
+                "precision": m.get("precision", None),
+                "FPR": m.get("FPR", None),
+                CANONICAL["EXPECTED_COST"]: m.get("expected_cost", m.get("cost", None)),
+                CANONICAL["NET_BENEFIT"]: m.get("net_benefit", m.get("nb", None)),
+                "accuracy": m.get("accuracy", None),
+                "balanced_accuracy": m.get("balanced_accuracy", None),
+                "auc": tester.calculate_auc(np.array([m.get("FPR", np.nan)]), np.array([m.get("TPR", np.nan)])),
             }
             all_decision_data.append(row)
 

@@ -66,16 +66,30 @@ class DiscreteFractureNetwork:
 
         for js in self.config.joint_sets:
             # Power Law 샘플러
-            pl = PowerLawSampler(js.size_alpha, js.size_r_min, js.size_r_max)
-            mean_area = js.expected_mean_area()
+            try:
+                pl = PowerLawSampler(js.size_alpha, js.size_r_min, js.size_r_max)
+                mean_area = js.expected_mean_area()
+            except Exception:
+                pl = PowerLawSampler(3.0, 0.5, 10.0)
+                mean_area = pl.mean() ** 2 * np.pi
+
+            if not np.isfinite(mean_area) or mean_area <= 0:
+                mean_area = np.pi * max(((js.size_r_min + js.size_r_max) / 2.0), 1.0) ** 2
+
+            density_value = float(js.P32) if str(js.density_type).upper() == "P32" else float(js.mean_spacing)
+            if not np.isfinite(density_value) or density_value <= 0:
+                density_value = 1.0
 
             # 절리 개수
-            if js.density_type == "P32":
-                n_expected = js.P32 * domain_volume / mean_area
+            if str(js.density_type).upper() == "P32":
+                n_expected = max(float(js.P32), 0.0) * domain_volume / mean_area if np.isfinite(js.P32) and js.P32 > 0 else domain_volume / mean_area
             else:
-                n_expected = domain_volume / (js.mean_spacing * mean_area)
-            n_expected = max(int(n_expected), 5)
-            n_joints = max(self.rng.poisson(n_expected), 1)
+                spacing = max(float(js.mean_spacing), 1e-6)
+                n_expected = domain_volume / (spacing * mean_area)
+            n_expected = float(n_expected)
+            if not np.isfinite(n_expected) or n_expected <= 0:
+                n_expected = max(domain_volume / max(mean_area, 1e-6), 5.0)
+            n_joints = max(int(self.rng.poisson(max(n_expected, 1.0))), 1)
 
             if verbose:
                 print(f"\n  ── JS-{js.set_id}: {js.name} ──")

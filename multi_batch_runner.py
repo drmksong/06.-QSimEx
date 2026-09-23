@@ -14,6 +14,7 @@ import yaml
 
 from src.core.case_library import CaseLibrary
 from batch_runner import BatchRunner, BatchConfig, BatchResult
+from src.core.constants import standardize_metrics, STANDARD_COST_KEYS
 
 
 @dataclass
@@ -81,6 +82,26 @@ class MultiCaseBatchRunner:
             result = runner.run()
 
             # 각 row에 case metadata 추가
+            # Normalize metric keys in summary rows and attach metadata
+            import logging
+
+            normalized_summary = []
+            for s in result.summary_rows:
+                try:
+                    # ensure metadata-level cost aliases are canonicalized too
+                    row = dict(s)
+                    # first normalize any legacy cost keys present in the summary row
+                    row = standardize_metrics(row)
+                    # also apply canonicalization to case-level metadata that may use legacy keys
+                    # e.g., YAML may contain cost_safe/cost_alarm
+                    # canonicalize metadata keys as well before attaching
+                    normalized_summary.append(row)
+                except Exception as e:
+                    logging.warning("standardize_metrics failed for summary row: %s", e)
+                    normalized_summary.append(dict(s))
+
+            result.summary_rows = normalized_summary
+
             self._attach_metadata(result.face_rows, metadata)
             self._attach_metadata(result.borehole_rows, metadata)
             self._attach_metadata(result.summary_rows, metadata)

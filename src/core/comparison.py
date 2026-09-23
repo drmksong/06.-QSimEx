@@ -7,6 +7,7 @@
 import numpy as np
 from typing import Dict, List, Optional
 from .tunnel import Tunnel
+from .constants import standardize_metrics
 
 
 class ComparisonEngine:
@@ -387,6 +388,13 @@ class ComparisonEngine:
                 }
             )
 
+        import logging
+
+        try:
+            comparison = standardize_metrics(comparison)
+        except Exception as e:
+            logging.warning("standardize_metrics failed for comparison dict at face %s: %s", face_x_idx, e)
+
         return comparison
 
     def progressive_comparison(
@@ -431,10 +439,18 @@ class ComparisonEngine:
             c.get("_bh_union_fracture_frequency", 0.0) for c in comparisons
         ]
 
-        corr_Q = float(np.corrcoef(bh_Q, face_Q)[0, 1]) if len(comparisons) > 2 else 0.0
-        corr_Qp = (
-            float(np.corrcoef(bh_Qp, face_Qp)[0, 1]) if len(comparisons) > 2 else 0.0
-        )
+        def _safe_corr(a, b):
+            if len(a) <= 2:
+                return np.nan
+            aa = np.asarray(a, dtype=float)
+            bb = np.asarray(b, dtype=float)
+            if np.nanstd(aa) == 0 or np.nanstd(bb) == 0:
+                return np.nan
+            c = np.corrcoef(aa, bb)[0, 1]
+            return float(c) if np.isfinite(c) else np.nan
+
+        corr_Q = _safe_corr(bh_Q, face_Q)
+        corr_Qp = _safe_corr(bh_Qp, face_Qp)
 
         def match_rate(ratios, lo, hi):
             return sum(1 for r in ratios if lo <= r <= hi) / len(ratios) * 100
@@ -450,7 +466,7 @@ class ComparisonEngine:
         obi_gap = [c.get('_orientation_bias_gap', 0.0) for c in comparisons]                
 
 
-        return {
+        summary = {
             "n_faces": len(comparisons),
             "Q_ratio_mean": float(np.mean(Q_ratios)),
             "Q_ratio_std": float(np.std(Q_ratios)),
@@ -531,6 +547,15 @@ class ComparisonEngine:
                 'orientation_bias_gap_std': float(np.std(obi_gap)),
             },
         }
+
+        import logging
+
+        try:
+            summary = standardize_metrics(summary)
+        except Exception as e:
+            logging.warning("standardize_metrics failed for comparison.summary: %s", e)
+
+        return summary
 
     def print_report(self, comparisons: List[Dict], summary: Dict = None):
         """텍스트 비교 리포트 출력"""

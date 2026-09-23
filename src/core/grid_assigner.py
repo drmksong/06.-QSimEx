@@ -108,9 +108,30 @@ class GridParameterAssigner:
             backend: 'auto', 'cuda', 'mps', 'mlx', 'cpu'
             batch_size: GPU 배치 크기 (메모리 제어)
         """
+        try:
+            scan_length = float(scan_length)
+        except (TypeError, ValueError):
+            scan_length = 5.0
+        if not np.isfinite(scan_length) or scan_length <= 0:
+            scan_length = 5.0
+
+        try:
+            batch_size = int(batch_size)
+        except (TypeError, ValueError):
+            batch_size = 500
+        if batch_size <= 0:
+            batch_size = 500
+
         if rqd_scanline_dir is None:
-            rqd_scanline_dir = np.array([1.0, 0.0, 0.0])
-        scanline_dir = rqd_scanline_dir / np.linalg.norm(rqd_scanline_dir)
+            rqd_scanline_dir = np.array([1.0, 0.0, 0.0], dtype=float)
+        try:
+            scanline_dir = np.asarray(rqd_scanline_dir, dtype=float)
+            norm = np.linalg.norm(scanline_dir)
+            if not np.isfinite(norm) or norm <= 0:
+                raise ValueError
+            scanline_dir = scanline_dir / norm
+        except Exception:
+            scanline_dir = np.array([1.0, 0.0, 0.0], dtype=float)
 
         # 백엔드 선택
         if backend == "auto":

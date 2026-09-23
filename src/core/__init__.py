@@ -15,7 +15,7 @@ from .dfn_generator import DiscreteFractureNetwork
 from .rqd_calculator import RQDCalculator, DirectionalRQDCalculator
 from .grid_assigner import GridParameterAssigner
 from .domain import RockDomain, AnalysisCase
-from .tunnel_old import Tunnel
+from .tunnel import Tunnel
 from .q_calculator import QCalculator
 from .comparison import ComparisonEngine
 from .case_library import CaseLibrary

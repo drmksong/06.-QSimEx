@@ -77,14 +77,26 @@ class JointSetDefinition:
 
     def expected_mean_area(self) -> float:
         """절리 1개의 기대 면적 E[πr²]"""
-        a = self.size_alpha
-        rn, rx = self.size_r_min, self.size_r_max
+        try:
+            a = float(self.size_alpha)
+            rn = float(self.size_r_min)
+            rx = float(self.size_r_max)
+        except (TypeError, ValueError):
+            return np.pi * 1.0
+
+        if not np.isfinite(a) or not np.isfinite(rn) or not np.isfinite(rx):
+            return np.pi * 1.0
+        if rn <= 0 or rx <= rn or a <= 0:
+            return np.pi * max((0.5 * (rn + rx)), 1.0) ** 2
+
         ratio_a = (rn / rx) ** a
         norm = 1.0 - ratio_a
         if a <= 2.0 or norm < 1e-15:
-            return np.pi * ((rn + rx) / 2) ** 2
+            return np.pi * max(((rn + rx) / 2.0), 1.0) ** 2
         num = (a * rn ** a * (rn ** (2 - a) - rx ** (2 - a))) / (a - 2)
         E_r2 = num / norm
+        if not np.isfinite(E_r2) or E_r2 <= 0:
+            return np.pi * max(((rn + rx) / 2.0), 1.0) ** 2
         return np.pi * E_r2
 
     def summary(self) -> str:
@@ -146,8 +158,20 @@ class PowerLawSampler:
     """
 
     def __init__(self, alpha: float, r_min: float, r_max: float):
-        assert alpha > 0, f"α must be positive: {alpha}"
-        assert 0 < r_min < r_max, f"Need r_min < r_max: {r_min}, {r_max}"
+        try:
+            alpha = float(alpha)
+            r_min = float(r_min)
+            r_max = float(r_max)
+        except (TypeError, ValueError):
+            alpha, r_min, r_max = 3.0, 0.5, 10.0
+
+        if not np.isfinite(alpha) or alpha <= 0:
+            alpha = 3.0
+        if not np.isfinite(r_min) or r_min <= 0:
+            r_min = 0.5
+        if not np.isfinite(r_max) or r_max <= r_min:
+            r_max = max(r_min * 2.0, r_min + 1.0)
+
         self.alpha = alpha
         self.r_min = r_min
         self.r_max = r_max

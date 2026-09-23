@@ -56,6 +56,31 @@ class AnalysisCase:
                                        size_r_min=0.3, size_r_max=12.0,
                                        P32=0.6),
                 ])
+
+        # Keep the grid dimensions as integer cell counts for NumPy shapes,
+        # while preserving spacing as physical distances.
+        if not isinstance(self.domain_size, (tuple, list)) or len(self.domain_size) != 3:
+            self.domain_size = (100, 50, 50)
+        try:
+            self.domain_size = tuple(int(round(float(v))) for v in self.domain_size)
+        except (TypeError, ValueError):
+            self.domain_size = (100, 50, 50)
+
+        if not isinstance(self.grid_spacing, (tuple, list)) or len(self.grid_spacing) != 3:
+            self.grid_spacing = (1.0, 1.0, 1.0)
+        try:
+            self.grid_spacing = tuple(float(v) for v in self.grid_spacing)
+        except (TypeError, ValueError):
+            self.grid_spacing = (1.0, 1.0, 1.0)
+
+        if not np.isfinite(self.tunnel_center_y):
+            self.tunnel_center_y = 25.0
+        if not np.isfinite(self.tunnel_center_z):
+            self.tunnel_center_z = 25.0
+        if not np.isfinite(self.tunnel_radius) or self.tunnel_radius <= 0:
+            self.tunnel_radius = 5.0
+        if not np.isfinite(self.rqd_scan_length) or self.rqd_scan_length <= 0:
+            self.rqd_scan_length = 5.0
     
     @classmethod
     def from_yaml(self, path: str) -> 'AnalysisCase':
@@ -86,8 +111,8 @@ class RockDomain:
 
     def __init__(self, case: 'AnalysisCase'):
         self.case = case
-        self.nx, self.ny, self.nz = case.domain_size
-        self.dx, self.dy, self.dz = case.grid_spacing
+        self.nx, self.ny, self.nz = [int(round(float(v))) for v in case.domain_size]
+        self.dx, self.dy, self.dz = tuple(float(v) for v in case.grid_spacing)
 
         self.dfn = None
         self.dir_rqd_calc = None

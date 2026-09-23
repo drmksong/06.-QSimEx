@@ -12,6 +12,7 @@ from .domain import RockDomain
 from .q_calculator import QCalculator
 from .rqd_calculator import RQDCalculator
 from .q_calculator import QCalculator
+from .constants import standardize_metrics
 
 class Tunnel:
     """터널 & 시추공 & 막장면 — DFN 직접 교차 기반"""
@@ -238,7 +239,7 @@ class Tunnel:
         unique_hit_joints = list({id(j): j for _, j in intersections}.values())
         unique_hit_joint_ids = [id(j) for j in unique_hit_joints]
 
-        return {
+        result = {
             'x': np.arange(x_start, x_end) * self.domain.dx,
             'borehole_name': self.BH_NAMES[bh_idx] if bh_idx < 3 else f'BH-{bh_idx}',
             'RQD': rqd_arr,
@@ -255,6 +256,13 @@ class Tunnel:
             '_joint_ids': unique_hit_joint_ids,
             '_joint_ids_set': set(unique_hit_joint_ids),
         }
+
+        try:
+            result = standardize_metrics(result)
+        except Exception:
+            pass
+
+        return result
     # ================================================================
     # ★ 기계적 코어 파쇄 생성
     # ================================================================

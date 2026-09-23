@@ -18,6 +18,7 @@ RQD 방법 비교 분석 유틸리티.
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Optional, Sequence, Tuple
+from src.core.constants import standardize_metrics
 
 
 def _safe_numeric_series(df: pd.DataFrame, col: str) -> pd.Series:
@@ -217,22 +218,24 @@ def rqd_threshold_metrics(
     ).replace([np.inf, -np.inf], np.nan).dropna()
 
     if len(sub) == 0:
-        return {
-            "predictor": predictor_col,
-            "target": target_col,
-            "threshold": float(threshold),
-            "n": 0,
-            "prior_target_good_rate": np.nan,
-            "TP": 0,
-            "FP_false_safe": 0,
-            "FN_false_alarm": 0,
-            "TN": 0,
-            "accuracy": np.nan,
-            "balanced_accuracy": np.nan,
-            "false_safe_rate": np.nan,
-            "false_alarm_rate": np.nan,
-            "expected_cost": np.nan,
-        }
+        return standardize_metrics(
+            {
+                "predictor": predictor_col,
+                "target": target_col,
+                "threshold": float(threshold),
+                "n": 0,
+                "prior_target_good_rate": np.nan,
+                "TP": 0,
+                "FP_false_safe": 0,
+                "FN_false_alarm": 0,
+                "TN": 0,
+                "accuracy": np.nan,
+                "balanced_accuracy": np.nan,
+                "false_safe_rate": np.nan,
+                "false_alarm_rate": np.nan,
+                "expected_cost": np.nan,
+            }
+        )
 
     x = sub["pred"].values.astype(float)
     y = sub["target"].values.astype(float)
@@ -258,26 +261,27 @@ def rqd_threshold_metrics(
     false_safe_rate = FP / n_bad if n_bad > 0 else np.nan
     false_alarm_rate = FN / n_good if n_good > 0 else np.nan
 
-    expected_cost = (
-        cost_false_safe * FP + cost_false_alarm * FN
-    ) / n
+    expected_cost = (cost_false_safe * FP + cost_false_alarm * FN) / n
 
-    return {
-        "predictor": predictor_col,
-        "target": target_col,
-        "threshold": float(threshold),
-        "n": int(n),
-        "prior_target_good_rate": float(np.mean(target_good)),
-        "TP": TP,
-        "FP_false_safe": FP,
-        "FN_false_alarm": FN,
-        "TN": TN,
-        "accuracy": float(accuracy),
-        "balanced_accuracy": float(balanced_accuracy),
-        "false_safe_rate": float(false_safe_rate),
-        "false_alarm_rate": float(false_alarm_rate),
-        "expected_cost": float(expected_cost),
-    }
+    # return canonical keys where possible and keep legacy names for backward compatibility
+    return standardize_metrics(
+        {
+            "predictor": predictor_col,
+            "target": target_col,
+            "threshold": float(threshold),
+            "n": int(n),
+            "prior_target_good_rate": float(np.mean(target_good)),
+            "TP": TP,
+            "FP_false_safe": FP,
+            "FN_false_alarm": FN,
+            "TN": TN,
+            "accuracy": float(accuracy),
+            "balanced_accuracy": float(balanced_accuracy),
+            "false_safe_rate": float(false_safe_rate),
+            "false_alarm_rate": float(false_alarm_rate),
+            "expected_cost": float(expected_cost),
+        }
+    )
 
 
 def compare_rqd_methods(

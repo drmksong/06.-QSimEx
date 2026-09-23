@@ -22,7 +22,7 @@ except ImportError:
 
 from core.case_library import CaseLibrary
 from core.domain import RockDomain
-from core.tunnel_old import Tunnel
+from core.tunnel import Tunnel
 from core.comparison import ComparisonEngine
 
 

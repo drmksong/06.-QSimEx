@@ -21,6 +21,7 @@ from typing import Dict, List, Tuple, Optional
 from .domain import RockDomain
 from .q_calculator import QCalculator
 from .rqd_calculator import RQDCalculator, DirectionalRQDCalculator
+from .constants import standardize_metrics
 
 
 class Tunnel:
@@ -297,7 +298,7 @@ class Tunnel:
         unique_hit_joints = list({id(j): j for _, j in intersections}.values())
         unique_hit_joint_ids = [id(j) for j in unique_hit_joints]
 
-        return {
+        result = {
             'x': np.arange(x_start, x_end) * self.domain.dx,
             'borehole_name': self.BH_NAMES[bh_idx] if bh_idx < 3 else f'BH-{bh_idx}',
 
@@ -329,7 +330,16 @@ class Tunnel:
             '_joint_ids': unique_hit_joint_ids,
             '_joint_ids_set': set(unique_hit_joint_ids),
         }
-    
+
+        import logging
+
+        try:
+            result = standardize_metrics(result)
+        except Exception as e:
+            logging.warning("standardize_metrics failed for tunnel.result at borehole %s: %s", bh_idx, e)
+
+        return result
+
     ##### Delete it later ####
     # # ================================================================
     # # ★ 기계적 코어 파쇄 생성
@@ -645,7 +655,7 @@ class Tunnel:
             'method': 'face_single_horizontal_scanline',
         }
 
-        return {
+        result = {
             'x_idx': x_idx,
             'x_coord': face_x,
             'points': face_points,
@@ -781,6 +791,13 @@ class Tunnel:
             '_Qp_face_jv': Qp_from_jv,
             '_Qp_face_conservative': Qp_from_conservative,
         }
+
+        try:
+            result = standardize_metrics(result)
+        except Exception:
+            pass
+
+        return result
 
     # ================================================================
     # 내부: 다방향 스캔라인 RQD (미세절리 포함)

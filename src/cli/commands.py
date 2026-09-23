@@ -300,8 +300,6 @@ def _run_batch(args):
         return
 
     print(f"\n🔄 배치 실행: {len(cases)}개 케이스")
-    print("=" * 60)
-
     all_summaries = {}
 
     for i, (name, case) in enumerate(cases.items()):
@@ -325,13 +323,15 @@ def _run_batch(args):
 
             all_summaries[name] = summary
 
+            q_corr = summary.get('Q_correlation', summary.get('Q_corr', 0.0))
+            qp_corr = summary.get('Qp_correlation', summary.get('Qp_corr', 0.0))
+            q_match = summary.get('Q_match_rate', summary.get('Q_match_normal', 0.0))
+            qp_match = summary.get('Qp_match_rate', summary.get('Qp_match_normal', 0.0))
             print(
-                f"  Q  상관계수: {summary['Q_correlation']:.4f}, "
-                f"일치율: {summary['Q_match_rate']:.1f}%"
+                f"  Q  상관계수: {q_corr:.4f}, 일치율: {q_match:.1f}%"
             )
             print(
-                f"  Q' 상관계수: {summary['Qp_correlation']:.4f}, "
-                f"일치율: {summary['Qp_match_rate']:.1f}%"
+                f"  Q' 상관계수: {qp_corr:.4f}, 일치율: {qp_match:.1f}%"
             )
 
             if args.paraview:
@@ -357,11 +357,15 @@ def _run_batch(args):
         if "error" in s:
             print(f"  {name:<25} │ {'ERROR':>6} │ {'':>8} │ {'':>6} │ {'':>8}")
         else:
+            q_corr = s.get('Q_correlation', s.get('Q_corr', 0.0))
+            qp_corr = s.get('Qp_correlation', s.get('Qp_corr', 0.0))
+            q_match = s.get('Q_match_rate', s.get('Q_match_normal', s.get('Q_match', 0.0)))
+            qp_match = s.get('Qp_match_rate', s.get('Qp_match_normal', s.get('Qp_match', 0.0)))
             print(
-                f"  {name:<25} │ {s['Q_correlation']:>6.3f} │ "
-                f"{s['Q_match_rate']:>7.1f}% │ "
-                f"{s['Qp_correlation']:>6.3f} │ "
-                f"{s['Qp_match_rate']:>7.1f}%"
+                f"  {name:<25} │ {q_corr:>6.3f} │ "
+                f"{q_match:>7.1f}% │ "
+                f"{qp_corr:>6.3f} │ "
+                f"{qp_match:>7.1f}%"
             )
 
     # 배치 JSON 내보내기
