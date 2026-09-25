@@ -1,0 +1,17 @@
+profile_mc_exploration:
+  # One-seed low-Q reachability pilot; do not use as calibration or validation data.
+  case_paths:
+    - cases/scenario_13_coverage_low_q_refined.yaml
+  seed_range:
+    start: 206
+    stop: 206
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_coverage_low_refined_pilot
+  save_each_case: true
+  save_combined: true
+  verbose: true

@@ -1,3 +1,5 @@
+"""LEGACY_DO_NOT_USE: provisional 4.0-based partial-run analysis."""
+
 import glob
 import os
 import pandas as pd

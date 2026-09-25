@@ -10,6 +10,7 @@ Multi-case batch runner
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 import os
+import time
 import yaml
 
 from src.core.case_library import CaseLibrary
@@ -26,7 +27,7 @@ class MultiCaseBatchConfig:
     backend: str = "auto"
     batch_size: int = 500
     verbose: bool = True
-    output_dir: str = "outputs/multicase"
+    output_dir: str = "legacy_results/outputs/multicase"
     save_each_case: bool = True
     save_combined: bool = True
     correction_mode: str = "pure"
@@ -42,15 +43,17 @@ class MultiCaseBatchRunner:
 
     def run(self) -> BatchResult:
         all_result = BatchResult()
+        total_cases = len(self.config.case_paths)
+        started = time.time()
 
         os.makedirs(self.config.output_dir, exist_ok=True)
 
         for i, case_path in enumerate(self.config.case_paths):
             if self.config.verbose:
                 print("\n" + "=" * 100)
-                print(f"[MultiCase] {i+1}/{len(self.config.case_paths)}")
-                print(f"case: {case_path}")
-                print("=" * 100)
+                print(f"[MultiCase] {i+1}/{total_cases}", flush=True)
+                print(f"case: {case_path}", flush=True)
+                print("=" * 100, flush=True)
 
             case, metadata = self._load_case_and_metadata(case_path)
 
@@ -110,10 +113,21 @@ class MultiCaseBatchRunner:
             all_result.borehole_rows.extend(result.borehole_rows)
             all_result.summary_rows.extend(result.summary_rows)
 
+            if self.config.verbose:
+                elapsed = time.time() - started
+                average = elapsed / (i + 1)
+                remaining = average * (total_cases - i - 1)
+                print(
+                    f"[MultiCase] case 완료: {i + 1}/{total_cases} "
+                    f"진행률={(i + 1) / total_cases * 100:.1f}% "
+                    f"예상 잔여={remaining / 60:.1f}분",
+                    flush=True,
+                )
+
         if self.config.save_combined:
             all_result.save_csv(self.config.output_dir, prefix="all_cases")
             if self.config.verbose:
-                print(f"\n[MultiCase] combined CSV saved to: {self.config.output_dir}")
+                print(f"\n[MultiCase] combined CSV saved to: {self.config.output_dir}", flush=True)
 
         return all_result
 

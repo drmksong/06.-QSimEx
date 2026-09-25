@@ -38,18 +38,18 @@
   - `src/test/test_split_manifest.py`
 - 예상 소요: 1–2시간
 
-3. 경계값 탐색 엔진 (threshold sweep)
+3. Q' 판정 기준값 탐색 엔진
 
 - 목표
-  - Q' 후보(초기 1–40) sweep, 각 후보에서 `R_FS_pass`, `R_FN_reject` 계산
-  - 후보별 confusion matrix, 표본수, 점추정치 저장
+  - Q' 판정 기준값(초기 `0.1~400`, 로그 공간 10구간) 탐색, 각 기준값에서 `R_FS_pass`, `R_FN_reject` 계산
+  - 기준값별 confusion matrix, 표본수, 점추정치 저장
 - 작업
-  - `src/core/threshold_sweep.py` 구현
-  - 결과 저장 포맷: `results/threshold_sweep_{train|validation}.parquet` 또는 JSON
+  - `src/core/qprime_cutoff_search.py` 구현
+  - 결과 저장 포맷: `results/qprime_cutoff_search_{train|validation}.parquet` 또는 JSON
   - 핵심 함수: `compute_confusion_by_threshold(data, thresh)`
   - 테스트: 합성 데이터에서 기대값 확인
 - 산출물
-  - `src/core/threshold_sweep.py`, `src/test/test_threshold_sweep.py`
+  - `src/core/qprime_cutoff_search.py`, `src/test/test_qprime_cutoff_search.py`
 - 예상 소요: 2–4시간
 
 4. 신뢰구간·부트스트랩 (statistical CI)
@@ -59,7 +59,7 @@
   - 계층적 bootstrap: DFN domain을 군집 단위로 재표본
 - 작업
   - `src/core/statistics.py`에 `binomial_ci`, `hierarchical_bootstrap` 추가
-  - `threshold_sweep`와 연동해 각 후보의 CI 저장
+  - `qprime_cutoff_search`와 연동해 각 기준값의 CI 저장
   - 테스트: 알려진 분포의 CI 재현
 - 산출물
   - `src/core/statistics.py`, `src/test/test_statistics.py`
@@ -123,7 +123,7 @@
 ```bash
 cd "06. QSimEx"
 conda run -n dlo-cq python run_cli.py --make-manifest --manifest-out manifests/train_manifest.json
-conda run -n dlo-cq python -m src.core.threshold_sweep --manifest manifests/train_manifest.json --out results/threshold_sweep_train.parquet
+conda run -n dlo-cq python -m src.core.qprime_cutoff_search --manifest manifests/train_manifest.json --out results/qprime_cutoff_search_train.parquet
 ```
 
 진행 로그(이 파일 하단에 기록)

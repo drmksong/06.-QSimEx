@@ -1,3 +1,5 @@
+"""LEGACY_DO_NOT_USE: 4.0-based likelihood count inspection."""
+
 import pandas as pd
 import glob
 

@@ -1,3 +1,5 @@
+"""LEGACY_DO_NOT_USE: provisional single-threshold experiment."""
+
 import sys
 import os
 import numpy as np

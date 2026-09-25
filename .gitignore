@@ -16,6 +16,10 @@ build-macos/
 .vscode/
 venv/
 __pycache__/
+legacy_results/
+output/
+outputs/
+results/
 dist/
 out/
 src_dlo/out/

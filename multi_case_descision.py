@@ -1,5 +1,8 @@
-"""
-Multi-case decision analysis 실행 스크립트
+"""LEGACY_DO_NOT_USE: obsolete single-threshold decision analysis.
+
+This module remains only for historical reference and will be removed after
+the explicit lower/upper cutoff pipeline replaces it. It must not be used to
+generate research results.
 
 실행 예:
 python -m src.cli.run_multicase_decision
@@ -18,6 +21,7 @@ from src.core.decision_test import DecisionUsefulnessTester
 from src.core.reporting import ResearchReporter
 from src.core.bayesian_update import SiteContext, DecisionCost
 from src.core.constants import standardize_metrics, CANONICAL
+from src.core.qprime_cutoff_search import generate_qprime_cutoffs
 import logging
 
 
@@ -246,7 +250,7 @@ def export_tidy_decision_results(face_rows, output_dir, thresholds=None):
 
             # 각 케이스별 최적 임계값 탐색
             sweep = case_tester.sweep_thresholds(
-                thresholds=np.linspace(1, 40, 20).tolist(),
+                thresholds=generate_qprime_cutoffs(),
                 cost_false_safe=scenario["cost_safe"],
                 cost_false_alarm=scenario["cost_alarm"],
             )
@@ -295,6 +299,11 @@ def export_tidy_decision_results(face_rows, output_dir, thresholds=None):
 
 
 def main():
+    raise RuntimeError(
+        "LEGACY_DO_NOT_USE: multi_case_descision.py contains provisional "
+        "single-threshold analysis and is intentionally disabled."
+    )
+
     # case_paths = [
     #     "cases/granite_good_dense.yaml",
     #     "cases/granite_medium.yaml",
@@ -318,7 +327,7 @@ def main():
         backend="mlx",
         batch_size=500,
         verbose=True,
-        output_dir="outputs/nuclear_waste_decision",
+        output_dir="legacy_results/outputs/nuclear_waste_decision",
         save_each_case=True,
         save_combined=True,
         correction_mode="pure",

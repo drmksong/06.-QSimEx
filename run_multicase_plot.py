@@ -10,7 +10,7 @@ from src.visualization.plots import Visualizer
 
 def main():
     parser = argparse.ArgumentParser(description="Plot multi-case Q' results")
-    parser.add_argument('--input-dir', type=str, default='outputs/disposal_lowfract_curated')
+    parser.add_argument('--input-dir', type=str, default='legacy_results/outputs/disposal_lowfract_curated')
     parser.add_argument('--save-path', type=str, default=None)
     args = parser.parse_args()
 

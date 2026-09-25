@@ -35,7 +35,7 @@
 
 생성 파일:
 
-- 전체 스윕: [outputs/disposal_lowfract_curated/analysis/qprime_threshold_sweep_case.csv](../outputs/disposal_lowfract_curated/analysis/qprime_threshold_sweep_case.csv)
+- 전체 Q' 판정 기준값 탐색 결과: [outputs/disposal_lowfract_curated/analysis/qprime_threshold_sweep_case.csv](../outputs/disposal_lowfract_curated/analysis/qprime_threshold_sweep_case.csv)
 - 케이스별 최종 판정: [outputs/disposal_lowfract_curated/analysis/qprime_case_recommendation.csv](../outputs/disposal_lowfract_curated/analysis/qprime_case_recommendation.csv)
 - 요약 JSON: [outputs/disposal_lowfract_curated/analysis/qprime_analysis_summary.json](../outputs/disposal_lowfract_curated/analysis/qprime_analysis_summary.json)
 

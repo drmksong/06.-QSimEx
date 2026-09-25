@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-<VTKFile type="Collection" version="1.0">
-  <Collection>
-    <DataSet timestep="10.0" file="face_traces/face_010m.vtp"/>
-    <DataSet timestep="20.0" file="face_traces/face_020m.vtp"/>
-    <DataSet timestep="30.0" file="face_traces/face_030m.vtp"/>
-    <DataSet timestep="40.0" file="face_traces/face_040m.vtp"/>
-  </Collection>
-</VTKFile>

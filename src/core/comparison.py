@@ -68,10 +68,10 @@ class ComparisonEngine:
                 'name': bh['borehole_name'],
 
                 # 기존 Q/Q' 요약
-                'Q_mean': float(np.mean(bh['Q'])) if len(bh['Q']) > 0 else 0.0,
-                'Q_median': float(np.median(bh['Q'])) if len(bh['Q']) > 0 else 0.0,
-                'Qprime_mean': float(np.mean(bh['Qprime'])) if len(bh['Qprime']) > 0 else 0.0,
-                'Qprime_median': float(np.median(bh['Qprime'])) if len(bh['Qprime']) > 0 else 0.0,
+                'Q_mean': float(np.mean(bh['Q'])) if len(bh['Q']) > 0 else np.nan,
+                'Q_median': float(np.median(bh['Q'])) if len(bh['Q']) > 0 else np.nan,
+                'Qprime_mean': float(np.mean(bh['Qprime'])) if len(bh['Qprime']) > 0 else np.nan,
+                'Qprime_median': float(np.median(bh['Qprime'])) if len(bh['Qprime']) > 0 else np.nan,
 
                 # ============================================================
                 # RQD 방법 비교용 borehole 요약
@@ -139,8 +139,8 @@ class ComparisonEngine:
         # ------------------------------------------------------------
         # 3) Aggregate borehole stats
         # ------------------------------------------------------------
-        bh_Q_means = [b["Q_mean"] for b in borehole_results]
-        bh_Qp_means = [b["Qprime_mean"] for b in borehole_results]
+        bh_Q_means = [b["Q_mean"] for b in borehole_results if np.isfinite(b["Q_mean"])]
+        bh_Qp_means = [b["Qprime_mean"] for b in borehole_results if np.isfinite(b["Qprime_mean"])]
 
         face_Q_mean = face["stats"]["Q"]["mean"]
         face_Qp_mean = face["stats"]["Qprime"]["mean"]
@@ -259,15 +259,17 @@ class ComparisonEngine:
             # Q' comparison
             "Qp_face_mean": face_Qp_mean,
             "Qp_face_median": face["stats"]["Qprime"]["median"],
-            "Qp_borehole_mean": float(np.mean(bh_Qp_means)) if bh_Qp_means else 0.0,
+            "Qp_borehole_mean": float(np.mean(bh_Qp_means)) if bh_Qp_means else np.nan,
             "Qp_borehole_each": bh_Qp_means,
             "Qp_ratio": (
                 float(np.mean(bh_Qp_means) / max(face_Qp_mean, 1e-10))
-                if bh_Qp_means
-                else 0.0
+                if bh_Qp_means and np.isfinite(face_Qp_mean) and face_Qp_mean != 0
+                else np.nan
             ),
             "Qp_difference": (
-                float(np.mean(bh_Qp_means) - face_Qp_mean) if bh_Qp_means else 0.0
+                float(np.mean(bh_Qp_means) - face_Qp_mean)
+                if bh_Qp_means and np.isfinite(face_Qp_mean)
+                else np.nan
             ),
             # face diagnostic info
             # 주의:

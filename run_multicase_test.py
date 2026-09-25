@@ -32,7 +32,7 @@ def main():
         backend="auto",
         batch_size=100,
         verbose=True,
-        output_dir="outputs/disposal_lowfract_curated",
+        output_dir="legacy_results/outputs/disposal_lowfract_curated",
         save_each_case=True,
         save_combined=True,
         correction_mode="pure",

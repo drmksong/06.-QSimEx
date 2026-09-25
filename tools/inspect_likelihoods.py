@@ -1,3 +1,5 @@
+"""LEGACY_DO_NOT_USE: 4.0-based likelihood inspection."""
+
 import pandas as pd
 from src.core.decision_test import DecisionUsefulnessTester
 

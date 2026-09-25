@@ -125,7 +125,7 @@ class BatchRunner:
             t0 = time.time()
 
             if self.config.verbose:
-                print(f"\n[Batch] {i+1}/{n_total} seed={seed} 실행 중...")
+                print(f"\n[Batch] {i+1}/{n_total} seed={seed} 실행 중...", flush=True)
 
             case_seeded = self._clone_case_with_seed(self.case, seed)
 
@@ -164,14 +164,19 @@ class BatchRunner:
 
             elapsed = time.time() - t0
             if self.config.verbose:
+                average = (time.time() - t0_all) / (i + 1)
+                remaining = average * (n_total - i - 1)
                 print(
                     f"[Batch] seed={seed} 완료 ({elapsed:.1f}초), "
-                    f"faces={len(comparisons)}"
+                    f"faces={len(comparisons)}, "
+                    f"진행률={(i + 1) / n_total * 100:.1f}%, "
+                    f"예상 잔여={remaining / 60:.1f}분",
+                    flush=True,
                 )
 
         total_elapsed = time.time() - t0_all
         if self.config.verbose:
-            print(f"\n[Batch] 전체 완료: seeds={n_total}, " f"총 {total_elapsed:.1f}초")
+            print(f"\n[Batch] 전체 완료: seeds={n_total}, " f"총 {total_elapsed:.1f}초", flush=True)
 
         # 자동 저장 옵션
         if self.config.output_dir:
@@ -186,6 +191,7 @@ class BatchRunner:
                     prefix=prefix,
                     cost_fp=self.config.cost_fp,
                     cost_fn=self.config.cost_fn,
+                    borehole_rows=result.borehole_rows,
                 )
                 if self.config.verbose:
                     print(

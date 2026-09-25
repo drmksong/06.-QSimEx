@@ -359,7 +359,7 @@ def main():
     parser.add_argument(
         "--out",
         type=str,
-        default="outputs/rqd_analysis",
+        default="legacy_results/outputs/rqd_analysis",
         help="Output directory for RQD analysis results",
     )
 

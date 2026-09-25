@@ -53,7 +53,7 @@ def verify_power_law():
 
     plt.suptitle('Power Law CCDF Verification', fontsize=14, fontweight='bold')
     plt.tight_layout()
-    plt.savefig('output_verify_powerlaw.png', dpi=150, bbox_inches='tight')
+    plt.savefig('legacy_results/output/output_verify_powerlaw.png', dpi=150, bbox_inches='tight')
     plt.show()
     print("  → output_verify_powerlaw.png 저장")
 
@@ -99,7 +99,7 @@ def verify_fisher():
 
     plt.suptitle('Fisher Distribution Verification', fontsize=14, fontweight='bold')
     plt.tight_layout()
-    plt.savefig('output_verify_fisher.png', dpi=150, bbox_inches='tight')
+    plt.savefig('legacy_results/output/output_verify_fisher.png', dpi=150, bbox_inches='tight')
     plt.show()
     print("  → output_verify_fisher.png 저장")
 

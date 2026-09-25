@@ -32,7 +32,7 @@
 - 유효성 지표: Qp_borehole_mean vs Qp_face_mean 상관계수, 오차(RMSE, MAE, bias)
 - 편익 지표(생략 대비):
   - 베이스라인(생략): 케이스별 다수결 상수 판정
-  - Q' 전략: 케이스별 임계값 탐색 후 판정
+  - Q' 전략: 케이스별 판정 기준값 탐색 후 판정
   - 통계검정: paired McNemar exact p-value
 - 판정 레벨:
   - 권고: uplift >= 0.10 and p < 0.05
@@ -52,7 +52,7 @@
 이번 진단에서 아래 분석 파일을 신규 생성했다.
 
 - 케이스별 권고 레벨: [outputs/disposal_lowfract_curated/analysis/qprime_case_recommendation.csv](../outputs/disposal_lowfract_curated/analysis/qprime_case_recommendation.csv)
-- 임계값 탐색 전체: [outputs/disposal_lowfract_curated/analysis/qprime_threshold_sweep_case.csv](../outputs/disposal_lowfract_curated/analysis/qprime_threshold_sweep_case.csv)
+- Q' 판정 기준값 탐색 전체: [outputs/disposal_lowfract_curated/analysis/qprime_threshold_sweep_case.csv](../outputs/disposal_lowfract_curated/analysis/qprime_threshold_sweep_case.csv)
 - 집계 요약: [outputs/disposal_lowfract_curated/analysis/qprime_analysis_summary.json](../outputs/disposal_lowfract_curated/analysis/qprime_analysis_summary.json)
 
 ## 4) 핵심 결과

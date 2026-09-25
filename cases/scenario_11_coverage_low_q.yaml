@@ -1,0 +1,84 @@
+name: scenario_11_coverage_low_q
+description: Coverage pilot targeting low borehole Q' with dense multi-set fractures
+seed: 101
+tags:
+  quality_regime: coverage_low_q
+  density_regime: high
+  orientation_regime: multi_set
+  coverage_target: qprime_bh_below_2_76
+
+domain:
+  nx: 60
+  ny: 30
+  nz: 30
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+
+tunnel:
+  center_y: 15.0
+  center_z: 15.0
+  radius: 5.0
+
+boreholes:
+  - { dy: 0.0, dz: 0.0 }
+
+rqd:
+  scan_length: 5.0
+
+global_params:
+  Jw_mean: 0.8
+  Jw_std: 0.1
+  SRF_mean: 1.0
+  SRF_std: 0.3
+
+joint_sets:
+  - set_id: 1
+    name: dense_shallow
+    mean_dip: 15
+    mean_dip_dir: 0
+    fisher_kappa: 30
+    size_alpha: 3.2
+    size_r_min: 0.2
+    size_r_max: 12.0
+    density_type: P32
+    P32: 8.0
+    mean_spacing: 0.125
+    Jr_mean: 1.0
+    Jr_std: 0.2
+    Ja_mean: 3.0
+    Ja_std: 0.8
+  - set_id: 2
+    name: dense_orthogonal
+    mean_dip: 70
+    mean_dip_dir: 90
+    fisher_kappa: 25
+    size_alpha: 3.0
+    size_r_min: 0.2
+    size_r_max: 10.0
+    density_type: P32
+    P32: 2.0
+    mean_spacing: 0.5
+    Jr_mean: 1.0
+    Jr_std: 0.2
+    Ja_mean: 3.0
+    Ja_std: 0.8
+  - set_id: 3
+    name: dense_cross
+    mean_dip: 45
+    mean_dip_dir: 210
+    fisher_kappa: 20
+    size_alpha: 3.0
+    size_r_min: 0.2
+    size_r_max: 8.0
+    density_type: P32
+    P32: 0.5
+    mean_spacing: 2.0
+    Jr_mean: 1.0
+    Jr_std: 0.2
+    Ja_mean: 3.0
+    Ja_std: 0.8
+
+cost:
+  cost_fp: 1
+  cost_fn: 5

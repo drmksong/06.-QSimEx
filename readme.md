@@ -37,6 +37,43 @@ pip install -r requirements.txt
 
 ## 빠른 시작
 
+### 테스트 실행
+
+QSimEx 테스트는 Python 표준 라이브러리인 `unittest`를 사용합니다. 권장 conda 환경에서 전체 테스트를 실행합니다.
+
+```bash
+conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -v
+```
+
+Q' 판정 기준값 탐색 설정은 `config/qprime_cutoff_search.yml`에서 관리합니다.
+사람이 수정하는 설정은 YAML로, 실행 결과 요약은 JSON으로 저장하는 구조를 사용합니다.
+기록 기반 탐색은 시추공 행의 `Qp_bh_mean`을 기본 입력으로 사용하며, `Qp_face_mean`을
+임의의 단일 threshold로 변환하지 않습니다. EFPC 결과나 독립 사후 라벨은 선택적 평가 입력입니다.
+내부 Python 연동에서는 `build_search_records()`로 비교 결과 행에 외부에서 확정한
+사후 라벨을 붙인 뒤 탐색 엔진에 전달합니다. 이때 기존 `Qp_face_mean` 값은 감사용으로
+보존되지만 라벨 생성에는 사용하지 않습니다.
+기준값 탐색은 시추공 하나를 하나의 관측 단위로 사용합니다. face-level 요약값인
+`Qp_borehole_mean`은 기본 탐색 입력으로 사용하지 않으며, 결측은 0이 아닌 결측값으로 처리합니다.
+EFPC가 완성되기 전에는 Q' 구간별 표본 분포만 탐색하며, 안전성 성능을 확정하지 않습니다.
+
+파일럿 이후 대규모 MC 프로파일 실행은 별도 설정으로 준비되어 있습니다.
+
+```bash
+conda run -n dlo-cq python run_profile_mc.py \
+  --config config/profile_mc_exploration.yml
+```
+
+기본 설정은 5개 case와 seed 40~139를 사용하며, 결과는 `results/profile_mc_exploration/`에 저장됩니다.
+
+실행 예:
+
+```bash
+conda run -n dlo-cq python -m src.core.qprime_cutoff_search \
+  --input path/to/records.csv \
+  --config config/qprime_cutoff_search.yml \
+  --output results/qprime_cutoff_search.json
+```
+
 ### 1) 케이스 목록 확인
 
 ```bash

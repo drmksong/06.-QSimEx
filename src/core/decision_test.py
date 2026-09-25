@@ -14,6 +14,12 @@ import numpy as np
 import pandas as pd
 from scipy import integrate, stats
 from .constants import standardize_metrics
+"""LEGACY_DO_NOT_USE: provisional binary single-threshold analysis.
+
+The explicit lower/upper cutoff pipeline must replace this module before its
+classification or Bayesian helpers are used for research results.
+"""
+
 import logging
 
 # sklearn imports moved into compute_roc_analysis to avoid module-level

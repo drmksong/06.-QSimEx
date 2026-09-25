@@ -1,0 +1,21 @@
+profile_mc_exploration:
+  # Existing cases are reused for the first large-MC preparation run.
+  case_paths:
+    - cases/scenario_03_sparse_large.yaml
+    - cases/scenario_05_orthogonal_two_sets.yaml
+    - cases/scenario_06_layered_density.yaml
+    - cases/scenario_07_isotropic.yaml
+    - cases/scenario_10_fieldlike.yaml
+  seed_range:
+    start: 40
+    stop: 139
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_exploration
+  save_each_case: true
+  save_combined: true
+  verbose: true
