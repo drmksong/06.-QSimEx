@@ -26,8 +26,9 @@ def classify_profile_states(
     stability_tolerance: float = 0.05,
     stable_bins: int = 1,
     min_records: int = 1,
+    min_domains: int = 1,
 ) -> Dict[str, List[str]]:
-    """Classify profile bins as PR, TR, or POST from adjacent changes.
+    """Classify profile bins as PR, TR, POST, or UNOBSERVED.
 
     The classification describes profile change state only. It does not assign
     disposal suitability and does not use a fixed Q' suitability threshold.
@@ -37,8 +38,8 @@ def classify_profile_states(
         raise ValueError("summaries must not be empty")
     if change_tolerance < 0 or stability_tolerance < 0:
         raise ValueError("tolerances must be non-negative")
-    if stable_bins < 1 or min_records < 1:
-        raise ValueError("stable_bins and min_records must be positive")
+    if stable_bins < 1 or min_records < 1 or min_domains < 1:
+        raise ValueError("stable_bins, min_records, and min_domains must be positive")
 
     names = list(profile_names or DEFAULT_PROFILE_COLUMNS)
     states: Dict[str, List[str]] = {}
@@ -49,9 +50,17 @@ def classify_profile_states(
         counts = np.asarray(
             [int(row.get(f"{name}_n", 0) or 0) for row in rows], dtype=int
         )
-        valid = np.isfinite(medians) & (counts >= min_records)
+        domains = np.asarray(
+            [int(row.get("n_domains", 0) or 0) for row in rows], dtype=int
+        )
+        valid = (
+            np.isfinite(medians)
+            & (counts >= min_records)
+            & (domains >= min_domains)
+        )
         if not valid.all():
-            states[name] = ["TR"] * len(rows)
+            states[name] = ["UNOBSERVED" if not is_valid else "TR"
+                            for is_valid in valid]
             continue
 
         changes = np.full(len(rows), np.nan, dtype=float)
@@ -99,6 +108,7 @@ def search_profile_boundaries(
     stability_tolerance: float = 0.05,
     stable_bins: int = 1,
     min_records: int = 1,
+    min_domains: int = 1,
 ) -> Dict[str, Any]:
     """Search simulation-based lower and upper cutoff candidates.
 
@@ -121,18 +131,19 @@ def search_profile_boundaries(
         stability_tolerance=stability_tolerance,
         stable_bins=stable_bins,
         min_records=min_records,
+        min_domains=min_domains,
     )
     from .qprime_cutoff_search import combine_profile_states
 
     boundary = combine_profile_states(cutoff_values[:-1], profile_states)
     if boundary["status"] == "identified":
         reason = "common PR and POST profile regions identified"
-    elif all(
-        state == "TR"
+    elif any(
+        state == "UNOBSERVED"
         for states in profile_states.values()
         for state in states
     ):
-        reason = "insufficient valid profile bins for state classification"
+        reason = "insufficient coverage for profile state classification"
     else:
         reason = "common PR and POST profile regions are not identifiable"
     return {

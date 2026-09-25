@@ -9,8 +9,11 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 import copy
 import csv
+import hashlib
+import json
 import os
 import time
+from dataclasses import asdict
 
 from src.core.domain import AnalysisCase, RockDomain
 from src.core.tunnel import Tunnel
@@ -29,6 +32,7 @@ class BatchConfig:
     batch_size: int = 500
     verbose: bool = True
     output_dir: Optional[str] = None
+    checkpoint_on_seed: bool = True
     correction_mode: str = "pure"
     # Costs for Bayesian decision reporting (FP, FN)
     # Defaults changed to centralised defaults: cost_fp=1 (false-positive), cost_fn=5 (false-negative)
@@ -158,9 +162,19 @@ class BatchRunner:
                 summary=summary, case_name=case_seeded.name, seed=seed
             )
 
+            domain_metadata = self._domain_metadata(case_seeded, seed)
+            for row in face_rows:
+                row.update(domain_metadata)
+            for row in borehole_rows:
+                row.update(domain_metadata)
+            summary_row.update(domain_metadata)
+
             result.face_rows.extend(face_rows)
             result.borehole_rows.extend(borehole_rows)
             result.summary_rows.append(summary_row)
+
+            if self.config.output_dir and self.config.checkpoint_on_seed:
+                result.save_csv(self.config.output_dir, prefix=self.case.name)
 
             elapsed = time.time() - t0
             if self.config.verbose:
@@ -203,6 +217,36 @@ class BatchRunner:
                 print(f"[Batch] CSV 저장 완료: {self.config.output_dir}")
 
         return result
+
+    def _domain_metadata(self, case: AnalysisCase, seed: int) -> Dict[str, Any]:
+        """Return reproducible DFN identity and generation features for output rows."""
+        features = {
+            "case_name": case.name,
+            "seed": int(seed),
+            "domain_size": list(case.domain_size),
+            "grid_spacing": list(case.grid_spacing),
+            "tunnel": {
+                "center_y": case.tunnel_center_y,
+                "center_z": case.tunnel_center_z,
+                "radius": case.tunnel_radius,
+            },
+            "borehole_offsets": [list(offset) for offset in case.borehole_offsets],
+            "rqd_scan_length": case.rqd_scan_length,
+            "joint_sets": [asdict(joint_set) for joint_set in case.joint_config.joint_sets],
+            "global_params": {
+                "Jw_mean": case.joint_config.Jw_mean,
+                "Jw_std": case.joint_config.Jw_std,
+                "SRF_mean": case.joint_config.SRF_mean,
+                "SRF_std": case.joint_config.SRF_std,
+            },
+        }
+        serialized = json.dumps(features, sort_keys=True, separators=(",", ":"), default=str)
+        signature_hash = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+        return {
+            "domain_id": f"{case.name}:{seed}:{signature_hash[:16]}",
+            "generation_signature_hash": signature_hash,
+            "generation_features_json": serialized,
+        }
 
     def _clone_case_with_seed(self, case: AnalysisCase, seed: int) -> AnalysisCase:
         """seed만 바꾼 case 복제"""

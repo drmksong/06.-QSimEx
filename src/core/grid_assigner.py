@@ -1,11 +1,10 @@
 """
 3D 격자 기반 Q-System 파라미터 할당기
 
-가속 백엔드 우선순위:
-  1. CUDA  (torch.cuda — NVIDIA GPU)
-  2. MPS   (torch.mps  — Apple Silicon GPU)
-  3. MLX   (mlx        — Apple Silicon 전용)
-  4. NumPy (CPU 벡터화 — 폴백)
+가속 백엔드 정책:
+    1. GPU 우선: MLX (Apple Silicon) -> CUDA (NVIDIA) -> MPS (Apple Silicon)
+    2. CPU는 GPU를 사용할 수 없을 때만 자동 fallback
+    3. CPU를 먼저 사용하려면 backend='cpu'를 명시적으로 지정
 
 자동 감지하여 최적 백엔드 사용
 """
@@ -23,8 +22,9 @@ from .rqd_calculator import RQDCalculator
 # 백엔드 감지
 # ================================================================
 def detect_backend() -> str:
-    """사용 가능한 최적 가속 백엔드 감지"""
-    # Preferred order: MLX (Apple Silicon) -> CUDA -> MPS -> CPU
+    """Detect a GPU backend first; use CPU only as the final fallback."""
+    # Simulation policy: GPU first, CPU last. Explicit backend='cpu' remains
+    # available for tests and emergency fallback runs.
     # 1. MLX (Apple Silicon)
     try:
         import mlx.core as mx
@@ -56,7 +56,7 @@ def detect_backend() -> str:
         pass
 
     # 4. CPU
-    print(f"  🟡 GPU 미감지 → NumPy CPU 사용")
+    print("  🟡 GPU 미감지 → NumPy CPU 최후 fallback 사용", flush=True)
     return "cpu"
 
 

@@ -23,6 +23,7 @@ class TestProfileMonteCarloConfig(unittest.TestCase):
         runner_config = build_runner_config(config)
         self.assertEqual(runner_config.output_dir, "results/profile_mc_exploration")
         self.assertEqual(runner_config.seeds, [40])
+        self.assertTrue(runner_config.checkpoint_on_seed)
 
     def test_yaml_config_loads(self):
         config_path = Path("config/profile_mc_exploration.yml")

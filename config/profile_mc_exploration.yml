@@ -18,4 +18,5 @@ profile_mc_exploration:
   output_dir: results/profile_mc_exploration
   save_each_case: true
   save_combined: true
+  checkpoint_on_seed: true
   verbose: true

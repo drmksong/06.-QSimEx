@@ -381,13 +381,40 @@ QSimEx는 최종적으로 다음 산출물을 제공해야 한다.
 
 현재 코드의 `Q'=4.0`은 과거 구현에 남아 있던 적합/부적합 기준 라벨 예시일 뿐이며,
 스펙상 유효한 기준값이 아니다. 시추공 3단계 판정의 상한 또는 하한으로 간주하지
-않고 제거 대상이다. 운영 숫자를 제시하려면 가상굴착 참조 프로파일의 재현성,
-지질 조건별 케이스 확장, bootstrap/계층적 신뢰구간, 그리고 EFPC 또는 독립 평가
-adapter를 통한 처분 적합성 검증을 먼저 완료해야 한다.
+않으며, 레거시 감사·재현 기록으로만 보존하고 활성 분석 경로에서는 사용하지 않는다.
+시뮬레이션 기반 lower/upper cutoff 후보를 제시하려면 가상굴착 참조 프로파일의
+재현성, 지질 조건별 케이스 확장, bootstrap/계층적 신뢰구간을 먼저 완료해야 한다.
+EFPC 또는 독립 평가 adapter는 cutoff 후보를 산출하기 위한 선행조건이 아니라,
+후속 처분 적합성·false-safe·false-reject 검증을 위한 선택적 연계 수단이다.
 
 이 절차를 통과한 숫자만 기술서의 운영용 상한·하한으로 승격한다. 그 전까지는 분석 결과를 **잠정 후보값**으로만 표시하고, 굴착 여부를 자동 확정하는 기준으로 사용하지 않는다.
 
-### 5.1 가정과 가설의 업데이트 이력
+### 5.2 가설 검정 방법 정의서 참조
+
+Phase 3의 주 가설과 Phase 4의 통계적 재현성 검정은 별도 정의서
+[`HypothesisTestingMethod_20260925.md`](HypothesisTestingMethod_20260925.md)를
+기준으로 한다. 해당 정의서는 이 설계 스펙의 가설을 코드와 결과 산출물에 연결하기
+위해 다음 사항을 구체화한다.
+
+- 관측 단위는 borehole row로 유지하되 통계적 독립 단위는 `domain_id`로 한다.
+- 동일 domain의 여러 face·borehole row는 하나의 cluster로 묶고, domain cluster
+  bootstrap을 1차 검정으로 사용한다.
+- pooled row p-value는 탐색적 보조 결과이며 lower/upper 확정의 단독 근거로 사용하지
+  않는다.
+- 표본 또는 최소 독립 domain이 부족한 bin은 `TR`이 아니라 `UNOBSERVED`로 기록한다.
+- `provisional`, `identified`, `conflicting`, `not_identifiable` 상태와 판정 조건은
+  위 정의서의 규칙을 따른다.
+- `suitable`/`unsuitable`, false-safe, false-reject, sensitivity, specificity 및
+  AUC는 EFPC 또는 독립 평가 adapter가 연결된 이후에만 계산한다.
+
+따라서 이 설계 스펙의 95% 오류율 상한과 허용오차 기준은 EFPC 또는 독립 평가 결과가
+연결된 후속 Validation 단계에만 적용한다. EFPC가 없는 Phase 3/4에서도 profile 변화,
+공통 PR/POST 재현성, coverage 상태, lower/upper cutoff 후보와 bootstrap 불확실성을
+핵심 결과로 보고한다.
+두 문서 사이에 해석 차이가 생기면, 기준 정의와 적용 범위는 이 설계 스펙이 정하고
+구체적인 표본화·bootstrap·상태 계산 절차는 위 가설 검정 방법 정의서가 정한다.
+
+### 5.3 가정과 가설의 업데이트 이력
 
 기존 가정과 가설은 재현성과 감사 가능성을 위해 삭제하지 않는다. 다만 현재까지의
 시뮬레이션 결과와 통계 검토에 따라 주 가설과 보조 가설의 역할을 구분하여 기록한다.

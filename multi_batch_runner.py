@@ -30,6 +30,7 @@ class MultiCaseBatchConfig:
     output_dir: str = "legacy_results/outputs/multicase"
     save_each_case: bool = True
     save_combined: bool = True
+    checkpoint_on_seed: bool = True
     correction_mode: str = "pure"
     # Costs forwarded to ResearchReporter (FP,FN)
     # Central defaults: cost_fp=1.0, cost_fn=5.0
@@ -77,6 +78,7 @@ class MultiCaseBatchRunner:
                 batch_size=self.config.batch_size,
                 verbose=self.config.verbose,
                 output_dir=case_output_dir,
+                checkpoint_on_seed=self.config.checkpoint_on_seed,
                 cost_fp=case_cost_fp,
                 cost_fn=case_cost_fn,
             )

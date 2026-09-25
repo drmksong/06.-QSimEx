@@ -1,17 +1,16 @@
 profile_mc_exploration:
-  # One-seed low-Q reachability pilot; do not use as calibration or validation data.
   case_paths:
-    - cases/scenario_13_coverage_low_q_refined.yaml
+    - results/coverage_rounds/round_000_preflight/candidates/r000-density_scale-1.25-4010667db7bf.yaml
   seed_range:
-    start: 206
-    stop: 206
+    start: 300
+    stop: 300
     step: 1
   face_positions: [10, 20, 30]
   borehole_window: 3
   backend: mlx
   batch_size: 100
   correction_mode: pure
-  output_dir: results/profile_mc_coverage_low_refined_pilot
+  output_dir: results/coverage_rounds/round_000_preflight/simulation
   save_each_case: true
   save_combined: true
   checkpoint_on_seed: true

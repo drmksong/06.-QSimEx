@@ -13,7 +13,7 @@ import yaml
 DEFAULT_MIN_CUTOFF = 0.1
 DEFAULT_MAX_CUTOFF = 400.0
 DEFAULT_INTERVALS = 10
-PROFILE_STATES = frozenset({"PR", "TR", "POST"})
+PROFILE_STATES = frozenset({"PR", "TR", "POST", "UNOBSERVED"})
 
 
 def load_cutoff_config(path: str) -> Dict[str, Any]:
@@ -316,10 +316,16 @@ def combine_profile_states(
         for index in range(len(cutoff_values))
         if all(states[index] == "POST" for states in profile_states.values())
     ]
-    common_states = [
-        "PR" if index in common_bad else "POST" if index in common_good else "TR"
-        for index in range(len(cutoff_values))
-    ]
+    common_states = []
+    for index in range(len(cutoff_values)):
+        if any(states[index] == "UNOBSERVED" for states in profile_states.values()):
+            common_states.append("UNOBSERVED")
+        elif index in common_bad:
+            common_states.append("PR")
+        elif index in common_good:
+            common_states.append("POST")
+        else:
+            common_states.append("TR")
 
     identifiable = bool(common_bad and common_good) and max(common_bad) < min(common_good)
     result: Dict[str, Any] = {

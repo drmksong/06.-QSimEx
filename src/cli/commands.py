@@ -86,7 +86,7 @@ def main():
         type=str,
         default="auto",
         choices=["auto", "cuda", "mps", "mlx", "cpu"],
-        help="가속 백엔드 (기본: auto)",
+        help="GPU 우선 자동 감지 (MLX/CUDA/MPS, CPU는 최후 fallback); CPU는 명시적으로 지정",
     )
     analysis_group.add_argument(
         "--batch-size", type=int, default=500, help="GPU 배치 크기 (기본: 500)"

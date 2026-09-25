@@ -34,7 +34,7 @@ class TestProfileExploration(unittest.TestCase):
 
     def test_classifies_profile_change_states_without_suitability_labels(self):
         summaries = [
-            {"qprime_face_median": value, "qprime_face_n": 3}
+            {"qprime_face_median": value, "qprime_face_n": 3, "n_domains": 3}
             for value in [1.0, 1.0, 5.0, 5.1, 5.0]
         ]
 
@@ -47,6 +47,17 @@ class TestProfileExploration(unittest.TestCase):
 
         self.assertEqual(states["qprime_face"], ["PR", "PR", "TR", "POST", "POST"])
 
+    def test_empty_profile_bin_is_unobserved(self):
+        summaries = [
+            {"qprime_face_median": 1.0, "qprime_face_n": 3, "n_domains": 2},
+            {"qprime_face_median": None, "qprime_face_n": 0, "n_domains": 0},
+            {"qprime_face_median": 5.0, "qprime_face_n": 3, "n_domains": 2},
+        ]
+
+        states = classify_profile_states(summaries, profile_names=["qprime_face"])
+
+        self.assertEqual(states["qprime_face"], ["TR", "UNOBSERVED", "TR"])
+
     def test_searches_simulation_boundaries_without_suitability_labels(self):
         records = [
             {
@@ -57,6 +68,7 @@ class TestProfileExploration(unittest.TestCase):
                 "orientation_bias_gap_to_face": orientation,
                 "case_name": "A",
                 "seed": index,
+                "domain_id": f"A:{index}",
             }
             for index, (qprime, face, risk, density, orientation) in enumerate(
                 [

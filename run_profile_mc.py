@@ -48,6 +48,7 @@ def build_runner_config(config: dict) -> MultiCaseBatchConfig:
         output_dir=str(config.get("output_dir", "results/profile_mc_exploration")),
         save_each_case=bool(config.get("save_each_case", True)),
         save_combined=bool(config.get("save_combined", True)),
+        checkpoint_on_seed=bool(config.get("checkpoint_on_seed", True)),
         correction_mode=str(config.get("correction_mode", "pure")),
     )
 
