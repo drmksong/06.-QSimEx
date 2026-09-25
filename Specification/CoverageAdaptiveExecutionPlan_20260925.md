@@ -66,31 +66,66 @@
 
 ## 4. Round lifecycle
 
-### Round 0: Baseline
+실행 순서는 seed를 먼저 소진하는 방식이 아니라 scenario/signature를 먼저 훑는
+방식으로 고정한다.
+
+```text
+전체 scenario/signature를 seed 1개씩 실행
+  -> coverage map 작성
+  -> 빈 구간과 중복 구간 진단
+  -> 빈 구간을 메울 새 generation signature 추가
+  -> 기존 + 신규 scenario/signature 전체를 다음 iteration에서 재-sweep
+  -> coverage 기여 signature만 seed 추가
+  -> cutoff와 bootstrap 분석
+```
+
+### Iteration 0: Scenario/signature-first sweep
+
+- 현재 보유한 모든 후보 scenario/signature를 독립 seed 1개로 실행한다.
+- scenario별 Q' 범위, 새 bin, 중첩도, 절리 수, 실행 시간을 기록한다.
+- 이 단계에서는 cutoff를 확정하지 않고 coverage map과 빈 구간만 평가한다.
+
+### Iteration k+1: Gap signature 추가 및 전체 재-sweep
+
+1. Iteration k의 coverage map에서 `UNOBSERVED`와 domain 부족 구간을 찾는다.
+2. 인접 signature와 pilot 결과를 이용해 해당 구간을 메울 새 generation signature를
+   설계하고 기존 목록에 추가한다.
+3. 기존 scenario/signature와 신규 signature 전체를 seed 1개로 다시 실행한다.
+4. 이전 iteration과 비교해 새 bin, 중복 감소, domain/signature 수 변화를 기록한다.
+5. coverage를 넓힌 signature만 seed 5~10개로 확장한다.
+6. 여전히 빈 구간이 있으면 다음 iteration에서 signature를 추가한다.
+
+기존 signature를 단순 반복하는 것은 새 signature 추가를 대체하지 않는다. 중앙 구간만
+반복하고 새 bin이나 signature 다양성을 만들지 못한 scenario는 다음 iteration에서
+seed 확장 대상에서 제외한다.
+
+### Iteration 0: Baseline sweep
 
 - 기존 결과를 새 schema로 읽는다.
 - `domain_id`, generation signature hash, seed, case를 확인한다.
 - 고정 log bin 기준 coverage audit을 수행한다.
 - `UNOBSERVED`와 과밀 구간을 기록한다.
-- 기존 데이터는 최종 calibration/validation에 자동 편입하지 않는다.
+- 현재 보유한 전체 scenario/signature를 seed 1개씩 실행한다.
+- 기존 결과는 최종 calibration/validation에 자동 편입하지 않는다.
 
-### Round 1: Gap pilot 및 1차 보강
+### Iteration k+1: Gap signature 추가 및 전체 재-sweep
 
-- 가장 중요한 내부 gap 또는 reachability gap을 선택한다.
+- Iteration k의 가장 중요한 내부 gap 또는 reachability gap을 선택한다.
 - 인접 configuration과 generation feature 차이를 비교한다.
 - P32, 평균 spacing, 방향성, Fisher 집중도, 크기분포, 절리군 수, 교차각 등을
   조정한 후보 signature를 생성한다.
-- configuration 선택용 독립 seed로 소규모 pilot을 실행한다.
-- Q' 이동 방향과 도달 여부를 확인한다.
+- 후보를 기존 scenario/signature 목록에 추가한다.
+- 기존 + 신규 scenario/signature 전체를 다음 iteration에서 seed 1개씩 재-sweep한다.
+- 새로 관측된 bin, 중복 감소, domain/signature 수 변화를 이전 iteration과 비교한다.
 
-### Round 2: 독립 domain 확장
+### 후속 단계: coverage 기여 signature의 독립 domain 확장
 
-- Round 1에서 실제 Q' 이동이 확인된 signature만 확장한다.
+- 전체 재-sweep에서 실제 Q' 이동과 profile 기여가 확인된 signature만 확장한다.
 - 여러 독립 seed/domain을 추가한다.
 - 기존 domain과 중복되지 않도록 signature hash와 `domain_id`를 검사한다.
 - coverage audit과 staged bootstrap을 다시 수행한다.
 
-### Round 3: 재현성 확인
+### Iteration 3: 재현성 확인
 
 - 남은 핵심 gap과 profile 방향 충돌을 확인한다.
 - 독립 domain에서 Q' 범위와 profile 경향이 재현되는지 검증한다.

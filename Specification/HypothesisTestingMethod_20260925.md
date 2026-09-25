@@ -180,16 +180,22 @@ Bootstrap은 기존 simulation row를 재표본화하는 후처리이며 DFN을 
 결과를 다음 simulation round의 configuration 설계에 반영하는 반복 절차를 사용한다.
 
 ```text
-Round k
+Iteration k
+  -> 현재 scenario/signature 전체를 seed 1개씩 sweep
   -> coverage audit
   -> 과밀/공백 구간 진단
-  -> generation signature 후보 생성 또는 조정
-  -> reachability pilot
-  -> 독립 seed/domain 확장
+  -> 빈 구간을 메울 신규 generation signature 추가
+  -> 기존 + 신규 scenario/signature 전체를 Iteration k+1에서 재-sweep
+  -> coverage 기여 signature만 독립 seed/domain 확장
   -> profile search 및 domain cluster bootstrap
   -> 상태·coverage·불확실성 판정
-  -> Round k+1 또는 종료
+  -> 다음 iteration 또는 종료
 ```
+
+기존 signature의 seed를 먼저 대량 확장하지 않는다. coverage gap이 확인되면 gap을
+메울 수 있는 신규 signature를 추가하고, 다음 iteration에서 기존 signature와 신규
+signature 전체를 다시 실행한다. seed 확장은 새 signature가 목표 bin을 만들고 profile
+방향을 재현하는지 확인한 뒤 수행한다.
 
 ### 7.1.1 구간 진단
 
@@ -258,14 +264,14 @@ Q' 값이 많이 겹치는 구간은 즉시 자료를 삭제하거나 하나의 
 - 과밀 구간의 결과가 동일 domain 반복에 의해 설명됨
 - lower/upper 후보가 반복 라운드에서 역전됨
 
-coverage-adaptive simulation round의 최대 반복 수는 기본 `3회`로 한다.
+coverage-adaptive iteration의 최대 반복 수는 기본 `3회`로 한다.
 
-- Round 0: 기존 결과 baseline audit
-- Round 1: 가장 긴급한 내부 gap 또는 reachability gap의 pilot/보강
-- Round 2: Round 1 결과를 반영한 독립 domain 확장
-- Round 3: 남은 핵심 gap과 재현성 확인
+- Iteration 0: 기존 scenario/signature 전체 baseline sweep
+- Iteration 1: gap을 메울 신규 signature 추가 후 전체 재-sweep
+- Iteration 2: 새로 관측된 gap을 대상으로 signature 추가 후 전체 재-sweep
+- Iteration 3: 남은 핵심 gap과 재현성 확인
 
-Round 3 이후에도 핵심 bin이 계속 `UNOBSERVED`이거나 signature를 조정해도 Q' 이동이
+Iteration 3 이후에도 핵심 bin이 계속 `UNOBSERVED`이거나 signature를 조정해도 Q' 이동이
 없으면 무한히 simulation을 반복하지 않는다. 해당 구간을 `exclude_as_unreachable`,
 적용 범위 밖 또는 `not_identifiable`로 기록하고 다음 단계로 넘어간다.
 

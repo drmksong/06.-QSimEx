@@ -288,3 +288,41 @@ Coverage pilot 결과:
 - [ ] 외부 평가가 연결되기 전에는 안전성 보증 문구를 출력하지 않음
 
 현재 단계에서는 EFPC 연계를 구현하지 않고 인터페이스와 적용 시점만 보존한다.
+
+## 12. 2026-09-26 다음 작업
+
+내일은 기존 signature의 seed를 대량으로 먼저 확장하지 않고, coverage gap을 메우는
+iteration을 수행한다.
+
+### 작업 순서
+
+1. Round 0 결과와 coverage pilot을 provenance 기준으로 분리 확인한다.
+2. 현재 보유한 scenario/signature 목록을 정리하고, 각 signature를 seed 1개씩 실행할
+  Iteration 0 manifest를 확정한다.
+3. 저Q `0.1~5.278`과 고Q `103.3~400` gap에 대해 신규 generation signature 후보를
+  생성한다.
+4. 신규 signature를 기존 목록에 추가하고, 기존 + 신규 전체를 seed 1개씩 재-sweep한다.
+5. iteration 전후의 Q' 범위, 새 bin, `UNOBSERVED`, 중복도, signature/domain 수를
+  `results/coverage_rounds/ledger.jsonl`에 기록한다.
+6. 실제 목표 bin을 만들고 중복을 줄인 signature만 seed `5~10`개로 확장한다.
+7. low/middle/high profile을 scenario/signature별로 분석하고, pooled 결과는 보조로
+  분리한다.
+8. 필요한 domain 수가 확보되면 `B=200` bootstrap을 실행하고 안정성에 따라 `B=500`
+  으로 확장한다.
+
+### 내일의 완료 산출물
+
+- `iteration_001` scenario/signature 실행 manifest
+- 신규 signature 후보 YAML과 후보 JSON
+- iteration 전후 coverage audit
+- 업데이트된 `results/coverage_rounds/ledger.jsonl`
+- scenario/signature별 Q' 범위와 profile 요약
+- 다음 iteration에서 추가할 gap/signature 결정 기록
+
+### 내일의 중단 조건
+
+- GPU backend가 확인되지 않으면 대규모 실행을 시작하지 않는다.
+- 신규 signature가 기존 중앙 구간만 반복하면 해당 후보를 확장하지 않는다.
+- 새 signature가 목표 gap에 도달하지 못하면 seed를 늘리지 않고 feature를 다시 조정한다.
+- 최대 iteration 3회 이후에도 gap이 남으면 `exclude_as_unreachable`, 적용 범위 밖 또는
+  `not_identifiable`로 기록한다.
