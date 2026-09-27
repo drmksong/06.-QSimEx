@@ -1,0 +1,52 @@
+{
+  "campaign_type": "isolated_validation",
+  "existing_results_used": false,
+  "case_paths": [
+    "cases/d_matched/d_matched_1set.yaml",
+    "cases/d_matched/d_matched_2set.yaml",
+    "cases/d_matched/d_matched_3set.yaml",
+    "cases/next_lowq/next_lowq_density8_angle49_3set.yaml",
+    "cases/next_highq/highq_euler_d20000_focused_large_base.yaml"
+  ],
+  "seed_range": [
+    1001,
+    1002
+  ],
+  "iterations_requested": 1,
+  "backend": "mlx",
+  "status": "completed",
+  "records": [
+    {
+      "round_id": 0,
+      "run_id": "validation-000",
+      "parent_round_id": null,
+      "round_type": "validation_screening",
+      "n_domains": 9,
+      "n_signatures": 5,
+      "status": "provisional",
+      "next_action": "expand",
+      "observed_qprime_range_before": null,
+      "observed_qprime_range_after": [
+        0.0,
+        168.46658718263873
+      ],
+      "unobserved_bins_before": 0,
+      "unobserved_bins_after": 5,
+      "newly_observed_bins": [],
+      "remaining_gap_bins": [
+        1,
+        2,
+        3,
+        7,
+        9
+      ],
+      "unobserved_bin_delta": 5,
+      "iteration_dir": "validation/campaign_002/iteration_000",
+      "provenance_status": "complete",
+      "profile_search_status": "not_identifiable",
+      "profile_search_reason": "insufficient coverage for profile state classification",
+      "lower_cutoff_candidate": null,
+      "upper_cutoff_candidate": null
+    }
+  ]
+}

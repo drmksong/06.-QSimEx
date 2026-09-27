@@ -1,0 +1,45 @@
+{
+  "stage": "high_q_portfolio_v2",
+  "parent_round": 14,
+  "source": "cases/scenario_12_coverage_high_q.yaml",
+  "density_factors": [
+    1000.0,
+    2000.0,
+    5000.0,
+    10000.0
+  ],
+  "orientation_variants": {
+    "angle60_focused": {
+      "mean_dip": 60.0,
+      "mean_dip_dir": 90.0,
+      "fisher_kappa": 8.0
+    },
+    "angle60_broad": {
+      "mean_dip": 60.0,
+      "mean_dip_dir": 90.0,
+      "fisher_kappa": 2.0
+    }
+  },
+  "size_variants": {
+    "large_base": {
+      "size_alpha": 2.5,
+      "size_r_min": 10.0,
+      "size_r_max": 100.0
+    },
+    "large_tail": {
+      "size_alpha": 2.5,
+      "size_r_min": 20.0,
+      "size_r_max": 150.0
+    }
+  },
+  "seeds": [
+    325,
+    326,
+    327,
+    328
+  ],
+  "candidate_count": 16,
+  "run_count": 64,
+  "status": "proposed_review_before_execution",
+  "historical_portfolio_preserved": true
+}

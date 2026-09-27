@@ -1,0 +1,34 @@
+{
+  "stage": "D_joint_set_structure",
+  "source": "cases/scenario_11_coverage_low_q.yaml",
+  "common_seed": 302,
+  "total_p32": 10.5,
+  "set_counts": [
+    1,
+    2,
+    3
+  ],
+  "cases": [
+    "d_matched_1set",
+    "d_matched_2set",
+    "d_matched_3set"
+  ],
+  "controlled_features": [
+    "size_alpha",
+    "size_r_min",
+    "size_r_max",
+    "mean_dip",
+    "mean_dip_dir",
+    "fisher_kappa",
+    "Jr_mean",
+    "Jr_std",
+    "Ja_mean",
+    "Ja_std",
+    "domain",
+    "tunnel",
+    "boreholes",
+    "rqd"
+  ],
+  "changed_feature": "joint_set_count_and_p32_allocation",
+  "approval_status": "validated_for_screening"
+}

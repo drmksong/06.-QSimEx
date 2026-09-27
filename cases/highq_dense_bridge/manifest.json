@@ -1,0 +1,23 @@
+{
+  "stage": "high_q_dense_bridge",
+  "source": "cases/scenario_12_coverage_high_q.yaml",
+  "target_gap_qprime_bh": [
+    76.14615754863519,
+    174.5235314204193
+  ],
+  "density_factors": [
+    100.0,
+    250.0,
+    500.0
+  ],
+  "base_p32": 0.01,
+  "seeds": [
+    329,
+    330,
+    331,
+    332
+  ],
+  "candidate_count": 3,
+  "run_count": 12,
+  "status": "proposed_review_before_execution"
+}

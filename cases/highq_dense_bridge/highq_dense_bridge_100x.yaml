@@ -1,0 +1,58 @@
+name: highq_dense_bridge_100x
+description: High-Q dense bridge probe; P32 increased strongly while size, orientation,
+  structure, geometry, and material inputs remain fixed.
+seed: 329
+tags:
+  coverage_stage: high_q_dense_bridge
+  parent_case: scenario_12_coverage_high_q
+  density_factor: 100.0
+  target_gap_qprime_bh:
+  - 76.14615754863519
+  - 174.5235314204193
+  screening_seeds:
+  - 329
+  - 330
+  - 331
+  - 332
+  changed_feature: P32
+  approval_status: proposed_review_before_execution
+domain:
+  nx: 60
+  ny: 30
+  nz: 30
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+tunnel:
+  center_y: 15.0
+  center_z: 15.0
+  radius: 5.0
+boreholes:
+- dy: 0.0
+  dz: 0.0
+rqd:
+  scan_length: 5.0
+global_params:
+  Jw_mean: 1.0
+  Jw_std: 0.05
+  SRF_mean: 1.0
+  SRF_std: 0.2
+joint_sets:
+- set_id: 1
+  name: sparse_large_favorable
+  mean_dip: 60
+  mean_dip_dir: 45
+  fisher_kappa: 8
+  size_alpha: 2.5
+  size_r_min: 10.0
+  size_r_max: 100.0
+  density_type: P32
+  P32: 1.0
+  mean_spacing: 50.0
+  Jr_mean: 4.0
+  Jr_std: 0.1
+  Ja_mean: 0.75
+  Ja_std: 0.1
+cost:
+  cost_fp: 1
+  cost_fn: 5

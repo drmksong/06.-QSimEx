@@ -1,0 +1,58 @@
+{
+  "stage": "high_q_expanded_portfolio",
+  "parent_round": 14,
+  "source": "cases/scenario_12_coverage_high_q.yaml",
+  "density_factors": [
+    100.0,
+    250.0,
+    500.0,
+    1000.0,
+    2000.0,
+    5000.0,
+    10000.0
+  ],
+  "variants": {
+    "highangle_micro": {
+      "mean_dip": 60.0,
+      "mean_dip_dir": 90.0,
+      "fisher_kappa": 8.0,
+      "size_alpha": 3.2,
+      "size_r_min": 0.5,
+      "size_r_max": 30.0
+    },
+    "highangle_broad_medium": {
+      "mean_dip": 60.0,
+      "mean_dip_dir": 90.0,
+      "fisher_kappa": 2.0,
+      "size_alpha": 2.8,
+      "size_r_min": 2.0,
+      "size_r_max": 50.0
+    }
+  },
+  "seeds": [
+    325,
+    326,
+    327,
+    328
+  ],
+  "additional_candidate_count": 14,
+  "total_round014_candidate_count": 28,
+  "run_count_additional": 56,
+  "paths": [
+    "cases/highq_portfolio/highq_exp_d100_highangle_micro.yaml",
+    "cases/highq_portfolio/highq_exp_d100_highangle_broad_medium.yaml",
+    "cases/highq_portfolio/highq_exp_d250_highangle_micro.yaml",
+    "cases/highq_portfolio/highq_exp_d250_highangle_broad_medium.yaml",
+    "cases/highq_portfolio/highq_exp_d500_highangle_micro.yaml",
+    "cases/highq_portfolio/highq_exp_d500_highangle_broad_medium.yaml",
+    "cases/highq_portfolio/highq_exp_d1000_highangle_micro.yaml",
+    "cases/highq_portfolio/highq_exp_d1000_highangle_broad_medium.yaml",
+    "cases/highq_portfolio/highq_exp_d2000_highangle_micro.yaml",
+    "cases/highq_portfolio/highq_exp_d2000_highangle_broad_medium.yaml",
+    "cases/highq_portfolio/highq_exp_d5000_highangle_micro.yaml",
+    "cases/highq_portfolio/highq_exp_d5000_highangle_broad_medium.yaml",
+    "cases/highq_portfolio/highq_exp_d10000_highangle_micro.yaml",
+    "cases/highq_portfolio/highq_exp_d10000_highangle_broad_medium.yaml"
+  ],
+  "status": "proposed_review_before_execution"
+}

@@ -17,6 +17,32 @@ class ComparisonEngine:
         self.tunnel = tunnel
         self.domain = tunnel.domain
 
+    @staticmethod
+    def _borehole_plane_angles(joints) -> tuple[float, float, float, float]:
+        """Return plane/normal angles to the x-directed borehole in degrees."""
+        if not joints:
+            return (float("nan"), float("nan"), float("nan"), float("nan"))
+        borehole_direction = np.array([1.0, 0.0, 0.0])
+        plane_angles = []
+        normal_angles = []
+        for joint in joints:
+            normal = np.asarray(joint.normal, dtype=float)
+            norm = np.linalg.norm(normal)
+            if norm <= 0.0 or not np.all(np.isfinite(normal)):
+                continue
+            cosine = np.clip(abs(float(np.dot(normal / norm, borehole_direction))), 0.0, 1.0)
+            normal_angle = float(np.degrees(np.arccos(cosine)))
+            normal_angles.append(normal_angle)
+            plane_angles.append(90.0 - normal_angle)
+        if not plane_angles:
+            return (float("nan"), float("nan"), float("nan"), float("nan"))
+        return (
+            float(np.mean(plane_angles)),
+            float(np.median(plane_angles)),
+            float(np.mean(normal_angles)),
+            float(np.median(normal_angles)),
+        )
+
     def compare_at_face(self, face_x_idx: int, borehole_window: int = 5) -> Dict:
         """
         특정 굴진면 위치에서 시추공 vs 막장면 비교
@@ -63,6 +89,12 @@ class ComparisonEngine:
             missed_ids = face_joint_ids - bh_joint_ids
 
             bh_orientation_bias = self._calc_orientation_bias(bh_joint_objects)
+            (
+                bh_plane_angle_mean,
+                bh_plane_angle_median,
+                bh_normal_angle_mean,
+                bh_normal_angle_median,
+            ) = self._borehole_plane_angles(bh_joint_objects)
 
             bh_summary = {
                 'name': bh['borehole_name'],
@@ -117,6 +149,10 @@ class ComparisonEngine:
                 'bh_window_length': window_length,
                 'bh_fracture_frequency': float(len(bh_joint_ids) / window_length) if window_length > 0 else 0.0,
                 'orientation_bias_bh': bh_orientation_bias,
+                'borehole_plane_angle_mean_deg': bh_plane_angle_mean,
+                'borehole_plane_angle_median_deg': bh_plane_angle_median,
+                'borehole_normal_angle_mean_deg': bh_normal_angle_mean,
+                'borehole_normal_angle_median_deg': bh_normal_angle_median,
             }
 
             for param in ['RQD', 'Jn', 'Jr', 'Ja', 'Jw', 'SRF']:
@@ -837,6 +873,18 @@ class ComparisonEngine:
                     "common_fracture_density": c.get("_common_fracture_density"),
                     "missed_fracture_density": c.get("_missed_fracture_density"),
                     "orientation_bias_bh": bh.get("orientation_bias_bh"),
+                    "borehole_plane_angle_mean_deg": bh.get(
+                        "borehole_plane_angle_mean_deg"
+                    ),
+                    "borehole_plane_angle_median_deg": bh.get(
+                        "borehole_plane_angle_median_deg"
+                    ),
+                    "borehole_normal_angle_mean_deg": bh.get(
+                        "borehole_normal_angle_mean_deg"
+                    ),
+                    "borehole_normal_angle_median_deg": bh.get(
+                        "borehole_normal_angle_median_deg"
+                    ),
                     "face_orientation_bias": c.get("_face_orientation_bias"),
                     "orientation_bias_gap_to_face": (
                         c.get("_face_orientation_bias") - bh.get("orientation_bias_bh")

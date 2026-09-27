@@ -1,0 +1,18 @@
+profile_mc_exploration:
+  # One bounded Euler-style density update from observed d5000->d10000 response.
+  case_paths:
+    - cases/next_highq/highq_euler_d20000_focused_large_base.yaml
+  seed_range:
+    start: 333
+    stop: 333
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_highq_euler_round_015
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

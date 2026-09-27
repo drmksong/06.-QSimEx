@@ -1,0 +1,21 @@
+profile_mc_exploration:
+  case_paths:
+  - cases/scenario_11_coverage_low_q.yaml
+  - cases/scenario_12_coverage_high_q.yaml
+  seed_range:
+    start: 1001
+    stop: 1002
+    step: 1
+  face_positions:
+  - 10
+  - 20
+  - 30
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: validation/campaign_001/iteration_000/simulation
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

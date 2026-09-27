@@ -1,0 +1,17 @@
+{
+  "stage": "next_lowq_signature",
+  "case_path": "cases/next_lowq/next_lowq_density8_angle49_3set.yaml",
+  "source": "cases/a_density/a_density_8x_3set.yaml",
+  "common_seed": 321,
+  "target_gap": "qprime_bh_below_1_204",
+  "evidence_sources": [
+    "A_density",
+    "C_angle"
+  ],
+  "changed_feature_groups": [
+    "density",
+    "orientation_angle"
+  ],
+  "expected_effect": "extend_low_q_coverage",
+  "approval_status": "validated_for_screening"
+}

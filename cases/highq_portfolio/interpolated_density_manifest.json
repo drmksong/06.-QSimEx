@@ -1,0 +1,33 @@
+{
+  "stage": "high_q_portfolio_interpolation",
+  "parent_round": 14,
+  "parent_density_factors": [
+    5.0,
+    20.0,
+    50.0
+  ],
+  "interpolation_space": "log_density_factor",
+  "interpolated_factors": [
+    10.0,
+    31.6227766017
+  ],
+  "seeds": [
+    325,
+    326,
+    327,
+    328
+  ],
+  "cases": [
+    {
+      "name": "highq_d10_interp_base_base",
+      "path": "cases/highq_portfolio/highq_d10_interp_base_base.yaml",
+      "factor": 10.0
+    },
+    {
+      "name": "highq_d31p6_interp_base_base",
+      "path": "cases/highq_portfolio/highq_d31p6_interp_base_base.yaml",
+      "factor": 31.6227766017
+    }
+  ],
+  "status": "proposed_review_before_execution"
+}

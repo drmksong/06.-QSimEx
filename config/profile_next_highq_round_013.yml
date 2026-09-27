@@ -1,0 +1,18 @@
+profile_mc_exploration:
+  # Single high-Q bridge probe for the remaining 76.15~174.52 gap.
+  case_paths:
+    - cases/next_highq/next_highq_bridge_density5x.yaml
+  seed_range:
+    start: 325
+    stop: 325
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_next_highq_round_013
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

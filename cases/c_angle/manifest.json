@@ -1,0 +1,35 @@
+{
+  "stage": "C_orientation_angle_control",
+  "source": "cases/a_density/a_density_4x_3set.yaml",
+  "common_seed": 317,
+  "fixed_mean_dip": 60.0,
+  "dip_directions": [
+    0.0,
+    5.0,
+    15.0,
+    30.0,
+    60.0,
+    90.0
+  ],
+  "expected_plane_angles_deg": [
+    0.0,
+    4.328750013155188,
+    12.952539642222362,
+    25.658906273255276,
+    48.59037789072913,
+    59.99999999999999
+  ],
+  "changed_feature": "mean_dip_dir",
+  "controlled_features": [
+    "joint_set_structure",
+    "P32",
+    "size_distribution",
+    "mean_dip",
+    "domain",
+    "tunnel",
+    "boreholes",
+    "rqd",
+    "Jr_Ja"
+  ],
+  "approval_status": "validated_for_screening"
+}

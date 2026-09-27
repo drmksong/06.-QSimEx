@@ -1,0 +1,18 @@
+profile_mc_exploration:
+  # Repeatability screening for the validated low-Q coverage signature.
+  case_paths:
+    - cases/next_lowq/next_lowq_density8_angle49_3set.yaml
+  seed_range:
+    start: 322
+    stop: 324
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_next_lowq_round_012
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

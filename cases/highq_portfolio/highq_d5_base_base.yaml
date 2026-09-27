@@ -1,0 +1,59 @@
+name: highq_d5_base_base
+description: High-Q portfolio probe; density, orientation, and size variant are explicit
+  factors for coverage reachability analysis.
+seed: 325
+tags:
+  coverage_stage: high_q_portfolio
+  parent_case: scenario_12_coverage_high_q
+  target_gap_qprime_bh:
+  - 76.14615754863519
+  - 174.5235314204193
+  density_factor: 5.0
+  orientation_variant: base
+  size_variant: base
+  screening_seeds:
+  - 325
+  - 326
+  - 327
+  - 328
+  approval_status: proposed
+domain:
+  nx: 60
+  ny: 30
+  nz: 30
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+tunnel:
+  center_y: 15.0
+  center_z: 15.0
+  radius: 5.0
+boreholes:
+- dy: 0.0
+  dz: 0.0
+rqd:
+  scan_length: 5.0
+global_params:
+  Jw_mean: 1.0
+  Jw_std: 0.05
+  SRF_mean: 1.0
+  SRF_std: 0.2
+joint_sets:
+- set_id: 1
+  name: sparse_large_favorable
+  mean_dip: 60.0
+  mean_dip_dir: 45.0
+  fisher_kappa: 8.0
+  size_alpha: 2.5
+  size_r_min: 10.0
+  size_r_max: 100.0
+  density_type: P32
+  P32: 0.05
+  mean_spacing: 50.0
+  Jr_mean: 4.0
+  Jr_std: 0.1
+  Ja_mean: 0.75
+  Ja_std: 0.1
+cost:
+  cost_fp: 1
+  cost_fn: 5

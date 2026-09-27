@@ -1,0 +1,82 @@
+name: c_angle_dir_030_4x_3set
+description: Angle-controlled orientation probe; dip fixed at 60 degrees and dip direction
+  varied to control borehole-plane angle.
+seed: 317
+tags:
+  coverage_stage: C_orientation_angle_control
+  parent_case: a_density_4x_3set
+  mean_dip_fixed: 60.0
+  mean_dip_dir: 30.0
+  expected_borehole_plane_angle_deg: 25.658906273255276
+  common_seed: 317
+  matched_non_orientation_features: true
+domain:
+  nx: 60
+  ny: 30
+  nz: 30
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+tunnel:
+  center_y: 15.0
+  center_z: 15.0
+  radius: 5.0
+boreholes:
+- dy: 0.0
+  dz: 0.0
+rqd:
+  scan_length: 5.0
+global_params:
+  Jw_mean: 0.8
+  Jw_std: 0.1
+  SRF_mean: 1.0
+  SRF_std: 0.3
+joint_sets:
+- set_id: 1
+  name: matched_template_1
+  mean_dip: 60.0
+  mean_dip_dir: 30.0
+  fisher_kappa: 30
+  size_alpha: 3.2
+  size_r_min: 0.2
+  size_r_max: 12.0
+  density_type: P32
+  P32: 14.0
+  mean_spacing: 0.125
+  Jr_mean: 1.0
+  Jr_std: 0.2
+  Ja_mean: 3.0
+  Ja_std: 0.8
+- set_id: 2
+  name: matched_template_2
+  mean_dip: 60.0
+  mean_dip_dir: 30.0
+  fisher_kappa: 30
+  size_alpha: 3.2
+  size_r_min: 0.2
+  size_r_max: 12.0
+  density_type: P32
+  P32: 14.0
+  mean_spacing: 0.125
+  Jr_mean: 1.0
+  Jr_std: 0.2
+  Ja_mean: 3.0
+  Ja_std: 0.8
+- set_id: 3
+  name: matched_template_3
+  mean_dip: 60.0
+  mean_dip_dir: 30.0
+  fisher_kappa: 30
+  size_alpha: 3.2
+  size_r_min: 0.2
+  size_r_max: 12.0
+  density_type: P32
+  P32: 14.0
+  mean_spacing: 0.125
+  Jr_mean: 1.0
+  Jr_std: 0.2
+  Ja_mean: 3.0
+  Ja_std: 0.8
+cost:
+  cost_fp: 1
+  cost_fn: 5

@@ -1,0 +1,33 @@
+profile_mc_exploration:
+  # Revised high-Q portfolio: density and actual-angle orientation, large sizes only.
+  case_paths:
+    - cases/highq_portfolio_v2/highq_v2_d1000_angle60_focused_large_base.yaml
+    - cases/highq_portfolio_v2/highq_v2_d1000_angle60_focused_large_tail.yaml
+    - cases/highq_portfolio_v2/highq_v2_d1000_angle60_broad_large_base.yaml
+    - cases/highq_portfolio_v2/highq_v2_d1000_angle60_broad_large_tail.yaml
+    - cases/highq_portfolio_v2/highq_v2_d2000_angle60_focused_large_base.yaml
+    - cases/highq_portfolio_v2/highq_v2_d2000_angle60_focused_large_tail.yaml
+    - cases/highq_portfolio_v2/highq_v2_d2000_angle60_broad_large_base.yaml
+    - cases/highq_portfolio_v2/highq_v2_d2000_angle60_broad_large_tail.yaml
+    - cases/highq_portfolio_v2/highq_v2_d5000_angle60_focused_large_base.yaml
+    - cases/highq_portfolio_v2/highq_v2_d5000_angle60_focused_large_tail.yaml
+    - cases/highq_portfolio_v2/highq_v2_d5000_angle60_broad_large_base.yaml
+    - cases/highq_portfolio_v2/highq_v2_d5000_angle60_broad_large_tail.yaml
+    - cases/highq_portfolio_v2/highq_v2_d10000_angle60_focused_large_base.yaml
+    - cases/highq_portfolio_v2/highq_v2_d10000_angle60_focused_large_tail.yaml
+    - cases/highq_portfolio_v2/highq_v2_d10000_angle60_broad_large_base.yaml
+    - cases/highq_portfolio_v2/highq_v2_d10000_angle60_broad_large_tail.yaml
+  seed_range:
+    start: 325
+    stop: 328
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_highq_portfolio_round_014_v2
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

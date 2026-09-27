@@ -92,7 +92,8 @@
    설계하고 기존 목록에 추가한다.
 3. 기존 scenario/signature와 신규 signature 전체를 seed 1개로 다시 실행한다.
 4. 이전 iteration과 비교해 새 bin, 중복 감소, domain/signature 수 변화를 기록한다.
-5. coverage를 넓힌 signature만 seed 5~10개로 확장한다.
+5. coverage를 넓힌 signature만 후속 독립 seed 확장 대상으로 검토한다. seed 수는
+   고정하지 않고 반복 결과와 시간 기록으로 결정한다.
 6. 여전히 빈 구간이 있으면 다음 iteration에서 signature를 추가한다.
 
 기존 signature를 단순 반복하는 것은 새 signature 추가를 대체하지 않는다. 중앙 구간만
@@ -110,12 +111,13 @@ seed 확장 대상에서 제외한다.
 
 ### Iteration k+1: Gap signature 추가 및 전체 재-sweep
 
-- Iteration k의 가장 중요한 내부 gap 또는 reachability gap을 선택한다.
+- Iteration k의 모든 `UNOBSERVED` gap을 순환 대상으로 등록한다. gap 사이의 의미적
+  우선순위는 두지 않으며, 후보 상한 안에서 해결된 gap은 다음 순환에서 제외한다.
 - 인접 configuration과 generation feature 차이를 비교한다.
 - P32, 평균 spacing, 방향성, Fisher 집중도, 크기분포, 절리군 수, 교차각 등을
   조정한 후보 signature를 생성한다.
 - 후보를 기존 scenario/signature 목록에 추가한다.
-- 기존 + 신규 scenario/signature 전체를 다음 iteration에서 seed 1개씩 재-sweep한다.
+- 기존 + 신규 scenario/signature 전체를 다음 iteration에서 공통 seed 1개씩 재-sweep한다.
 - 새로 관측된 bin, 중복 감소, domain/signature 수 변화를 이전 iteration과 비교한다.
 
 ### 후속 단계: coverage 기여 signature의 독립 domain 확장
@@ -125,12 +127,41 @@ seed 확장 대상에서 제외한다.
 - 기존 domain과 중복되지 않도록 signature hash와 `domain_id`를 검사한다.
 - coverage audit과 staged bootstrap을 다시 수행한다.
 
-### Iteration 3: 재현성 확인
+### Signature identity와 explicit-Euler-style update 계약
+
+- `generation_signature_hash`는 canonical generation feature만 사용하며 seed, 이름,
+  tags, runtime과 round metadata를 포함하지 않는다.
+- `domain_id`는 canonical generation feature, seed, domain identity와 generator
+  version을 사용한다. 동일 DFN 재생성과 다른 domain을 구분하는 중복 검사의 기준이다.
+- domain geometry, tunnel/borehole geometry, joint-set 구조와 observation window는
+  immutable context로 보존한다.
+- P32, spacing, 방향성, 크기분포 등 승인된 mutable feature만 normalized signature
+  space에서 bounded explicit-Euler-style iterative update한다. 이는 미분방정식 solver가
+  아니라 simulation-guided 후보 갱신 규칙이다.
+- midpoint와 Euler-style 후보의 `Δx`, coverage `ΔC`, residual, step size와 projection 결과를
+  round ledger에 기록한다.
+- 시간 예산은 soft planning signal이다. low-Q 후보를 runtime만으로 제외하지 않으며,
+  예상·실제 시간 차이와 정보량을 다음 round에 반영한다.
+
+### Feature 탐색 schedule
+
+기본 schedule은 `joint-set structure -> density -> size distribution -> orientation ->
+seed realization` 순서로 둔다. 여기서 seed realization은 generation signature 변경이
+아니라 독립 domain 재현성 확인 단계다. 각 단계의 coverage 결과와 Euler 방향 추정에
+따라 같은 단계를 반복하거나 다음 단계로 이동한다.
+
+전체 schedule의 약 90%는 기본 순서를 사용하고, 약 10%는 기록된 randomization seed로
+순서만 재배열한다. randomization은 feature 값 생성이 아니며, bounds·immutable context·
+공통 seed·provenance를 변경하지 않는다. `schedule_mode`, feature 순서와
+`randomization_seed`는 round ledger에 기록한다.
+
+### 기본 3회 이후의 재현성 확인
 
 - 남은 핵심 gap과 profile 방향 충돌을 확인한다.
 - 독립 domain에서 Q' 범위와 profile 경향이 재현되는지 검증한다.
 - lower/upper 후보가 반복 round에서 안정되는지 확인한다.
-- 최대 3회 이후에는 무한히 simulation을 반복하지 않는다.
+- 최소 3회의 공통-seed 변경 screening 후에도 방향성과 coverage 기여가 없을 때 종료
+  또는 후순위화를 검토한다. 3회는 기본값이며, 정보량·시간·재현성 근거에 따라 조정한다.
 
 ## 5. Generation signature 후보 생성 규칙
 
@@ -286,3 +317,45 @@ Round 3 이후에도 다음 중 하나가 남으면 무한 반복하지 않는�
 
 다음 미완성 구현은 generation signature 후보 생성기와 round manifest/YAML 자동
 생성기이다.
+
+## 11. 2026-09-26 실행 전략 변경 이력
+
+초기 계획의 “기존 scenario/signature를 seed 1개씩 sweep한 뒤 coverage 결과를 보고
+유효 후보를 확장”하는 원칙을 유지한다. 후보의 수와 구체적인 생성 규칙은 아직
+확정하지 않는다.
+
+| 항목           | 이전 계획                        | 현재 조정안                                                                         |
+| -------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
+| 후보 규모      | 기존 signature와 일부 pilot 중심 | coverage gap과 중복 분석 결과에 따라 필요한 후보를 단계적으로 추가                  |
+| 기존 결과 활용 | baseline 확인 후 재실행 가능성   | 기존 500 domain과 pilot 결과를 baseline/reachability 근거로 우선 재사용             |
+| screening      | signature를 seed 1개씩 확인      | 전체 pool을 동일한 공통 seed로 순회하여 signature 효과 비교                         |
+| seed 변경      | 후보별 독립 seed 확장            | 다음 iteration에서 공통 seed를 바꿔 전체 pool 재-sweep                              |
+| 확장 대상      | coverage가 좋아 보이는 후보      | 새 bin·gap 감소·profile 방향 반복을 모두 만족한 후보만 후속 seed 확장 대상으로 검토 |
+
+신규 후보는 cutoff 숫자를 직접 맞추기 위한 후보가 아니다. 저Q·고Q·중간 coverage
+gap을 확인한 뒤 필요한 만큼 추가하며, 각 후보의 parent signature, 변경 feature, 목표
+gap, 예상 이동 방향, 공통 seed, 결과 provenance를 manifest에 기록한다. 후보는 별도
+승인 전까지 calibration/validation 자료로 편입하지 않는다.
+
+signature 생성 로직과 후보 수는 아직 논의·합의되지 않았다. 현재 구현은 후보 생성
+규칙을 확정한 것으로 해석하지 않으며, 자동 생성보다 먼저 coverage 결과와 중복 판단
+기준을 합의한다.
+
+## 12. 합의된 후보 생성 흐름
+
+각 coverage iteration은 다음 순서를 따른다.
+
+1. 기존 결과와 직전 round 결과로 coverage audit을 수행한다.
+2. `UNOBSERVED` gap, 관측 범위, 과밀 구간과 기존 signature 중복을 진단한다.
+3. audit 근거가 있는 gap에 대해서만 parent signature와 후보 계획을 만든다.
+4. 후보 계획을 검토한 뒤 같은 iteration의 signature를 공통 seed로 screening한다.
+5. 새 bin과 profile 변화를 확인하고, 다음 iteration에서 추가·유지·후순위화 대상을
+   결정한다.
+
+후보 수는 고정하지 않는다. 후보 feature와 변경 폭도 아직 확정하지 않았으며, 무작위
+조합이나 cutoff 목표 기반 생성은 허용하지 않는다. 후보 계획은 실행 전 검토 가능한
+artifact로 보존하고, calibration/validation 자료로 자동 승격하지 않는다.
+
+이 변경은 DesignSpec의 cutoff 정의, EFPC 분리, Train/Validation 독립성 원칙과
+상충하지 않는다. 실행 탐색의 폭과 seed 배정 방식을 확장한 것이며, 최종 cutoff의
+승격 조건은 기존 설계와 가설검정 방법을 그대로 따른다.

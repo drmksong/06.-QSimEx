@@ -1,0 +1,28 @@
+{
+  "stage": "C_orientation",
+  "source": "cases/a_density/a_density_4x_3set.yaml",
+  "common_seed": 317,
+  "base_total_p32": 42.0,
+  "probes": [
+    "dip_high",
+    "direction_rotated",
+    "spread_wide"
+  ],
+  "cases": [
+    "c_orientation_dip_high_4x_3set",
+    "c_orientation_direction_rotated_4x_3set",
+    "c_orientation_spread_wide_4x_3set"
+  ],
+  "changed_feature_group": "mean_dip_or_mean_dip_dir_or_fisher_kappa",
+  "controlled_features": [
+    "joint_set_structure",
+    "P32",
+    "size_distribution",
+    "domain",
+    "tunnel",
+    "boreholes",
+    "rqd",
+    "Jr_Ja"
+  ],
+  "approval_status": "validated_for_screening"
+}

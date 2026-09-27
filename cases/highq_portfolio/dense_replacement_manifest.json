@@ -1,0 +1,31 @@
+{
+  "stage": "high_q_dense_replacement",
+  "replaced_active_variants": [
+    "highq_d5_base_base.yaml",
+    "highq_d5_base_compact.yaml",
+    "highq_d5_rotated_base.yaml",
+    "highq_d5_rotated_compact.yaml"
+  ],
+  "density_factors": [
+    100.0,
+    250.0,
+    500.0
+  ],
+  "candidate_count": 12,
+  "paths": [
+    "cases/highq_portfolio/highq_dense_d100_base_base.yaml",
+    "cases/highq_portfolio/highq_dense_d250_base_base.yaml",
+    "cases/highq_portfolio/highq_dense_d500_base_base.yaml",
+    "cases/highq_portfolio/highq_dense_d100_base_compact.yaml",
+    "cases/highq_portfolio/highq_dense_d250_base_compact.yaml",
+    "cases/highq_portfolio/highq_dense_d500_base_compact.yaml",
+    "cases/highq_portfolio/highq_dense_d100_rotated_base.yaml",
+    "cases/highq_portfolio/highq_dense_d250_rotated_base.yaml",
+    "cases/highq_portfolio/highq_dense_d500_rotated_base.yaml",
+    "cases/highq_portfolio/highq_dense_d100_rotated_compact.yaml",
+    "cases/highq_portfolio/highq_dense_d250_rotated_compact.yaml",
+    "cases/highq_portfolio/highq_dense_d500_rotated_compact.yaml"
+  ],
+  "historical_originals_preserved": true,
+  "status": "proposed_review_before_execution"
+}

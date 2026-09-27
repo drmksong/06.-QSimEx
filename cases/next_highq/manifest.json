@@ -1,0 +1,14 @@
+{
+  "stage": "next_highq_bridge",
+  "source": "cases/scenario_12_coverage_high_q.yaml",
+  "case_path": "cases/next_highq/next_highq_bridge_density5x.yaml",
+  "common_seed": 325,
+  "density_factor": 5.0,
+  "target_gap_qprime_bh": [
+    76.14615754863519,
+    174.5235314204193
+  ],
+  "changed_feature": "P32",
+  "expected_effect": "move_high_q_parent_toward_internal_high_gap",
+  "approval_status": "validated_for_screening"
+}

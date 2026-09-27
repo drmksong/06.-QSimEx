@@ -1,0 +1,20 @@
+profile_mc_exploration:
+  # C-only orientation probes on confirmed 4x-density 3-set structure.
+  case_paths:
+    - cases/c_orientation/c_orientation_dip_high_4x_3set.yaml
+    - cases/c_orientation/c_orientation_direction_rotated_4x_3set.yaml
+    - cases/c_orientation/c_orientation_spread_wide_4x_3set.yaml
+  seed_range:
+    start: 317
+    stop: 320
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_c_orientation_round_009
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

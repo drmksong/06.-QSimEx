@@ -36,6 +36,7 @@ class MultiCaseBatchConfig:
     # Central defaults: cost_fp=1.0, cost_fn=5.0
     cost_fp: float = 1.0
     cost_fn: float = 5.0
+    generator_version: str = "qsimex-generation-v1"
 
 
 class MultiCaseBatchRunner:
@@ -81,6 +82,7 @@ class MultiCaseBatchRunner:
                 checkpoint_on_seed=self.config.checkpoint_on_seed,
                 cost_fp=case_cost_fp,
                 cost_fn=case_cost_fn,
+                generator_version=self.config.generator_version,
             )
 
             runner = BatchRunner(case, batch_config)

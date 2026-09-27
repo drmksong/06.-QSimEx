@@ -1,0 +1,26 @@
+{
+  "stage": "A_density",
+  "source": "cases/d_matched/d_matched_3set.yaml",
+  "common_seed": 305,
+  "base_total_p32": 10.5,
+  "density_factors": [
+    0.5,
+    2.0
+  ],
+  "cases": [
+    "a_density_0.5x_3set",
+    "a_density_2x_3set"
+  ],
+  "changed_feature": "total_p32",
+  "controlled_features": [
+    "joint_set_count",
+    "size_distribution",
+    "orientation",
+    "domain",
+    "tunnel",
+    "boreholes",
+    "rqd",
+    "Jr_Ja"
+  ],
+  "approval_status": "validated_for_screening"
+}

@@ -1,0 +1,20 @@
+{
+  "stage": "high_q_euler_update",
+  "parent_case": "cases/highq_portfolio_v2/highq_v2_d10000_angle60_focused_large_base.yaml",
+  "case_path": "cases/next_highq/highq_euler_d20000_focused_large_base.yaml",
+  "seed": 333,
+  "proposed_density_factor": 20000.0,
+  "observed_response": {
+    "from_density_factor": 5000.0,
+    "to_density_factor": 10000.0,
+    "qprime_delta": -17.08,
+    "rqd_delta": -6.29,
+    "borehole_count_delta": 17.0
+  },
+  "target_gap_qprime_bh": [
+    76.14615754863519,
+    174.5235314204193
+  ],
+  "candidate_count": 1,
+  "status": "proposed_review_before_execution"
+}

@@ -1,0 +1,45 @@
+profile_mc_exploration:
+  # Proposed high-Q portfolio: density x orientation x size, many independent seeds.
+  case_paths:
+    - cases/highq_portfolio/highq_dense_d100_base_base.yaml
+    - cases/highq_portfolio/highq_dense_d100_base_compact.yaml
+    - cases/highq_portfolio/highq_dense_d100_rotated_base.yaml
+    - cases/highq_portfolio/highq_dense_d100_rotated_compact.yaml
+    - cases/highq_portfolio/highq_dense_d250_base_base.yaml
+    - cases/highq_portfolio/highq_dense_d250_base_compact.yaml
+    - cases/highq_portfolio/highq_dense_d250_rotated_base.yaml
+    - cases/highq_portfolio/highq_dense_d250_rotated_compact.yaml
+    - cases/highq_portfolio/highq_dense_d500_base_base.yaml
+    - cases/highq_portfolio/highq_dense_d500_base_compact.yaml
+    - cases/highq_portfolio/highq_dense_d500_rotated_base.yaml
+    - cases/highq_portfolio/highq_dense_d500_rotated_compact.yaml
+    - cases/highq_portfolio/highq_d10_interp_base_base.yaml
+    - cases/highq_portfolio/highq_d31p6_interp_base_base.yaml
+    - cases/highq_portfolio/highq_exp_d100_highangle_micro.yaml
+    - cases/highq_portfolio/highq_exp_d100_highangle_broad_medium.yaml
+    - cases/highq_portfolio/highq_exp_d250_highangle_micro.yaml
+    - cases/highq_portfolio/highq_exp_d250_highangle_broad_medium.yaml
+    - cases/highq_portfolio/highq_exp_d500_highangle_micro.yaml
+    - cases/highq_portfolio/highq_exp_d500_highangle_broad_medium.yaml
+    - cases/highq_portfolio/highq_exp_d1000_highangle_micro.yaml
+    - cases/highq_portfolio/highq_exp_d1000_highangle_broad_medium.yaml
+    - cases/highq_portfolio/highq_exp_d2000_highangle_micro.yaml
+    - cases/highq_portfolio/highq_exp_d2000_highangle_broad_medium.yaml
+    - cases/highq_portfolio/highq_exp_d5000_highangle_micro.yaml
+    - cases/highq_portfolio/highq_exp_d5000_highangle_broad_medium.yaml
+    - cases/highq_portfolio/highq_exp_d10000_highangle_micro.yaml
+    - cases/highq_portfolio/highq_exp_d10000_highangle_broad_medium.yaml
+  seed_range:
+    start: 325
+    stop: 328
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_highq_portfolio_round_014
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

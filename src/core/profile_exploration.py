@@ -258,6 +258,7 @@ def audit_qprime_coverage(
     observed_min = float(np.min(finite))
     observed_max = float(np.max(finite))
     bins = []
+    signature_bins: Dict[str, List[int]] = {}
     for bin_index, (lower, upper) in enumerate(zip(cutoff_values[:-1], cutoff_values[1:])):
         in_bin = np.isfinite(q_values) & (q_values >= lower)
         if bin_index == len(cutoff_values) - 2:
@@ -267,6 +268,12 @@ def audit_qprime_coverage(
         selected = [row for row, included in zip(rows, in_bin) if included]
         domains = {tuple(row.get(key) for key in domain_keys) for row in selected}
         cases = {row.get("case_name") for row in selected if row.get("case_name")}
+        signatures = sorted({
+            str(row["generation_signature_hash"])
+            for row in selected if row.get("generation_signature_hash")
+        })
+        for signature in signatures:
+            signature_bins.setdefault(signature, []).append(bin_index)
         if selected:
             status = "observed"
             recommendation = "no coverage expansion required"
@@ -284,6 +291,8 @@ def audit_qprime_coverage(
                 "n_records": len(selected),
                 "n_domains": len(domains),
                 "n_cases": len(cases),
+                "n_signatures": len(signatures),
+                "signature_hashes": signatures,
                 "status": status,
                 "recommendation": recommendation,
             }
@@ -296,11 +305,12 @@ def audit_qprime_coverage(
         "n_records": len(rows),
         "n_finite_records": int(finite.size),
         "bins": bins,
+        "signature_bins": signature_bins,
     }
 
 
 def load_csv_records(path: str) -> List[Dict[str, Any]]:
-    with Path(path).open("r", encoding="utf-8", newline="") as handle:
+    with Path(path).open("r", encoding="utf-8-sig", newline="") as handle:
         return list(csv.DictReader(handle))
 
 

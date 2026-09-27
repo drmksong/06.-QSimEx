@@ -1,0 +1,24 @@
+profile_mc_exploration:
+  case_paths:
+  - cases/d_matched/d_matched_1set.yaml
+  - cases/d_matched/d_matched_2set.yaml
+  - cases/d_matched/d_matched_3set.yaml
+  - cases/next_lowq/next_lowq_density8_angle49_3set.yaml
+  - cases/next_highq/highq_euler_d20000_focused_large_base.yaml
+  seed_range:
+    start: 1001
+    stop: 1002
+    step: 1
+  face_positions:
+  - 10
+  - 20
+  - 30
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: validation/campaign_002/iteration_000/simulation
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

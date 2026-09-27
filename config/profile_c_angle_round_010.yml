@@ -1,0 +1,23 @@
+profile_mc_exploration:
+  # Angle-controlled C probes; mean dip fixed, dip direction varied.
+  case_paths:
+    - cases/c_angle/c_angle_dir_000_4x_3set.yaml
+    - cases/c_angle/c_angle_dir_005_4x_3set.yaml
+    - cases/c_angle/c_angle_dir_015_4x_3set.yaml
+    - cases/c_angle/c_angle_dir_030_4x_3set.yaml
+    - cases/c_angle/c_angle_dir_060_4x_3set.yaml
+    - cases/c_angle/c_angle_dir_090_4x_3set.yaml
+  seed_range:
+    start: 317
+    stop: 320
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_c_angle_round_010
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

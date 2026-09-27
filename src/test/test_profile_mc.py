@@ -2,6 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from batch_runner import BatchConfig, BatchRunner
+from src.core.case_library import CaseLoader
 from run_profile_mc import build_runner_config, expand_seeds, load_config
 
 
@@ -30,6 +32,21 @@ class TestProfileMonteCarloConfig(unittest.TestCase):
         config = load_config(str(config_path))
         self.assertEqual(config["seed_range"]["start"], 40)
         self.assertEqual(config["seed_range"]["stop"], 139)
+
+    def test_batch_metadata_separates_signature_and_domain_identity(self):
+        case = CaseLoader.load_yaml("cases/scenario_03_sparse_large.yaml")
+        runner = BatchRunner(case, BatchConfig(seeds=[1], verbose=False))
+
+        first = runner._domain_metadata(case, 1)
+        second = runner._domain_metadata(case, 2)
+        renamed_case = CaseLoader.load_yaml("cases/scenario_03_sparse_large.yaml")
+        renamed_case.name = "renamed_case"
+        renamed = runner._domain_metadata(renamed_case, 1)
+
+        self.assertEqual(first["generation_signature_hash"], second["generation_signature_hash"])
+        self.assertEqual(first["generation_signature_hash"], renamed["generation_signature_hash"])
+        self.assertNotEqual(first["domain_id"], second["domain_id"])
+        self.assertEqual(first["generator_version"], "qsimex-generation-v1")
 
 
 if __name__ == "__main__":

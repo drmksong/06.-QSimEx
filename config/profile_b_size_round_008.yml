@@ -1,0 +1,20 @@
+profile_mc_exploration:
+  # B-only size-distribution probes on confirmed 3-set D structure.
+  case_paths:
+    - cases/b_size/b_size_alpha_low_3set.yaml
+    - cases/b_size/b_size_alpha_high_3set.yaml
+    - cases/b_size/b_size_max_radius_high_3set.yaml
+  seed_range:
+    start: 309
+    stop: 312
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_b_size_round_008
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

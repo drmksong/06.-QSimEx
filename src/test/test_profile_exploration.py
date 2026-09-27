@@ -1,14 +1,46 @@
 import unittest
+import csv
+import tempfile
+from pathlib import Path
+import numpy as np
+from types import SimpleNamespace
 
+from src.core.comparison import ComparisonEngine
 from src.core.profile_exploration import (
     audit_qprime_coverage,
     classify_profile_states,
+    load_csv_records,
     search_profile_boundaries,
     summarize_profiles,
 )
 
 
 class TestProfileExploration(unittest.TestCase):
+    def test_loads_csv_case_name_with_or_without_utf8_bom(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for encoding in ("utf-8", "utf-8-sig"):
+                path = Path(directory) / f"{encoding}.csv"
+                with path.open("w", encoding=encoding, newline="") as handle:
+                    writer = csv.DictWriter(handle, fieldnames=["case_name", "seed"])
+                    writer.writeheader()
+                    writer.writerow({"case_name": "parent", "seed": "1001"})
+                self.assertEqual(load_csv_records(str(path)), [
+                    {"case_name": "parent", "seed": "1001"}
+                ])
+
+    def test_borehole_plane_angle_uses_plane_not_normal_angle(self):
+        mean_plane, median_plane, mean_normal, median_normal = (
+            ComparisonEngine._borehole_plane_angles(
+                [SimpleNamespace(normal=np.array([1.0, 0.0, 0.0])),
+                 SimpleNamespace(normal=np.array([0.0, 1.0, 0.0]))]
+            )
+        )
+
+        self.assertAlmostEqual(mean_plane, 45.0)
+        self.assertAlmostEqual(median_plane, 45.0)
+        self.assertAlmostEqual(mean_normal, 45.0)
+        self.assertAlmostEqual(median_normal, 45.0)
+
     def test_audits_internal_and_external_qprime_gaps(self):
         records = [
             {"Qp_bh_mean": value, "case_name": "A", "seed": index}

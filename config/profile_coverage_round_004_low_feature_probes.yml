@@ -1,0 +1,20 @@
+profile_mc_exploration:
+  # Same-seed low-Q probes isolating the observed Jr and Ja feature changes.
+  # Screening only; do not use as calibration or validation data.
+  case_paths:
+    - results/coverage_rounds/round_004_low_feature_probes/candidates/probe_jr.yaml
+    - results/coverage_rounds/round_004_low_feature_probes/candidates/probe_ja.yaml
+  seed_range:
+    start: 301
+    stop: 301
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_coverage_round_004_low_feature_probes
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

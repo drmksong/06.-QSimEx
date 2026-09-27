@@ -1,0 +1,3 @@
+Scenario,Corr,Bias,RMSE,RQD dependency
+next_lowq_density8_angle49_3set,,-9.69925833396127,9.699560822170248,Normal
+next_lowq_density8_angle49_3set,0.9570524253832765,-0.6862563516712185,0.6887184342138066,Normal

@@ -1,0 +1,13 @@
+{
+  "approval_status": "approved_for_screening",
+  "case_path": "cases/highq_portfolio_v2/highq_v2_d1000_angle60_focused_large_base.yaml",
+  "probe_case_path": "cases/highq_portfolio_v2/highq_v2_d2000_angle60_focused_large_base.yaml",
+  "target_region": "high_q_gap",
+  "target_bins": [8],
+  "feature_bounds": {
+    "joint_sets.0.P32": [0.01, 200.0]
+  },
+  "step_size": 0.5,
+  "screening_seed": 1001,
+  "generator_version": "qsimex-generation-v1"
+}

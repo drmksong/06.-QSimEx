@@ -1,0 +1,19 @@
+profile_mc_exploration:
+  # A-only density probes on the confirmed 3-set D structure.
+  case_paths:
+    - cases/a_density/a_density_0.5x_3set.yaml
+    - cases/a_density/a_density_2x_3set.yaml
+  seed_range:
+    start: 306
+    stop: 308
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_a_density_round_007
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

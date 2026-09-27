@@ -1,0 +1,46 @@
+{
+  "stage": "high_q_portfolio",
+  "source": "cases/scenario_12_coverage_high_q.yaml",
+  "target_gap_qprime_bh": [
+    76.14615754863519,
+    174.5235314204193
+  ],
+  "density_factors": [
+    5.0,
+    20.0,
+    50.0
+  ],
+  "orientation_variants": {
+    "base": {
+      "mean_dip": 60.0,
+      "mean_dip_dir": 45.0,
+      "fisher_kappa": 8.0
+    },
+    "rotated": {
+      "mean_dip": 60.0,
+      "mean_dip_dir": 90.0,
+      "fisher_kappa": 8.0
+    }
+  },
+  "size_variants": {
+    "base": {
+      "size_r_min": 10.0,
+      "size_r_max": 100.0,
+      "size_alpha": 2.5
+    },
+    "compact": {
+      "size_r_min": 5.0,
+      "size_r_max": 50.0,
+      "size_alpha": 2.5
+    }
+  },
+  "seeds": [
+    325,
+    326,
+    327,
+    328
+  ],
+  "candidate_count": 12,
+  "run_count": 48,
+  "status": "proposed_review_before_execution"
+}

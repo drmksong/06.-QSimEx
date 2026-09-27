@@ -9,7 +9,6 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 import copy
 import csv
-import hashlib
 import json
 import os
 import time
@@ -19,6 +18,10 @@ from src.core.domain import AnalysisCase, RockDomain
 from src.core.tunnel import Tunnel
 from src.core.comparison import ComparisonEngine
 from src.core.reporting import ResearchReporter
+from src.core.signature_candidates import (
+    compute_domain_id,
+    compute_generation_signature_hash,
+)
 
 
 @dataclass
@@ -38,6 +41,7 @@ class BatchConfig:
     # Defaults changed to centralised defaults: cost_fp=1 (false-positive), cost_fn=5 (false-negative)
     cost_fp: float = 1.0
     cost_fn: float = 5.0
+    generator_version: str = "qsimex-generation-v1"
 
 
 @dataclass
@@ -240,12 +244,26 @@ class BatchRunner:
                 "SRF_std": case.joint_config.SRF_std,
             },
         }
-        serialized = json.dumps(features, sort_keys=True, separators=(",", ":"), default=str)
-        signature_hash = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+        generation_features = dict(features)
+        generation_features.pop("case_name", None)
+        generation_features.pop("seed", None)
+        serialized = json.dumps(
+            generation_features,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
+        signature_hash = compute_generation_signature_hash(features)
+        domain_id = compute_domain_id(
+            features,
+            seed=seed,
+            generator_version=self.config.generator_version,
+        )
         return {
-            "domain_id": f"{case.name}:{seed}:{signature_hash[:16]}",
+            "domain_id": domain_id,
             "generation_signature_hash": signature_hash,
             "generation_features_json": serialized,
+            "generator_version": self.config.generator_version,
         }
 
     def _clone_case_with_seed(self, case: AnalysisCase, seed: int) -> AnalysisCase:

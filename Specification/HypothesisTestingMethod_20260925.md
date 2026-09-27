@@ -160,6 +160,22 @@ Bootstrap은 기존 simulation row를 재표본화하는 후처리이며 DFN을 
 `UNOBSERVED` bin은 PR/TR/POST 교집합 계산에서 관측된 상태로 취급하지 않는다.
 빈 구간을 TR로 대체하여 변화점이 생긴 것처럼 보고하지 않는다.
 
+## 6.1 기존 접근과 coverage-adaptive 접근의 차이
+
+| 항목              | 기존 접근                                                 | 현재 적용 접근                                                              |
+| ----------------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 실행 순서         | scenario별 seed를 먼저 대량 확장한 뒤 pooled 결과를 분석  | 전체 scenario/signature를 seed 1개씩 sweep한 뒤 coverage를 진단             |
+| coverage gap 대응 | 기존 configuration의 seed를 반복하여 자료량을 늘림        | 빈 구간을 만들 수 있는 신규 generation signature를 추가하고 전체를 재-sweep |
+| seed 확장 기준    | configuration별로 비교적 균등하게 확장                    | 실제 목표 bin과 profile 방향을 반복한 signature만 후속 seed 확장 대상으로 검토 |
+| 분석 관점         | pooled row와 단일 profile 요약이 중심                     | scenario/signature/domain별 분석을 우선하고 pooled 결과는 보조로 사용       |
+| 독립성 처리       | 동일 domain의 반복 row가 표본 수에 섞일 위험              | `domain_id`를 cluster로 묶어 domain 단위 재현성을 검정                      |
+| 빈 bin 해석       | 관측 부족이 변화 없음 또는 `TR`처럼 해석될 위험           | `UNOBSERVED`로 분리하고 내부 gap·범위 밖 gap을 구분                         |
+| 종료 판단         | 한 번의 실행 결과로 `not_identifiable` 또는 cutoff를 판단 | 최소 3회 screening 후 재현성·coverage·시간 근거로 계속 또는 종료를 판단       |
+
+따라서 현재 방법은 기존 결과를 폐기하는 방식이 아니라, 기존 결과를 baseline으로
+보존하면서 coverage 다양성, 독립 domain 재현성, 반복 라운드의 변화량을 추가로 검정하는
+확장 방식이다. 기존 H1~H5의 pooled p-value는 탐색적 보조 결과로만 유지한다.
+
 ## 7. 상태 및 식별 판정 기준
 
 최종 최소 기준은 분석 시작 전에 configuration으로 고정한다.
@@ -275,8 +291,8 @@ Iteration 3 이후에도 핵심 bin이 계속 `UNOBSERVED`이거나 signature를
 없으면 무한히 simulation을 반복하지 않는다. 해당 구간을 `exclude_as_unreachable`,
 적용 범위 밖 또는 `not_identifiable`로 기록하고 다음 단계로 넘어간다.
 
-각 라운드 종료 시 다음 라운드로 진행할지, 3회 한도에 도달했는지 명시적으로
-기록한다.
+각 라운드 종료 시 다음 라운드로 진행할지, 최소 3회 screening 이후에도 추가 검토가
+필요한지를 명시적으로 기록한다. 3회는 조정 가능한 기본값이며 절대 상한이 아니다.
 
 coverage pilot 자료는 이 반복 과정에서 reachability 판단에만 사용하고, 최종
 calibration/validation 자료에는 독립적으로 승인된 경우에만 편입한다.
@@ -513,3 +529,43 @@ EFPC가 연결되지 않아도 다음 Phase 3 핵심 결과는 산출한다.
 
 레거시 분석 코드는 감사·재현 기록을 위해 보존하되, 이 정의서의 검정 경로에 연결하지
 않는다.
+
+## 13. 2026-09-26 실행 탐색 변경 이력
+
+기존 5개 configuration의 500개 domain을 다시 대량 실행하지 않고, 기존 결과와
+coverage pilot에서 확인된 gap을 기준으로 필요한 신규 generation signature를
+단계적으로 추가한다. 후보 생성 feature와 변경 폭은 아직 확정하지 않으며, 별도
+합의 전에는 자동 후보 생성 규칙으로 간주하지 않는다.
+
+각 screening iteration은 다음 규칙을 따른다.
+
+1. 기존 signature와 신규 signature를 하나의 pool로 구성한다.
+2. pool 전체를 동일한 공통 seed `S_k`로 한 번씩 실행한다.
+3. 새로 관측된 Q' bin, gap 감소, 중앙부 중복도, profile 방향, provenance metadata를
+  signature별로 기록한다.
+4. 다음 iteration에서는 공통 seed를 `S_(k+1)`로 바꾸어 전체 pool을 재-sweep한다.
+5. 목표 bin을 만들고 profile 방향을 반복한 signature만 후속 독립 seed 확장 후보로
+  검토한다.
+
+공통 seed sweep은 기존 500개 domain을 대체하지 않는다. 기존 결과는 중간 영역의
+baseline으로 계속 사용하며, pilot metadata가 불완전한 경우에만 해당 pilot signature를
+새 runner로 재실행하여 `domain_id`와 signature hash를 보강한다. 하나의 seed에서만
+gap에 도달한 signature는 후보로 보류하고 calibration/validation에 편입하지 않는다.
+
+## 14. 합의된 signature 후보 설계 원칙
+
+signature 후보 생성은 coverage audit 이후에 수행한다. audit 없이 후보를 먼저
+대량 생성하지 않으며, 후보 수를 사전에 고정하지 않는다.
+
+후보 계획에는 최소한 다음을 기록한다.
+
+- 보강 대상 `UNOBSERVED` gap과 gap 분류
+- parent signature와 parent를 선택한 근거
+- 변경할 feature와 변경 방향
+- 예상 Q' coverage 영향과 선택 이유
+- screening 공통 seed와 provenance
+
+후보는 무작위 feature 조합이나 cutoff 숫자 목표로 생성하지 않는다. 동일 iteration의
+signature는 공통 seed로 비교하고, 새 bin을 만들지 못하면서 기존 분포와 중복되는
+signature는 반복 sweep 결과를 확인한 뒤 후순위화 또는 제거를 검토한다. feature 변경
+폭, parent 선택 점수, 중복 판정 기준은 별도 합의 전까지 미정으로 유지한다.

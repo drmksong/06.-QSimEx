@@ -1,0 +1,20 @@
+profile_mc_exploration:
+  # D-only matched repeatability screening with independent seeds.
+  case_paths:
+    - cases/d_matched/d_matched_1set.yaml
+    - cases/d_matched/d_matched_2set.yaml
+    - cases/d_matched/d_matched_3set.yaml
+  seed_range:
+    start: 303
+    stop: 304
+    step: 1
+  face_positions: [10, 20, 30]
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_d_matched_round_006
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

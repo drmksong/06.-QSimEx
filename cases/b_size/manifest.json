@@ -1,0 +1,29 @@
+{
+  "stage": "B_size_distribution",
+  "source": "cases/d_matched/d_matched_3set.yaml",
+  "common_seed": 309,
+  "base_total_p32": 10.5,
+  "probes": [
+    "alpha_low",
+    "alpha_high",
+    "max_radius_high"
+  ],
+  "cases": [
+    "b_size_alpha_low_3set",
+    "b_size_alpha_high_3set",
+    "b_size_max_radius_high_3set"
+  ],
+  "changed_feature_group": "size_alpha_or_size_r_max",
+  "controlled_features": [
+    "joint_set_structure",
+    "P32",
+    "mean_spacing",
+    "orientation",
+    "domain",
+    "tunnel",
+    "boreholes",
+    "rqd",
+    "Jr_Ja"
+  ],
+  "approval_status": "validated_for_screening"
+}

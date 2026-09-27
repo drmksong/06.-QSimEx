@@ -1,0 +1,81 @@
+name: a_density_8x_3set
+description:
+  A-only density probe on confirmed 3-set D structure; all non-density
+  features fixed.
+seed: 305
+tags:
+  coverage_stage: A_density
+  parent_case: d_matched_3set
+  density_factor: 8.0
+  common_seed: 305
+  matched_non_density_features: true
+domain:
+  nx: 60
+  ny: 30
+  nz: 30
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+tunnel:
+  center_y: 15.0
+  center_z: 15.0
+  radius: 5.0
+boreholes:
+  - dy: 0.0
+    dz: 0.0
+rqd:
+  scan_length: 5.0
+global_params:
+  Jw_mean: 0.8
+  Jw_std: 0.1
+  SRF_mean: 1.0
+  SRF_std: 0.3
+joint_sets:
+  - set_id: 1
+    name: matched_template_1
+    mean_dip: 15
+    mean_dip_dir: 0
+    fisher_kappa: 30
+    size_alpha: 3.2
+    size_r_min: 0.2
+    size_r_max: 12.0
+    density_type: P32
+    P32: 28.0
+    mean_spacing: 0.125
+    Jr_mean: 1.0
+    Jr_std: 0.2
+    Ja_mean: 3.0
+    Ja_std: 0.8
+  - set_id: 2
+    name: matched_template_2
+    mean_dip: 15
+    mean_dip_dir: 0
+    fisher_kappa: 30
+    size_alpha: 3.2
+    size_r_min: 0.2
+    size_r_max: 12.0
+    density_type: P32
+    P32: 28.0
+    mean_spacing: 0.125
+    Jr_mean: 1.0
+    Jr_std: 0.2
+    Ja_mean: 3.0
+    Ja_std: 0.8
+  - set_id: 3
+    name: matched_template_3
+    mean_dip: 15
+    mean_dip_dir: 0
+    fisher_kappa: 30
+    size_alpha: 3.2
+    size_r_min: 0.2
+    size_r_max: 12.0
+    density_type: P32
+    P32: 28.0
+    mean_spacing: 0.125
+    Jr_mean: 1.0
+    Jr_std: 0.2
+    Ja_mean: 3.0
+    Ja_std: 0.8
+cost:
+  cost_fp: 1
+  cost_fn: 5

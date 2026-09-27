@@ -419,14 +419,14 @@ Phase 3의 주 가설과 Phase 4의 통계적 재현성 검정은 별도 정의�
 기존 가정과 가설은 재현성과 감사 가능성을 위해 삭제하지 않는다. 다만 현재까지의
 시뮬레이션 결과와 통계 검토에 따라 주 가설과 보조 가설의 역할을 구분하여 기록한다.
 
-| 기존 가정·가설 | 현재까지 확인된 내용 | 업데이트된 역할 |
-| --- | --- | --- |
-| `Q'_BH`가 `Q'_face`를 대표하는가 | 전체 상관은 높지만 케이스 내부 변동이 존재한다. 평균 차이 검정만으로 등가성을 입증할 수 없다. | 평균 차이 검정이 아닌 허용오차·domain 재현성·equivalence 관점의 보조 가설로 유지 |
-| 밀도가 높을수록 borehole-face 오차가 감소한다 | 전체 pooled 자료에서는 방향성이 보였으나 row 독립성 문제와 낮은 설명력이 있다. | 탐색적 보조 가설로 유지하고 seed/domain 계층 검증으로 재검토 |
-| 희소 절리망에서 누락 영향으로 오차가 커진다 | 일부 신호가 보였으나 sparse를 사후 분위수로 정의한 결과이며 독립성 보정이 필요하다. | configuration으로 사전 정의할 조건군 가설로 업데이트 |
-| 밀도 효과가 방향성에 의해 조절된다 | pooled 상호작용 신호가 있으나 case/domain 재현성은 확인되지 않았다. | 조건군별 재현성을 확인하는 보조 가설로 유지 |
-| 희소·불리한 방향에서 `Q'_BH`가 체계적으로 과대평가된다 | 현재 파일럿 결과는 이 방향을 지지하지 않았다. | 확정 가설에서 제외하고 독립 configuration에서 재검증할 보류 가설로 기록 |
-| 고정 로그 구간에서 PR/TR/POST를 바로 판정할 수 있다 | 현재 `Q'_BH` 표본이 일부 구간에 집중되어 빈 구간과 변화 구간을 구분하기 어렵다. | 빈 구간은 `UNOBSERVED`로 분리하고, coverage gap을 configuration 보강 대상으로 취급 |
+| 기존 가정·가설                                         | 현재까지 확인된 내용                                                                          | 업데이트된 역할                                                                    |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `Q'_BH`가 `Q'_face`를 대표하는가                       | 전체 상관은 높지만 케이스 내부 변동이 존재한다. 평균 차이 검정만으로 등가성을 입증할 수 없다. | 평균 차이 검정이 아닌 허용오차·domain 재현성·equivalence 관점의 보조 가설로 유지   |
+| 밀도가 높을수록 borehole-face 오차가 감소한다          | 전체 pooled 자료에서는 방향성이 보였으나 row 독립성 문제와 낮은 설명력이 있다.                | 탐색적 보조 가설로 유지하고 seed/domain 계층 검증으로 재검토                       |
+| 희소 절리망에서 누락 영향으로 오차가 커진다            | 일부 신호가 보였으나 sparse를 사후 분위수로 정의한 결과이며 독립성 보정이 필요하다.           | configuration으로 사전 정의할 조건군 가설로 업데이트                               |
+| 밀도 효과가 방향성에 의해 조절된다                     | pooled 상호작용 신호가 있으나 case/domain 재현성은 확인되지 않았다.                           | 조건군별 재현성을 확인하는 보조 가설로 유지                                        |
+| 희소·불리한 방향에서 `Q'_BH`가 체계적으로 과대평가된다 | 현재 파일럿 결과는 이 방향을 지지하지 않았다.                                                 | 확정 가설에서 제외하고 독립 configuration에서 재검증할 보류 가설로 기록            |
+| 고정 로그 구간에서 PR/TR/POST를 바로 판정할 수 있다    | 현재 `Q'_BH` 표본이 일부 구간에 집중되어 빈 구간과 변화 구간을 구분하기 어렵다.               | 빈 구간은 `UNOBSERVED`로 분리하고, coverage gap을 configuration 보강 대상으로 취급 |
 
 Phase 3의 주 가설은 다음으로 업데이트한다.
 
@@ -440,3 +440,376 @@ Phase 3의 주 가설은 다음으로 업데이트한다.
 configuration을 추가 설계한다. 추가 configuration을 사용해도 충분한 독립 domain이
 확보되지 않거나 프로파일이 서로 충돌할 때에만 최종 `not_identifiable` 또는 적용
 범위 밖으로 기록한다.
+
+### 5.5 Coverage 보강용 signature 설계 원칙
+
+Coverage 보강은 signature를 먼저 임의로 대량 생성하는 방식으로 수행하지 않는다.
+각 iteration에서 먼저 coverage audit을 수행하고, 그 결과에 반응하여 필요한 후보만
+추가한다.
+
+- 후보는 `UNOBSERVED` gap, 관측 범위, 인접 configuration, pilot의 실제 Q' 이동
+  근거를 바탕으로 계획한다.
+- 무작위 feature 조합이나 Q' cutoff를 직접 목표로 하는 생성은 사용하지 않는다.
+- parent signature, 변경 feature, 변경 방향, 예상 coverage 영향, 선택 이유를 후보
+  계획에 기록한다.
+- 한 iteration에서 추가할 후보 수는 고정하지 않으며, audit 결과에 따라 결정한다.
+- 같은 iteration에서는 모든 signature에 공통 seed를 사용하여 signature 효과와 seed
+  변동을 분리한다.
+- 새 bin을 만들지 못하고 기존 분포와 중복되는 signature는 반복 결과를 확인한 뒤
+  후순위화 또는 제거 대상으로 검토한다.
+
+구체적인 feature 변경 폭, parent 선택 점수, 중복 판정 기준과 후보 수는 별도 설계
+논의 후 확정한다. 그 전까지 signature 생성기는 확정된 물리 법칙이나 자동 승인기로
+간주하지 않는다.
+
+### 5.4 실행 탐색 방식의 변경 이력
+
+기존 설계의 목적과 판정 원칙은 유지하되, Q' coverage를 확보하기 위한 실행 탐색
+방식은 다음과 같이 확장한다.
+
+| 시점          | 기존 접근                                                      | 변경된 접근                                                                         | 변경 사유 및 영향                                                                                |
+| ------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 초기 계획     | 소수 scenario의 seed를 대량 실행하여 domain 반복성을 먼저 확보 | 기존 500개 domain 결과는 baseline으로 보존하고 재사용                               | 이미 확보한 중간 Q' 정보를 불필요하게 반복하지 않음                                              |
+| coverage 확장 | 기존 configuration의 seed를 늘리는 방식 중심                   | 저Q·고Q 및 중간 gap을 확인한 뒤 필요한 신규 generation signature를 단계적으로 추가  | 현재 공백은 표본 수보다 configuration 다양성 부족일 수 있으므로 signature 공간을 점진적으로 넓힘 |
+| 후보 비교     | signature별 seed가 달라 효과와 seed 변동이 섞일 수 있음        | 한 iteration에서 전체 signature를 동일한 공통 seed 1개로 순회                       | signature 차이를 seed 차이와 분리해 비교                                                         |
+| 반복 검증     | 유효 후보를 바로 대량 확장                                     | 다음 iteration에서 공통 seed를 바꿔 전체 pool을 재-sweep한 뒤 기여 signature만 확장 | 우연한 단일 seed 효과를 배제하고 재현성을 확인                                                   |
+
+이 변경은 cutoff를 임의로 목표화하거나 DesignSpec의 Train/Validation 원칙을 바꾸는
+것이 아니다. 신규 후보는 `low_q_gap`, `middle_gap`, `high_q_gap`의 coverage를
+확인한 뒤 필요한 만큼 단계적으로 추가하는 잠정 탐색 자료이며, cutoff 후보·calibration·
+validation 자료로 자동 승격하지 않는다. 기존 500개 domain과 pilot 결과는 provenance를
+보존한 baseline/reachability 근거로 사용하고, 새 공통-seed sweep 결과는 별도 round
+artifact로 기록한다.
+
+signature의 구체적인 생성 로직, feature 변경 폭, 후보 수와 추가 순서는 아직 확정하지
+않았다. 해당 규칙은 coverage 결과와 기존 signature의 중복·기여를 확인한 뒤 별도
+합의와 검토를 거쳐 정의한다.
+
+### 5.6 Coverage 전략 catalog
+
+Coverage 보강 후보는 개별 YAML을 즉시 실행하는 대신, 먼저 **전략 catalog**에
+검토 가능한 가설로 등록한다. 전략 catalog는 coverage audit과 이전 round 결과를
+바탕으로 다음 iteration에서 시험할 generation signature 후보를 관리하는 설계
+계약이다.
+
+각 catalog 항목은 최소한 다음 정보를 포함한다.
+
+```yaml
+strategy_id: unique_identifier
+target_gap: low_q_gap | internal_gap | high_q_gap
+parent_signature: existing_signature_identifier
+immutable_context: canonical_domain_tunnel_borehole_and_structure
+mutable_features:
+  - name: normalized_feature_name
+    value: normalized_value
+    bounds: [lower, upper]
+changed_features:
+  - name: feature_name
+    direction: increase | decrease | replace
+    magnitude: explicitly_recorded_value
+expected_effect: expected_coverage_or_profile_direction
+selection_reason: evidence_from_coverage_audit_or_pilot
+validity_constraints: physical_and_configuration_constraints
+generation_signature_hash: hash_of_canonical_generation_features_only
+domain_identity_inputs: canonical_features_plus_seed_domain_and_generator_version
+status: proposed
+```
+
+전략 catalog의 항목은 다음 조건을 만족해야 한다.
+
+- 특정 `UNOBSERVED` gap 또는 domain 부족 구간과 연결되어야 한다.
+- parent signature와 parent를 선택한 근거를 기록해야 한다.
+- 변경 feature, 방향, 변경 폭과 예상 영향이 명시되어야 한다.
+- P32, spacing, 방향성, 크기분포, 절리군 구조와 같은 입력이 물리적·구성적 유효
+  범위를 벗어나지 않아야 한다.
+- `generation_signature_hash`는 canonical generation feature만 hash하며 `name`, `tags`,
+  seed, runtime, round metadata를 포함하지 않는다.
+- `domain_id`는 canonical generation features, seed, domain identity와 generator
+  version으로 계산하여 동일 DFN 재생성과 다른 domain을 구분한다.
+- 실행 round, backend, 시간과 같은 정보는 `execution_id`와 screening ledger에만 둔다.
+- cutoff 숫자를 직접 맞추거나 suitability label을 생성하는 목적이어서는 안 된다.
+
+전략은 다음 상태를 거친다.
+
+```text
+proposed
+  -> approved_for_screening
+  -> screened
+  -> retain | deprioritized | rejected
+```
+
+`approved_for_screening` 전략만 simulation manifest에 포함한다. 같은 iteration의
+screening에서는 모든 후보에 공통 seed를 사용하고, Q' 범위·새 bin·gap 감소·profile
+변화·기존 구간 중복도·실행 provenance를 기록한다. 한 번의 seed 결과만으로 전략을
+제거하지 않으며, 반복 screening에서 새 bin을 만들지 못하고 중복이 큰 경우에만
+`deprioritized` 또는 `rejected`로 전환한다.
+
+전략 catalog는 처음부터 큰 목록을 만드는 방식이 아니다. 각 iteration의 audit 결과에
+따라 필요한 항목만 추가·수정·후순위화하며, 효과가 확인된 전략만 후속 독립 seed
+확장과 calibration 검토 대상으로 승격한다. 구체적인 feature 변경 규칙, 후보 수,
+parent 선택 점수와 중복 판정 threshold는 후속 설계 논의에서 확정한다.
+
+#### 5.6.1 반복적인 gap 보강과 방향성 추정
+
+`UNOBSERVED` gap 사이에는 우선순위를 부여하지 않는다. 관측된 모든 빈 구간은 각
+iteration에서 최소 한 번의 보강 기회를 가져야 하며, 후보가 많을 때는 특정 gap을
+영구히 제외하지 않도록 순환 방식으로 검토한다.
+
+후보 생성은 다음의 반복 절차를 따른다.
+
+1. 빈 구간의 양쪽에 관측된 signature가 있으면 두 이웃 signature를 parent 후보로
+   선택한다.
+2. immutable context는 유지하고, mutable feature만 normalized signature space에서
+   업데이트한다.
+3. 연속형 mutable feature에 대해서는 양쪽 이웃의 중간값을 우선적인 시험 후보로
+   만든다.
+4. 외부 reachability gap에는 가장 가까운 관측 signature와 기존 pilot에서 확인된
+   이동 방향을 parent 근거로 사용한다.
+5. 공통 seed로 후보를 실행하고 normalized feature 변화량 `Δx`와 coverage 변화량
+   `ΔC`를 기록한다.
+6. 다음 iteration에서는 관측된 방향 `ΔC/Δx`를 이용해 gap 쪽으로 mutable feature를
+   보정한다.
+
+이는 미지의 gradient를 알고 있다고 가정하는 Newton 해법이 아니다. 이웃 signature의
+실제 실행 결과로부터 유한차분 방향을 추정하고, 매 iteration에서 새 결과로 갱신하는
+반복 탐색 방식이다. 범주형 feature나 중간값이 물리적으로 유효하지 않은 feature는
+중간값을 자동 생성하지 않고 별도 후보 계획으로 검토한다.
+
+#### 5.6.2 중복 coverage의 분산
+
+여러 signature가 같은 Q' bin과 profile 범위를 반복하면 이를 실패로 즉시 폐기하지
+않고 공통 coverage 영역으로 기록한다. 다음 후보는 해당 공통 영역을 반복하는 대신
+이웃 signature와 실제 `Δx`·`Δy` 관계를 이용하여 아직 관측되지 않은 방향으로
+분산하는 것을 우선 검토한다.
+
+중복 평가는 단일 지표가 아니라 다음 정보를 함께 사용한다.
+
+- coverage bin 집합의 겹침
+- Q' 분포의 중첩
+- profile 상태와 유효값의 공통성
+- 독립 domain과 generation signature의 다양성
+
+#### 5.6.3 정보량과 반복 종료
+
+초기 screening에서는 정보량에 임의의 가중치를 주지 않는다. 각 항목을 비교 가능한
+범위로 정규화한 뒤 다음 변화량을 합산하여 기록한다.
+
+- 새로 관측한 bin 수
+- gap 감소량
+- 독립 domain/signature 수 증가
+- profile 유효 coverage 및 판정 가능성 증가
+- 중복 coverage 감소량
+
+후속 round에서 각 정보량의 예측 기여가 충분히 축적되면 가중치 도입을 검토할 수
+있지만, 초기 결과에 가중치를 소급 적용하지 않는다.
+
+시간 예산은 초기에는 충분히 여유 있게 설정하고, 후보를 강제로 배제하는 절대 cutoff로
+사용하지 않는다. 각 Q' 구간의 실제 수행시간과 정보획득량을 round별로 기록하여 예산
+예측을 점진적으로 보정한다. low-Q 후보가 구조적으로 오래 걸린다는 이유만으로
+screening에서 제외하지 않는다.
+
+하나의 signature는 최소 세 번의 공통-seed 변경 screening에서 새 bin, gap 감소 또는
+profile 방향성을 만들지 못할 때 `deprioritized` 또는 `rejected`로 전환을 검토한다.
+세 번은 초기 기본값이며, 충분한 근거가 쌓이면 round 계획에서 조정할 수 있다.
+
+#### 5.6.4 Signature space와 coverage space의 잠정 함수화
+
+전략 catalog의 탐색 대상은 다음 두 공간의 관계로 잠정 표현한다.
+
+- **Signature space** `S`: P32, spacing, 방향성, Fisher 집중도, 절리 크기분포,
+  절리군 구조, 터널·시추공 교차각 등 generation feature의 공간
+- **Coverage space** `C`: Q' bin 관측량, gap 상태, profile 유효 coverage, profile
+  변화량, 독립 domain/signature 수와 중복 coverage의 요약 공간
+
+하나의 signature `x`를 실행하면 seed와 DFN domain에 따른 확률적 coverage 결과가
+생성된다. 따라서 관계는 단일 결정 함수로 확정하지 않고 다음과 같이 잠정 표현한다.
+
+```text
+C = F(x, seed, domain)
+E[C | x] = 평균적인 coverage/profile 경향
+```
+
+현재의 목적은 `F`를 완전히 추정하는 것이 아니라, 관측된 이웃 signature 사이의
+변화량으로 gap을 줄이는 국소 방향을 추정하는 것이다. 두 실행 결과에서
+`Δx = x_(k+1) - x_k`, `ΔC = C_(k+1) - C_k`를 기록하고, 가능한 feature 축에 대한
+유한차분 방향을 계산한다.
+
+#### 5.6.5 Explicit-Euler-style signature update
+
+국소 방향 `d_k`가 추정되면 다음 signature는 **bounded explicit-Euler-style iterative
+update**로 제안한다.
+
+```text
+x_(k+1) = Project_Ω(x_k + η_k * d_k)
+```
+
+여기서 `η_k`는 screening step size이고, `Project_Ω`는 normalized mutable feature를
+물리적 허용 범위 안으로 투영하는 연산이다. immutable context는 이 연산의 대상이
+아니다. 이 방법은
+Newton 최적화나 cutoff 최적화가 아니라, coverage gap을 줄이기 위한 한 단계의 후보
+생성 규칙이다.
+
+여기서 Euler라는 표현은 시간에 따른 미분방정식을 직접 적분하거나 전역 최적화를
+수행한다는 뜻이 아니다. 이전 simulation에서 얻은 `Δx`, `ΔC`와 coverage residual로
+국소 방향을 추정한 뒤, 명시적 Euler 갱신식의 구조를 차용하여 다음 signature 후보를
+한 단계 생성한다는 의미다. 따라서 이 방법은 **simulation-guided bounded iterative
+update**이며, 전통적인 수치해석 Euler solver로 해석하지 않는다.
+
+다음 안전조건을 적용한다.
+
+- feature를 정규화한 공간에서 step을 계산한다.
+- 한 번에 변경하는 연속형 feature 수와 step 크기를 제한한다.
+- 범주형 feature와 물리적으로 중간값이 정의되지 않는 feature는 Euler 보정에서
+  제외하고 별도 catalog 전략으로 검토한다.
+- 같은 iteration의 후보는 공통 seed로 비교한다.
+- 방향이 충분히 추정되지 않으면 양쪽 이웃의 midpoint를 우선 사용한다.
+- gap에서 멀어지거나 overshoot가 발생하면 다음 step을 줄이거나 방향을 재추정한다.
+- 최소 세 번의 공통-seed screening에서 방향성과 coverage 기여가 재현되지 않으면
+  해당 update 방향 또는 signature를 후순위화한다.
+
+이 관계는 simulation 결과가 쌓일수록 갱신되는 잠정 모델이다. 충분한 domain과
+변화량 자료가 축적되기 전에는 전역 gradient, Newton step, 가중 정보량 또는 최종
+cutoff를 추정하지 않는다.
+
+#### 5.6.6 Feature 탐색 순서와 제한적 순서 randomization
+
+초기 generation feature 탐색은 다음 순서를 기본으로 한다.
+
+```text
+D. joint-set structure
+  -> A. density
+  -> B. size distribution
+  -> C. orientation
+  -> E. seed realization
+```
+
+- **D**: 절리군 수와 절리군 구조 조합
+- **A**: `P32` 또는 `mean_spacing` 중 하나의 밀도 표현
+- **B**: `size_alpha`, `size_r_min`, `size_r_max`
+- **C**: `mean_dip`, `mean_dip_dir`, `fisher_kappa`
+- **E**: signature를 바꾸는 feature가 아니라 독립 domain realization 검증
+
+이 순서는 절대적인 우선순위나 고정 최적화 순서가 아니다. 앞선 단계의 coverage 결과와
+Euler 방향 추정에 따라 다음 feature로 이동하거나 같은 feature를 반복할 수 있다.
+
+전체 screening schedule의 약 90%는 위 기본 순서를 따르고, 약 10%는 사전에 기록한
+randomization seed로 feature 탐색 순서를 재배열한다. randomization은 feature 값을
+무작위로 만들거나 물리적 bounds를 무시하는 random search가 아니다. immutable context,
+mutable feature bounds, 공통 seed, catalog 승인 상태와 provenance 규칙은 모든 순서에서
+동일하게 유지한다.
+
+randomized schedule에는 다음을 기록한다.
+
+- `schedule_mode`: `default` 또는 `randomized`
+- `feature_order`
+- `randomization_seed`
+- 각 feature 단계의 `Δx`, `ΔC`, residual과 coverage 결과
+
+90/10 비율은 초기 운영값이며, round가 축적된 뒤 feature별 coverage 기여와 시간효율을
+검토하여 조정할 수 있다.
+
+#### 5.6.7 Update 정책의 적용 범위 (2026-09-27 재확인)
+
+5.6.1~5.6.6의 2026-09-26 합의를 우선한다. 모든 `UNOBSERVED` gap에 순환 기회를
+주고, 내부 gap에서는 양쪽 이웃 signature의 midpoint를 먼저 시험한다. midpoint는
+여러 feature가 달라도 성립하는 보간 후보이며, 이후 효과를 해석하기 위한 probe는
+가능하면 한 번에 하나의 normalized mutable feature 축만 변경한다. 단일 축 probe를
+midpoint 자체나 joint-set 구조 변경의 필수 조건으로 소급 적용하지 않는다.
+
+`Δx`는 probe의 두 signature에서 실제 적용한 normalized feature 차이이고 `ΔC`는
+동일한 bin 정의와 공통 seed로 비교한 coverage 변화다. 어느 쪽도 사전 gradient를
+안다는 뜻이 아니다. 잔여 coverage는 `UNOBSERVED` bin과 독립 domain/signature가
+부족한 bin을 기준으로 표시하고, bin별 signature와 교차빈도를 기록하여 중복과
+재현성을 구분한다. 목표 bin과 바로 인접한 bin까지 비었더라도 현재 관측된 bin 중
+목표에 가장 가까운 signature에서 탐색을 시작한다. 동일 seed의 단일 feature probe가
+관측된 bin을 목표에 더 가까운 쪽으로 옮겼다면 그 로그 bin 거리 감소를 방향 근거로
+사용한다. 관측 이동이 없는 경우에는 빈 bin에서 구배를 만들어내지 않고 그
+signature의 새 probe가 필요함을 기록한다. 시뮬레이션의 이산 Q' 관측을 연속 분포로
+가정하지 않는다.
+
+고정 로그 10구간은 공통 PR/POST 프로파일 판정의 주 분석에 사용한다. 같은 자료를
+약 두 배 촘촘한 고정 로그 20구간으로 별도 audit하여 signature-bin 연결, 중복,
+빈 bin과 독립 domain 지원을 기록한다. 두 결과는 역할이 다르므로 bin 정의가 다른
+`ΔC`를 직접 비교하거나, 20구간을 모두 채웠다는 이유만으로 공통 PR/POST의
+`identified` 판정을 내리지 않는다. 양쪽 로그 bin은 동일한 Q' 양수 범위의
+양 끝점을 공유하며 각각 로그 공간에서 등간격이다.
+
+`Project_Ω`의 bounds는 generation 입력의 물리적·구성적 유효성에 따른다. P32에
+임의의 정책 상한을 두지 않고 방향에도 탐색 편의를 위한 추가 제약을 두지 않는다.
+다만 양의 밀도·크기 관계, 생성기가 요구하는 유한 값과 각도 표현의 유효 범위를
+유지하며, 실제 시추공-절리면 사잇각은 `0~90`도이다. 정규화 mapping과 수치적
+probe 범위는 물리적 상한과 구분해 기록한다.
+
+`η=0.5`는 구배를 알기 전 시험할 고정 step 제안값이지 추정된 최적 step이 아니다.
+한 signature에 대한 최소 3회의 공통-seed 변경 screening은 후순위화 판단 기준으로
+유지한다. 30회 연속으로 효과가 없는 Euler update 후 종료하는 규칙은 별도 campaign
+상한 후보로 검증한다. 효과는 새 bin뿐 아니라 gap 감소, 독립 domain/profile 지원과
+중복 분산을 함께 판단한다. 상한에 걸리더라도 자동으로 unreachable이나
+`not_identifiable`로 분류하지 않고 원인·시도 내역을 보고한다.
+
+### 5.7 수행시간과 정보 효율
+
+Coverage 탐색은 제한된 실행시간 안에서 최대한 많은 정보를 얻는 것을 목표로 한다.
+전략 catalog는 후보의 과학적 가설과 물리적 타당성을 기록한다. 수행시간, 시간 예산과
+실행 결과는 catalog에 중복하여 넣지 않고 별도의 screening ledger에서 관리한다.
+
+Coverage 보강 자료는 다음 세 계층으로 분리한다.
+
+1. **Coverage Audit**: 현재 무엇이 부족한지 기록한다.
+
+- `gap_bin`, Q' 범위, 상태, domain 수, signature 수, 불확실성
+
+2. **Strategy Catalog**: 무엇을 시험할지 기록한다.
+
+- 전략 식별자, target gap, parent, 변경 feature, 예상 효과, 선택 근거, 상태
+
+3. **Screening Ledger**: 실제 어떻게 실행했는지 기록한다.
+
+- seed, 예상·실제 수행시간, 시간 예산, coverage 변화, timeout, 다음 조치
+
+수행시간은 최종 cutoff의 근거가 아니며, 어떤 후보를 다음 screening에 포함할지 결정하는
+운영 제약이다.
+
+각 screening ledger와 round에는 다음 시간 정보를 기록한다.
+
+- `estimated_runtime_seconds`: 실행 전 예상 wall-clock 시간
+- `runtime_basis`: parent benchmark, 동일 domain 규모, backend, 최근 round 등
+  예상시간의 근거
+- `actual_runtime_seconds`: 실행 후 실제 wall-clock 시간
+- `runtime_breakdown`: domain 생성, profile 계산, 결과 저장 등 단계별 시간
+- `time_budget_seconds`: round 또는 전략에 허용한 시간
+- `timeout_status`: `completed`, `timed_out`, `failed`, `cancelled`
+- `checkpoint`: 중단 시 보존된 seed/domain과 재개 정보
+
+정보 획득량은 단순 row 수가 아니라 다음 변화로 평가한다.
+
+- 새로 관측한 Q' bin 수와 gap 감소량
+- 독립 `domain_id` 및 generation signature 수의 증가
+- 기존 구간과의 중복 감소량
+- profile 유효값 coverage와 상태 판정 가능성의 변화
+- 다음 전략 선택에 추가로 제공한 provenance·profile 정보
+
+screening 우선순위는 다음 순서로 정한다.
+
+1. low-Q, middle/internal-gap, high-Q 각 구간에 최소 screening 예산을 먼저 보장한다.
+2. 각 구간 안에서 목표 gap을 줄일 가능성과 기존 결과와의 차별성이 있는 후보를 우선한다.
+3. 같은 구간 안에서 예상 정보획득량을 예상 수행시간으로 나눈 효율을 참고하여 후보를
+   정렬한다.
+4. 짧지만 기존 구간만 반복하는 후보보다, 조금 더 오래 걸려도 새로운 gap이나
+   profile 정보를 제공하는 후보를 선택할 수 있다.
+5. 한 전략 또는 한 signature가 round 예산을 독점하지 않도록 portfolio별 시간 상한을
+   둔다.
+
+구간별 최소 예산을 먼저 배정한 뒤 남은 예산은 Q' 분포와 coverage 부족 정도에 따라
+동적으로 배분한다. 전체 후보를 raw runtime 효율 하나로 비교하지 않으며, 절리가 많아
+구조적으로 오래 걸리는 low-Q 후보가 runtime 때문에 배제되지 않도록 같은 구간 안에서
+효율을 비교한다.
+
+실행 후에는 예상시간과 실제시간의 차이를 기록하고, 다음 round의 예상시간을 갱신한다.
+시간 초과 전략은 실패로 즉시 폐기하지 않고 checkpoint와 부분 coverage를 보존한다.
+다만 반복적으로 시간 예산을 초과하면서 새로운 bin이나 profile 정보를 만들지 못하면
+`deprioritized` 또는 `rejected`로 전환한다.
+
+시간 효율 기준은 coverage의 질을 대체하지 않는다. 최종 선택은 `정보획득량`,
+`독립성`, `중복도`, `profile 재현성`, `수행시간`을 함께 고려하며, 실행이 빠르다는
+이유만으로 전략을 유지하지 않는다.
