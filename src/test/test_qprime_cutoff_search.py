@@ -8,6 +8,7 @@ import numpy as np
 from src.core.qprime_cutoff_search import (
     DEFAULT_MAX_CUTOFF,
     DEFAULT_MIN_CUTOFF,
+    DEFAULT_MIN_POSITIVE_CUTOFF,
     DEFAULT_INTERVALS,
     classify_qprime,
     build_search_records,
@@ -29,12 +30,29 @@ from src.core.qprime_cutoff_search import (
 class TestQPrimeCutoffSearch(unittest.TestCase):
     def test_default_cutoffs_use_logarithmic_intervals(self):
         cutoffs = generate_qprime_cutoffs()
+        expected = np.geomspace(
+            DEFAULT_MIN_POSITIVE_CUTOFF,
+            DEFAULT_MAX_CUTOFF,
+            num=DEFAULT_INTERVALS + 1,
+        )
+        expected[0] = 0.0
 
         self.assertEqual(len(cutoffs), DEFAULT_INTERVALS + 1)
         self.assertAlmostEqual(cutoffs[0], DEFAULT_MIN_CUTOFF)
+        self.assertTrue(np.allclose(cutoffs, expected))
         self.assertAlmostEqual(cutoffs[-1], DEFAULT_MAX_CUTOFF)
-        ratios = np.asarray(cutoffs[1:]) / np.asarray(cutoffs[:-1])
+        ratios = np.asarray(cutoffs[2:]) / np.asarray(cutoffs[1:-1])
         self.assertTrue(np.allclose(ratios, ratios[0]))
+
+    def test_zero_replaces_first_log_edge_without_adding_a_bin(self):
+        cutoffs = generate_qprime_cutoffs()
+
+        self.assertEqual(cutoffs[0], 0.0)
+        self.assertGreater(cutoffs[1], DEFAULT_MIN_POSITIVE_CUTOFF)
+        self.assertEqual(len(cutoffs) - 1, DEFAULT_INTERVALS)
+        self.assertTrue(0.0 >= cutoffs[0] and 0.0 < cutoffs[1])
+        self.assertTrue(DEFAULT_MIN_POSITIVE_CUTOFF >= cutoffs[0])
+        self.assertTrue(DEFAULT_MIN_POSITIVE_CUTOFF < cutoffs[1])
 
     def test_custom_interval_count(self):
         cutoffs = generate_qprime_cutoffs(0.1, 400.0, intervals=2)
@@ -69,7 +87,9 @@ class TestQPrimeCutoffSearch(unittest.TestCase):
 
     def test_invalid_range_or_interval_count(self):
         with self.assertRaises(ValueError):
-            generate_qprime_cutoffs(0.0, 400.0)
+            generate_qprime_cutoffs(-0.1, 400.0)
+        with self.assertRaises(ValueError):
+            generate_qprime_cutoffs(0.0, 0.1)
         with self.assertRaises(ValueError):
             generate_qprime_cutoffs(0.1, 400.0, intervals=0)
 

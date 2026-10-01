@@ -1,0 +1,21 @@
+profile_mc_exploration:
+  case_paths:
+  - /Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/cases/highq_portfolio_v2/highq_v2_d1000_angle60_focused_large_base.yaml
+  - /Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/cases/highq_portfolio_v2/highq_v2_d2000_angle60_focused_large_base.yaml
+  seed_range:
+    start: 1001
+    stop: 1004
+    step: 1
+  face_positions:
+  - 10
+  - 20
+  - 30
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: /Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_000/simulation
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

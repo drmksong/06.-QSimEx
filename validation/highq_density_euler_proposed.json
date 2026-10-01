@@ -5,7 +5,7 @@
   "target_region": "high_q_gap",
   "target_bins": [8],
   "feature_bounds": {
-    "joint_sets.0.P32": [0.01, 200.0]
+    "joint_sets.0.P32": [0.01, 20000.0]
   },
   "step_size": 0.5,
   "screening_seed": 1001,

@@ -1,0 +1,5 @@
+Scenario,Corr,Bias,RMSE,RQD dependency
+highq_v2_d2000_angle60_focused_large_base__r012-euler-probes-e90cbf3faf74,-0.7464799188021473,-5.017685960564825,7.0985993225145885,Normal
+highq_v2_d2000_angle60_focused_large_base__r012-euler-probes-e90cbf3faf74,0.5736820530918477,-1.0150333272625158,1.0272365539621648,Normal
+highq_v2_d2000_angle60_focused_large_base__r012-euler-probes-e90cbf3faf74,-0.9177676523998042,-0.8125792908916996,0.815390073549233,Normal
+highq_v2_d2000_angle60_focused_large_base__r012-euler-probes-e90cbf3faf74,0.4994025162372248,-1.0592336114153458,1.0635944457062168,Normal

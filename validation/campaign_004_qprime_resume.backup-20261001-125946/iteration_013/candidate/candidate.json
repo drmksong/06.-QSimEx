@@ -1,0 +1,98 @@
+{
+  "candidate_id": "r013-density-probe-5d082ec5c52d",
+  "parent_case_path": "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_012/candidate/r012-euler-probes-e90cbf3faf74.yaml",
+  "comparison_case_path": "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_011/candidate/r011-density-probe-e3cbd9978d16.yaml",
+  "target_region": "high_q_gap",
+  "generation_signature_hash": "5d082ec5c52ded9c0e2ad628016c6342363b44e11d8e6989c5d7e3ce132cc084",
+  "domain_id": "b781c67946fc2ad574d4672f4a6a6047c9f6751c6d7f20f5c237b14526324a88",
+  "feature_delta": {
+    "joint_sets.0.P32": 0.00010453333437866676
+  },
+  "normalized_feature_before": 0.0009049233423825664,
+  "normalized_feature_after": 0.0010094566767612331,
+  "density_probe_origin_normalized": 0.0008003900080038997,
+  "reason": "extend observed density probe within reviewed exploration bounds",
+  "case": {
+    "name": "highq_v2_d2000_angle60_focused_large_base__r013-density-probe-5d082ec5c52d",
+    "description": "Revised high-Q signature: strong density, angle-controlled orientation, and large-fracture size range; no small-size reduction.",
+    "seed": 1001,
+    "tags": {
+      "coverage_stage": "high_q_portfolio_v2",
+      "parent_case": "highq_v2_d2000_angle60_focused_large_base__r012-euler-probes-e90cbf3faf74",
+      "density_factor": 2000.0,
+      "orientation_variant": "angle60_focused",
+      "expected_mean_plane_angle_deg": 60.0,
+      "size_variant": "large_base",
+      "screening_seeds": [
+        325,
+        326,
+        327,
+        328
+      ],
+      "target_gap_qprime_bh": [
+        76.14615754863519,
+        174.5235314204193
+      ],
+      "approval_status": "proposed_review_before_execution",
+      "coverage_round": 13,
+      "candidate_id": "r013-density-probe-5d082ec5c52d",
+      "coverage_target": "high_q_gap",
+      "update_method": "density_reachability_probe",
+      "generation_signature_hash": "5d082ec5c52ded9c0e2ad628016c6342363b44e11d8e6989c5d7e3ce132cc084",
+      "domain_id": "b781c67946fc2ad574d4672f4a6a6047c9f6751c6d7f20f5c237b14526324a88",
+      "generator_version": "qsimex-generation-v1",
+      "density_probe_origin_normalized": 0.0008003900080038997
+    },
+    "domain": {
+      "nx": 60,
+      "ny": 30,
+      "nz": 30,
+      "dx": 1.0,
+      "dy": 1.0,
+      "dz": 1.0
+    },
+    "tunnel": {
+      "center_y": 15.0,
+      "center_z": 15.0,
+      "radius": 5.0
+    },
+    "boreholes": [
+      {
+        "dy": 0.0,
+        "dz": 0.0
+      }
+    ],
+    "rqd": {
+      "scan_length": 5.0
+    },
+    "global_params": {
+      "Jw_mean": 1.0,
+      "Jw_std": 0.05,
+      "SRF_mean": 1.0,
+      "SRF_std": 0.2
+    },
+    "joint_sets": [
+      {
+        "set_id": 1,
+        "name": "sparse_large_favorable",
+        "mean_dip": 60.0,
+        "mean_dip_dir": 90.0,
+        "fisher_kappa": 8.0,
+        "size_alpha": 2.5,
+        "size_r_min": 10.0,
+        "size_r_max": 100.0,
+        "density_type": "P32",
+        "P32": 1009.4666666666664,
+        "mean_spacing": 50.0,
+        "Jr_mean": 4.0,
+        "Jr_std": 0.1,
+        "Ja_mean": 0.75,
+        "Ja_std": 0.1
+      }
+    ],
+    "cost": {
+      "cost_fp": 1,
+      "cost_fn": 5
+    }
+  }
+}

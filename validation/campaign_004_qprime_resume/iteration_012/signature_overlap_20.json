@@ -1,0 +1,446 @@
+{
+  "method": "signature_bin_overlap",
+  "cutoffs": [
+    0.0,
+    0.1513920255162843,
+    0.22919545389923282,
+    0.3469836400492902,
+    0.5253055608807535,
+    0.7952707287670507,
+    1.203976464618554,
+    1.822724356525379,
+    2.7594593229224307,
+    4.177601362270212,
+    6.32455532033676,
+    9.574872404355748,
+    14.495593273553926,
+    21.945172267435538,
+    33.22324079870857,
+    50.297337187317424,
+    76.14615754863519,
+    115.27921026569989,
+    174.5235314204193,
+    264.21470921992176,
+    400.0
+  ],
+  "n_signatures": 14,
+  "n_overlap_only_signatures": 11,
+  "n_unique_coverage_signatures": 3,
+  "bins": [
+    {
+      "bin_index": 0,
+      "n_signatures": 1,
+      "generation_signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd"
+      ]
+    },
+    {
+      "bin_index": 1,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 2,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 3,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 4,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 5,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 6,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 7,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 8,
+      "n_signatures": 1,
+      "generation_signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd"
+      ]
+    },
+    {
+      "bin_index": 9,
+      "n_signatures": 2,
+      "generation_signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d"
+      ]
+    },
+    {
+      "bin_index": 10,
+      "n_signatures": 3,
+      "generation_signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "0e0bb629248fafa566ce3b4274b5b5f33be1a0028cbfe977b6424ee3a266913a",
+        "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d"
+      ]
+    },
+    {
+      "bin_index": 11,
+      "n_signatures": 2,
+      "generation_signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d"
+      ]
+    },
+    {
+      "bin_index": 12,
+      "n_signatures": 5,
+      "generation_signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "0e0bb629248fafa566ce3b4274b5b5f33be1a0028cbfe977b6424ee3a266913a",
+        "61cc1d7328eccfe597e1df73822f0793dc3caf0728b704d1c8dc1dc2564f956f",
+        "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d",
+        "f1afb4e1ba8a1e897a0f4b241635d74d9d3d268e0fa4ab061d237a747903084f"
+      ]
+    },
+    {
+      "bin_index": 13,
+      "n_signatures": 5,
+      "generation_signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "0e0bb629248fafa566ce3b4274b5b5f33be1a0028cbfe977b6424ee3a266913a",
+        "61cc1d7328eccfe597e1df73822f0793dc3caf0728b704d1c8dc1dc2564f956f",
+        "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d",
+        "f1afb4e1ba8a1e897a0f4b241635d74d9d3d268e0fa4ab061d237a747903084f"
+      ]
+    },
+    {
+      "bin_index": 14,
+      "n_signatures": 5,
+      "generation_signature_hashes": [
+        "0e0bb629248fafa566ce3b4274b5b5f33be1a0028cbfe977b6424ee3a266913a",
+        "287aaf8595d313ca13470893480978dc23785c69fbb03c43abb6e28742f8d3fe",
+        "5039531822e2cea3705e070b1c19bd08957bd5bf1479f709a48c3ac27544fcaf",
+        "61cc1d7328eccfe597e1df73822f0793dc3caf0728b704d1c8dc1dc2564f956f",
+        "f1afb4e1ba8a1e897a0f4b241635d74d9d3d268e0fa4ab061d237a747903084f"
+      ]
+    },
+    {
+      "bin_index": 15,
+      "n_signatures": 4,
+      "generation_signature_hashes": [
+        "287aaf8595d313ca13470893480978dc23785c69fbb03c43abb6e28742f8d3fe",
+        "5039531822e2cea3705e070b1c19bd08957bd5bf1479f709a48c3ac27544fcaf",
+        "61cc1d7328eccfe597e1df73822f0793dc3caf0728b704d1c8dc1dc2564f956f",
+        "84d227aa4925001ad4ccac8f0f1a52db59dcf94f567f45a140c82b13f03ff72f"
+      ]
+    },
+    {
+      "bin_index": 16,
+      "n_signatures": 3,
+      "generation_signature_hashes": [
+        "287aaf8595d313ca13470893480978dc23785c69fbb03c43abb6e28742f8d3fe",
+        "5039531822e2cea3705e070b1c19bd08957bd5bf1479f709a48c3ac27544fcaf",
+        "84d227aa4925001ad4ccac8f0f1a52db59dcf94f567f45a140c82b13f03ff72f"
+      ]
+    },
+    {
+      "bin_index": 17,
+      "n_signatures": 1,
+      "generation_signature_hashes": [
+        "84d227aa4925001ad4ccac8f0f1a52db59dcf94f567f45a140c82b13f03ff72f"
+      ]
+    },
+    {
+      "bin_index": 18,
+      "n_signatures": 6,
+      "generation_signature_hashes": [
+        "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a",
+        "15a6674e66dedea618e95e4f317cb447a9dd1daf3edc6b009776021b89e1282c",
+        "527666e5589ed8e5d455e4baf743b69ad19d6ae0ee1377444c0e3bcbe33a736f",
+        "56a644b1f388559c30175b91d3f368e47e35c3e3384fd156e2cc2f93ef59ee7d",
+        "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8",
+        "c1edb1e8a8851f45f0ba59e75e0ea19bd0bd62a87c66f8854774820e7bea249a"
+      ]
+    },
+    {
+      "bin_index": 19,
+      "n_signatures": 1,
+      "generation_signature_hashes": [
+        "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8"
+      ]
+    }
+  ],
+  "signatures": [
+    {
+      "generation_signature_hash": "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        0,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "exclusive_bins": [
+        0,
+        8
+      ],
+      "overlap_bins": [
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "recommendation": "retain_for_unique_coverage"
+    },
+    {
+      "generation_signature_hash": "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        18
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        18
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "0e0bb629248fafa566ce3b4274b5b5f33be1a0028cbfe977b6424ee3a266913a",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        10,
+        12,
+        13,
+        14
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        10,
+        12,
+        13,
+        14
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "15a6674e66dedea618e95e4f317cb447a9dd1daf3edc6b009776021b89e1282c",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        18
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        18
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "287aaf8595d313ca13470893480978dc23785c69fbb03c43abb6e28742f8d3fe",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        14,
+        15,
+        16
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        14,
+        15,
+        16
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "5039531822e2cea3705e070b1c19bd08957bd5bf1479f709a48c3ac27544fcaf",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        14,
+        15,
+        16
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        14,
+        15,
+        16
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "527666e5589ed8e5d455e4baf743b69ad19d6ae0ee1377444c0e3bcbe33a736f",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        18
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        18
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "56a644b1f388559c30175b91d3f368e47e35c3e3384fd156e2cc2f93ef59ee7d",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        18
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        18
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "61cc1d7328eccfe597e1df73822f0793dc3caf0728b704d1c8dc1dc2564f956f",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        12,
+        13,
+        14,
+        15
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        12,
+        13,
+        14,
+        15
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "84d227aa4925001ad4ccac8f0f1a52db59dcf94f567f45a140c82b13f03ff72f",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        15,
+        16,
+        17
+      ],
+      "exclusive_bins": [
+        17
+      ],
+      "overlap_bins": [
+        15,
+        16
+      ],
+      "recommendation": "retain_for_unique_coverage"
+    },
+    {
+      "generation_signature_hash": "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        18,
+        19
+      ],
+      "exclusive_bins": [
+        19
+      ],
+      "overlap_bins": [
+        18
+      ],
+      "recommendation": "retain_for_unique_coverage"
+    },
+    {
+      "generation_signature_hash": "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "c1edb1e8a8851f45f0ba59e75e0ea19bd0bd62a87c66f8854774820e7bea249a",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        18
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        18
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "f1afb4e1ba8a1e897a0f4b241635d74d9d3d268e0fa4ab061d237a747903084f",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        12,
+        13,
+        14
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        12,
+        13,
+        14
+      ],
+      "recommendation": "review_before_expanding"
+    }
+  ],
+  "exact_coverage_footprint_groups": [
+    {
+      "covered_bins": [
+        14,
+        15,
+        16
+      ],
+      "generation_signature_hashes": [
+        "287aaf8595d313ca13470893480978dc23785c69fbb03c43abb6e28742f8d3fe",
+        "5039531822e2cea3705e070b1c19bd08957bd5bf1479f709a48c3ac27544fcaf"
+      ]
+    },
+    {
+      "covered_bins": [
+        18
+      ],
+      "generation_signature_hashes": [
+        "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a",
+        "15a6674e66dedea618e95e4f317cb447a9dd1daf3edc6b009776021b89e1282c",
+        "527666e5589ed8e5d455e4baf743b69ad19d6ae0ee1377444c0e3bcbe33a736f",
+        "56a644b1f388559c30175b91d3f368e47e35c3e3384fd156e2cc2f93ef59ee7d",
+        "c1edb1e8a8851f45f0ba59e75e0ea19bd0bd62a87c66f8854774820e7bea249a"
+      ]
+    }
+  ],
+  "source_data_policy": "preserve_all_signatures_and_rows"
+}

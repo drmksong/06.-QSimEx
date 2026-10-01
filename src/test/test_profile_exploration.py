@@ -64,6 +64,21 @@ class TestProfileExploration(unittest.TestCase):
             "test reachability with configuration expansion",
         )
 
+    def test_default_audit_includes_zero_qprime_in_first_bin(self):
+        audit = audit_qprime_coverage(
+            [
+                {"Qp_bh_mean": 0.0, "case_name": "zero", "seed": 1},
+                {"Qp_bh_mean": 0.05, "case_name": "small", "seed": 2},
+                {"Qp_bh_mean": 0.3, "case_name": "positive", "seed": 3},
+            ]
+        )
+
+        self.assertEqual(len(audit["bins"]), 10)
+        self.assertEqual(audit["bins"][0]["qprime_bh_lower"], 0.0)
+        self.assertAlmostEqual(audit["bins"][0]["qprime_bh_upper"], 0.22919545389923282)
+        self.assertEqual(audit["bins"][0]["n_records"], 2)
+        self.assertEqual(audit["bins"][1]["n_records"], 1)
+
     def test_classifies_profile_change_states_without_suitability_labels(self):
         summaries = [
             {"qprime_face_median": value, "qprime_face_n": 3, "n_domains": 3}

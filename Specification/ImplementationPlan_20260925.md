@@ -69,9 +69,11 @@ Phase 3의 가상굴착 프로파일 탐색을 위해 필수로 요구하지 않
 ## 4. 탐색 절차
 
 1. 설정 파일에서 Q' 후보값을 생성한다.
-   - 초기 범위: `0.1~400`
-   - 로그 공간 10구간
-   - 양 끝점을 포함한 11개 후보
+
+- 현재 범위: `[0, 400]`
+- `[0.1, 400]` 기존 로그 10구간의 첫 경계 `0.1`을 `0`으로 교체해 총 10 bins
+- 11개 primary bin, 12개 경계값
+
 2. 각 `Q'_BH` 후보 구간별로 표본 수와 참조 프로파일 분포를 계산한다.
 3. `Q'_face`, 절리 교차, 밀도, 방향성, 크기 관련 프로파일을 개별적으로 유지한다.
 4. 프로파일별 인접 구간 변화량, 분포 범위, domain 반복성을 계산한다.
@@ -484,9 +486,278 @@ Euler step 자동 조절 규칙으로 승격하지 않고 step은 reviewed spec�
 검증 campaign의 iteration 0은 검토한 parent/probe portfolio를 실행하고, 이후에는
 새 후보만 실행한다. 그러나 10-bin update audit·20-bin 보조 audit·profile search는
 같은 campaign의 누적 관측행에서 기존 `domain_id` 재실행을 제외해 계산한다. probe
+
+## 17. 2026-10-01 실행 재개 및 반복 coverage 작업
+
+### 확인된 중단 원인
+
+`validation/campaign_003`은 `--iterations 3`으로 시작했지만, iteration 0에서
+same-bin seed별 Q' 변화 부호가 충돌하여 `needs_repeatability`가 되었고, 기존
+분기에서 `await_physical_probe_response`를 기록한 뒤 campaign을 종료했다. 이는
+안전한 Euler 방향을 추정할 수 없다는 의미이지, density 도달성 실험까지 중단해야
+한다는 의미는 아니다. 같은 10-bin에 머문 P32/spacing probe는 Euler slope를 만들지
+않고 검토된 feature 범위 안에서 reachability probe를 넓혀 실행한다.
+
+### 구현 및 실행 계약
+
+- [x] same-bin Q' repeatability 충돌을 기록하고 wider density probe로 계속
+- [x] 완료된 iteration 0 CSV를 새 campaign에서 재사용하는 `--initial-csv` 추가
+- [x] 기본적으로 기존 workdir 실행 거부, `--force-overwrite` 시 기존 isolated campaign을 timestamp backup으로 보존
+- [x] 기존 campaign과 신규 resume 경로의 회귀 테스트 통과
+- [x] campaign_003 CSV를 재사용하여 campaign_004 screening 실행
+- [x] 후보별 Q' coverage 증가, domain/signature 중복도, profile 변화 분석
+- [ ] 중복 signature는 원자료 삭제 없이 active screening 목록에서 보류/축소하는 규칙 정의
+- [x] `min_domains=1`의 `identified` 결과만으로 campaign 반복을 조기 종료하지 않도록 변경
+      `identified`만으로는 기본 조기 종료하지 않으며, 필요한 경우에만 명시적
+      `--stop-on-identified` 옵션을 사용한다.
+
+### campaign_004 관측 결과 (2026-10-01)
+
+- 총 4 iteration 중 iteration 0은 기존 CSV 재사용, iteration 1~3은 신규 density probe를 실행했다.
+- 누적 20 domain, 5 generation signature에서 `Qp_bh_mean`은 206.25~266.60이었다.
+- 10-bin profile은 bin 9만 관측했고 target bin 8 (76.15~174.52)은 비어 있어
+  `profile_search_status=not_identifiable`이다.
+- density probe P32는 30 -> 50 -> 90으로 커졌다. 마지막 paired probe에서 Q' 평균은
+  17.31 감소하고 시추공 교차수는 15.33 증가했지만, 새 Q' bin은 관측되지 않았다.
+- 20-bin audit에서는 bin 18에 5개 signature가 겹치고 bin 19에는 1개 signature가
+  추가로 관측됐다. 4개 signature는 coverage bin 관점에서 bin 18만 덮으며,
+  각 signature는 서로 다른 4개 domain을 제공한다. 따라서 중복 coverage는 높지만
+  동일 signature 복제나 domain 중복으로 간주하지 않는다.
+- 마지막 `next_action=density_probe_iteration_limit`은 요청한 반복 예산 소진을 뜻한다.
+  다음 더 넓은 후보(P32 약 170)는 아직 생성·실행되지 않았다. 이는 doubling 규칙의
+  다음 후보 예상값이며 실제 입력은 후속 후보 산출 후 확인해야 한다.
+- 다음 회차는 P32 50 -> 90의 paired same-seed 결과와 campaign 누적 관측을 함께
+  유지해야 한다. 현재 실행기는 campaign 중간 재개를 지원하지 않으므로,
+  누적 CSV와 paired probe를 안전하게 넘기는 재개 경로를 먼저 마련한다.
+
+### 2026-10-01 zero-inclusive Q′ grid 전환
+
+- 초기 zero-bin 추가 해석은 bin 수를 11/21로 늘리므로 superseded 처리한다.
+- 확정 규칙은 기존 `geomspace(0.1, 400, intervals + 1)` 경계 배열의 첫 값만 `0`으로
+  교체하는 것이다. `intervals=10` primary는 계속 10 bins/11 boundaries이고,
+  `intervals=20` 보조 audit은 계속 20 bins/21 boundaries다.
+- 기본 primary edges는 `[0, 0.229195..., 0.525305..., ..., 400]`이다. 즉 첫 bin은
+  `[0, 0.229195...)`이며 별도 `[0, 0.1)` bin을 추가하지 않는다.
+- high-Q target `[76.146, 174.524)`는 기존과 같이 primary index 8이다.
+- 과거 0.1 시작 campaign 자료는 `[0, 400]`의 새 coverage로 재감사하기 전까지
+  새 grid index와 직접 합산하지 않는다.
+
+### 2026-10-01 재실행 및 target-bin 종료 조건 정정
+
+- 최신 fresh run은 `initial_results_reused=false`, `iterations_requested=40`,
+  `seed_range=[1001, 1004]`로 실행됐다. seed는 끝값 포함 4개이며, 40은 바깥
+  signature-update iteration의 최대 횟수다.
+- 실제 run은 6 iteration 후 기존 `stop_target_bins_reached` 분기로 끝났다.
+  당시 10-bin grid에서는 bin 8과 9만, 20-bin 보조 audit에서는 bin 17~19만 관측됐고,
+  profile search는 `not_identifiable`이었다. 따라서 이 종료는 전체 coverage나 cutoff
+  확인을 뜻하지 않았다.
+- 원인은 spec의 단일 `target_bins=[8]`에 도달한 즉시 campaign을 종료한 로직이다.
+  이를 수정해 target이 관측되면 가장 가까운 미관측 **10-bin profile 구간**으로
+  목표를 이동시키고, 전체 10개 primary bin이 관측됐을 때만 coverage 완료를 기록한다.
+  20-bin audit은 종료 판정이 아니라 보조 진단으로 유지한다.
+- `all_profile_bins_observed`도 cutoff 확정을 뜻하지 않는다. ledger에는
+  `profile_cutoff_identified`를 별도로 남기며, 공통 PR/POST profile 상태가 없으면
+  cutoff는 계속 `not_identifiable`이다.
+- target 진행과 전체 10-bin coverage 종료 단위 테스트를 추가했다. 이전 11-bin 시도 당시
+  전체 unittest 90개가 통과했으며, 현재 edge-replacement 규칙으로 관련 테스트를 갱신했다.
+- 다음 fresh run은 P32=200 상한에 도달하면 `await_wider_density_bounds`로 기록한다.
+  상한은 승인된 탐색 범위이므로 자동 확대하지 않는다. 더 낮은 Q' 구간을 계속
+  탐색하려면 수치 탐색 범위를 검토·승인한 뒤 새 campaign으로 실행한다.
+- 상한을 `P32=1,000,000`으로 확장한 다음 실행은 iteration 6에서 case별 CSV 저장 중
+  `OSError: [Errno 63] File name too long`으로 실패했다. 계산 batch는 완료됐으나 CSV가
+  저장되지 않아 iteration 6은 coverage/ledger에 포함되지 않았고, manifest는
+  `status=planned`, `record_count=0`으로 남았다. iteration 0~5와 candidate/config 산출물은
+  현재 workdir에 보존돼 있다.
+- 실패 manifest의 `iterations_requested=4000`, `seed_range=[1001, 1004]`다. 즉 4 paired
+  seed를 signature별로 사용하고 최대 4000 outer iterations를 요청한 실행이었다.
+- 원인은 candidate name에 이전 parent 전체 이름을 매 iteration 덧붙여 case 이름이
+  무한히 길어진 것이다. runner는 이후 후보 YAML의 이름을 root case명 + 현재 candidate ID로
+  고정하고 parent provenance는 기존 metadata에 보존한다. 재실행은 기존 workdir resume가
+  아니므로 새 workdir 또는 `--force-overwrite` backup을 사용해야 한다.
+- iteration 8 실행은 CSV 결합 후 `probe must generate a distinct signature`에서
+  실패했다. iteration 8의 P32는 591.33이지만 CSV hash는 parent r007의 hash
+  `6f4869...`로 기록됐다. density-probe builder가 top-level candidate JSON의 새 identity는
+  계산했으나 nested YAML tags의 `generation_signature_hash`/`domain_id`는 갱신하지 않았고,
+  `MultiCaseBatchRunner._attach_metadata()`가 그 stale tags로 BatchRunner 계산값을
+  덮어썼다. iteration 8 결과의 수치는 남아 있지만 provenance가 잘못돼 paired signature
+  분석에는 사용할 수 없다.
+- density candidate tags를 새 hash/domain으로 갱신하고, batch metadata merge에서는
+  계산된 row provenance를 우선 보존하도록 수정했다. stale-tag overwrite, candidate tag
+  동기화, paired-probe 회귀 테스트를 통과했다. 실패 campaign은 중간 재개를 지원하지 않아
+  새 실행에서는 다시 계산해야 한다.
+- 이후 fresh run은 iteration 9에서 `needs_repeatability`로 멈췄다. seed별 Q′ 반응은
+  `+10.50, -4.68, -1.74, +10.11`로 부호가 충돌했지만 target-bin proximity gain은
+  `+0.5`였다. 기존 runner는 Q′ 부호 충돌을 coverage 진행 여부와 무관하게 중단 조건으로
+  처리했다.
+- 수정: density probe에서 Q′ 부호가 충돌해도 proximity가 같거나 개선되면 Euler slope는
+  사용하지 않고 reviewed density reachability probe를 이어간다. proximity가 악화되면
+  `await_physical_probe_response`로 대기한다. 이에 맞춘 regression fixture와 기존 campaign
+  테스트 3개가 통과했다.
+- 위 변경 후에도 round 9에서 멈춘 이유는 별도 guard였다. repeatability continuation은
+  `extend_density`를 true로 만들었지만, 이어지는 density builder 조건이
+  `response == 0` 또는 `source_case_path == probe_path`만 허용했다. 이번 round는
+  proximity gain `+0.5`, response `0.875`였고 source가 parent라 조건에서 빠졌다.
+- 추가 수정: Q′ repeatability 충돌과 non-regressing proximity가 확인된 density probe는
+  source가 parent여도 Euler 방향을 추론하지 않은 채 승인된 density reachability를 계속한다.
+  proximity가 음수면 계속하지 않는다. 해당 실제 분기 조합의 단위 테스트를 추가했다.
+- 현재 관측 결과는 iteration budget 40 중 10 rounds에서 중단, seed 1001–1004다.
+  10-bin grid에서 bin 5~9만 관측됐고 bin 0~4는 비어 있다. 누적 132 rows,
+  44 domains, 11 signatures, `Qp_bh_mean=7.73~266.60`; profile result는
+  `not_identifiable`이다. 이 결과는 위 source-path guard 수정 전 campaign 기록이므로
+  새 코드 실행 결과로 간주하지 않는다.
+
+반복 실행을 처음부터 다시 시작할 때는 `--force-overwrite`로 기존 campaign 폴더를
+삭제하지 않고 sibling backup으로 옮긴다. 다음 실행은 삭제된 campaign_003 CSV를
+사용하지 않고, campaign_004의 partial result를 이어받지도 않는다.
+
+다음 fresh run은 `validation/README.md`의 2026-10-01 실행 예시를 따른다.
+`--iterations 4000`은 넉넉한 상한이며 요구 실행량이 아니다. 모든 primary bin
+coverage 또는 다른 명시적 stop condition에 도달하면 더 일찍 끝날 수 있다.
+`--seed-start 1001 --seed-stop 1004`는 각 signature당 4개 paired seed다.
+iteration별 `active_target_bins`, `remaining_profile_bins`,
+`next_action`, profile search 상태와 coverage를 함께 확인한다. 전체 bin coverage도
+cutoff 확인이나 calibration 승인으로 간주하지 않는다.
+
+### 2026-10-01 Q′ lower-domain 확장
+
+- 이전 변경은 별도 zero-bin을 추가해 bin을 11/21로 늘렸고, 이를 2026-10-01 correction에서
+  superseded 처리했다.
+- 현재 규칙은 양수 로그 경계 `geomspace(0.1, 400, intervals + 1)`의 첫 edge만 `0`으로
+  교체한다. primary 10 bins, 보조 audit 20 bins, high-Q target index 8을 유지한다.
+- 따라서 Q′=0을 포함해도 경계 수와 기존 positive log 간격은 복잡해지지 않으며, 첫 bin만
+  `[0, 0.229195...)`로 확장된다. 과거 실행 산출물은 해당 실행 당시 grid 기준 기록으로 보존한다.
+
+### 시그니처 중복 처리 원칙
+
+중복 시그니처와 과거 simulation 결과는 삭제하지 않는다. 먼저 Q' bin별
+signature/domain 교차표와 신규 coverage 기여를 보고하고, 후속 iteration에 넣을
+active portfolio만 비파괴적으로 de-prioritize한다. 보류 여부는 새 bin 기여,
+독립 domain 지원, profile 변화와 중복도를 함께 근거로 기록하며, 기준은 screening
+결과를 검토한 뒤 별도 합의한다.
 `Δx/ΔC`는 누적 pool이 아니라 같은 seed의 실제 비교 case로만 측정한다. ledger에는
 누적 독립 domain·signature 수, 새/중복 domain 수와 audit 원본 CSV 목록을 기록한다.
 기존 고Q v2 P32 10→20 case의 `target_bins=[8]` 설정은
 `validation/highq_density_euler_proposed.json`에 검토용으로 두었다. `--dry-run`은
 확인했으나 실제 실행은 `approved_for_screening` 명시 전까지 금지하며, 실행 결과는
 생산용 기존 CSV를 입력으로 섞지 않는다.
+
+## 18. 2026-10-01 Main campaign signature-scheduler contract (Stage 2)
+
+### Goal and boundary
+
+The main campaign must turn cumulative coverage gaps into reviewed D/A/B/C
+signature candidates, execute only approved candidates, append their results to
+the campaign's cumulative domain-deduplicated pool, and plan the next iteration
+from that updated pool. E is an independent-domain repeatability phase, not a
+generation-signature feature family. This section defines the scheduler contract;
+it does not authorize or start a large-scale simulation.
+
+### Candidate catalog contract
+
+The catalog remains keyed by `low_q_gap`, `internal_gap`, and `high_q_gap` and
+uses the existing explicit approval states. Each strategy must include:
+
+- `strategy_id`, `feature_family` (`D`, `A`, `B`, or `C`), `target_gap`, and
+  `status`
+- parent signature hash and source case path, plus immutable-context identity
+- a `changed_features` list with feature path, old/new value or explicit
+  direction/magnitude, normalized delta where applicable, and approved bounds
+- expected Q' coverage/profile effect, selection rationale, and validity constraints
+- common screening seed policy and optional runtime/information estimates
+
+Feature-family rules:
+
+- **D, joint-set structure:** discrete reviewed cases only. Do not interpolate
+  joint-set count or topology with Euler arithmetic.
+- **A, density:** one continuous feature per probe, either P32 or mean spacing;
+  do not change both in one causal probe.
+- **B, size:** one of `size_alpha`, `size_r_min`, or `size_r_max` per matched probe.
+- **C, orientation:** one orientation feature per matched probe. Measure the
+  realized borehole-plane-angle response; input angle alone is not evidence.
+- **E, seed realization:** hold generation signature fixed and change seed/domain
+  only for repeatability assessment.
+
+For continuous one-feature probes, retain the reviewed same-seed parent/probe
+contract. Euler updates may use measured `Δx/ΔC` only after a qualifying response;
+mixed seed signs do not supply an Euler slope. A non-regressing coverage response
+may continue a reviewed reachability step, while a regressing response waits for
+repeatability evidence. Every proposal records its source evidence and is kept
+separate from approval to execute.
+
+### Per-iteration orchestration
+
+1. Audit the cumulative, deduplicated campaign pool on the 10-bin primary grid;
+   use the 20-bin grid only for signature-overlap diagnostics.
+2. Build the set of unobserved bins and bins below the approved independent-domain
+   support. Give every remaining gap a round-robin opportunity; do not infer a
+   cutoff from a filled-bin count.
+3. For each selected gap, choose a parent from the nearest observed signature or
+   reviewed internal-gap neighbors, then join only compatible approved catalog
+   strategies for that gap and feature family.
+4. Write candidate plan, manifest, provenance, and dry-run output first. Execute
+   only candidates explicitly approved for screening, using a common seed set
+   within each matched comparison.
+5. Append completed rows and source CSV references, deduplicate by domain
+   identity, compute new/overlap coverage, profile summaries, and status, then
+   save the next iteration checkpoint before planning more candidates.
+6. Stop on full primary-bin coverage, iteration budget, reviewed bounds exhaustion,
+   a failed/ambiguous paired probe, or another explicit stop action. Record
+   remaining gaps and the reason; full coverage alone does not identify cutoffs.
+
+### Current implementation boundary
+
+`run_campaign.py` retains the Stage 3 plan-only path and now has a separate
+Stage 4 execution path for approved catalog entries. The regular Euler campaign
+still follows its reviewed `--euler-spec` pair. Catalog execution does not infer
+missing bounds, target values, approvals, or new strategies. It also does not
+claim cutoff identification when all primary bins are merely observed.
+
+### Stage 3 result: main-campaign plan-only integration
+
+- `run_campaign.py` now accepts `--strategy-catalog` and
+  `--max-candidates-per-iteration` as a separate mode from `--euler-spec`.
+- Catalog mode requires `--dry-run` plus `--initial-csv`; it audits that supplied
+  CSV on the primary grid, selects only `approved_for_screening` strategies for
+  remaining gaps, and writes `iteration_000/strategy_candidate_plans.json` with
+  source CSVs, missing/planned bins, provenance and `execution_started=false`.
+- Strategy parents must match their declared signature hash. A/B/C plans change
+  exactly one in-family feature. D strategies point to a reviewed discrete case
+  with a distinct signature. Unapproved strategies are retained in the source
+  catalog but excluded from the plan. This path does not run simulation or
+  materialize A/B/C candidate YAMLs.
+- Full suite at integration: 97 tests passed. Next gated stage: materialize reviewed candidate
+  cases, show a dry-run manifest, then connect explicit approval to main-campaign
+  execution. Do not start large-scale simulation as part of catalog planning.
+
+### Stage 4 result: resumable catalog execution
+
+- Non-dry-run catalog mode materializes approved A/B/C one-feature candidates
+  and reviewed D cases, executes one candidate per outer iteration with the
+  common inclusive seed range, and re-plans from the cumulative audit.
+- Every completed candidate records parent and changed feature, normalized
+  `delta_x`, `delta_C`, intended/measured signature hash, domain IDs, source CSV,
+  primary/auxiliary coverage, overlap counts, and stop state in the atomic
+  checkpoint and ledger snapshot.
+- A completed per-case CSV is reused only when case name, complete seed set,
+  domain IDs, and generation signatures validate. Failed or incomplete attempts
+  remain recorded and resume writes a new attempt without replaying valid jobs.
+- Exhausted approved candidates, invalid review metadata, and the iteration
+  ceiling preserve remaining gaps as `awaiting_review` or `iteration_limit`;
+  neither is reported as coverage completion. `coverage_complete` and
+  `profile_cutoff_identified` remain distinct fields.
+- C mean dip/direction candidates record realized unoriented plane-normal angle.
+  E uses only explicit independent `--repeatability-seed` values, holds the
+  signature fixed, and is excluded from coverage accumulation.
+- Mock integration covers interruption after one completed candidate, pending
+  candidate resume, completed-CSV reuse, and separate E jobs. No large-scale
+  simulation was launched during implementation.
+
+### 2026-10-01 Stage 4 handoff
+
+Implementation state, the one-seed real A/B/C smoke, canonical provenance
+corrections, stale-artifact warning, exact continuation command, and remaining
+large-campaign gates are recorded in
+[`Stage4_Handoff_20261001.md`](Stage4_Handoff_20261001.md). At handoff, 105 tests
+pass; the smoke is `awaiting_review`, primary bins 0-8 remain unobserved, and no
+cutoff is identified. Continue with the documented fresh four-seed paired smoke,
+not by treating the old smoke checkpoint as production evidence.

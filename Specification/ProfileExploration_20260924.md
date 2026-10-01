@@ -36,7 +36,7 @@ legacy_results/outputs/disposal_lowfract_curated/all_cases_borehole_rows.csv
 
 ## 4. 탐색 방법
 
-`0.1~400` 범위를 로그 공간 10구간으로 나누어 11개 경계값을 만들었다. 각 인접 경계 사이에 들어오는 시추공 행을 모아 다음을 계산했다.
+초기 분석은 `0.1~400` 범위를 로그 공간 10구간으로 나누어 11개 경계값을 만들었다. 2026-10 grid에서는 경계값 개수를 늘리지 않고 첫 경계 `0.1`만 `0`으로 교체한다. 따라서 primary profile은 계속 10 bins이며 이후 양수 로그 경계는 유지된다. 각 인접 경계 사이에 들어오는 시추공 행을 모아 다음을 계산한다.
 
 - 행 수 `n_records`
 - domain 수 `n_domains` (`case_name`, `seed` 조합)

@@ -1,0 +1,2 @@
+Scenario,Corr,Bias,RMSE,RQD dependency
+highq_v2_d1000_angle60_focused_large_base__r000-a-49077f0b220f,0.26047047771215553,-0.01752952018961566,0.01801085582733454,Normal

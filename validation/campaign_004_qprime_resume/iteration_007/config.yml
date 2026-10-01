@@ -1,0 +1,20 @@
+profile_mc_exploration:
+  case_paths:
+  - /Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_007/candidate/r007-euler-probes-5905f3b20bfd.yaml
+  seed_range:
+    start: 1001
+    stop: 1004
+    step: 1
+  face_positions:
+  - 10
+  - 20
+  - 30
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: /Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_007/simulation
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

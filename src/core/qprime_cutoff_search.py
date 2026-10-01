@@ -10,7 +10,8 @@ import numpy as np
 import yaml
 
 
-DEFAULT_MIN_CUTOFF = 0.1
+DEFAULT_MIN_CUTOFF = 0.0
+DEFAULT_MIN_POSITIVE_CUTOFF = 0.1
 DEFAULT_MAX_CUTOFF = 400.0
 DEFAULT_INTERVALS = 10
 PROFILE_STATES = frozenset({"PR", "TR", "POST", "UNOBSERVED"})
@@ -260,19 +261,32 @@ def generate_qprime_cutoffs(
     maximum: float = DEFAULT_MAX_CUTOFF,
     intervals: int = DEFAULT_INTERVALS,
 ) -> List[float]:
-    """Generate positive Q' decision cutoffs on a logarithmic scale.
+    """Generate Q' edges, replacing the first positive log edge with zero.
 
-    ``intervals`` is the number of equal intervals in log space, so the
-    returned list contains ``intervals + 1`` values including both endpoints.
+    ``intervals`` is the total bin count. For a zero minimum, the positive log
+    grid keeps the same number of edges and spacing after its first edge is
+    replaced with zero.
     """
     minimum = float(minimum)
     maximum = float(maximum)
     if not np.isfinite(minimum) or not np.isfinite(maximum):
         raise ValueError("minimum and maximum must be finite")
-    if minimum <= 0 or maximum <= minimum:
-        raise ValueError("require 0 < minimum < maximum")
     if isinstance(intervals, bool) or int(intervals) != intervals or intervals < 1:
         raise ValueError("intervals must be a positive integer")
+    if minimum < 0 or maximum <= minimum:
+        raise ValueError("require 0 <= minimum < maximum")
+    if minimum == 0:
+        if maximum <= DEFAULT_MIN_POSITIVE_CUTOFF:
+            raise ValueError(
+                f"maximum must exceed the positive log-grid start {DEFAULT_MIN_POSITIVE_CUTOFF}"
+            )
+        positive_cutoffs = np.geomspace(
+            DEFAULT_MIN_POSITIVE_CUTOFF,
+            maximum,
+            num=int(intervals) + 1,
+        ).tolist()
+        positive_cutoffs[0] = 0.0
+        return positive_cutoffs
 
     return np.geomspace(minimum, maximum, num=int(intervals) + 1).tolist()
 
@@ -397,8 +411,8 @@ def evaluate_lower_cutoff(
     ``Q'_BH < lower_cutoff``.
     """
     lower_cutoff = float(lower_cutoff)
-    if not np.isfinite(lower_cutoff) or lower_cutoff <= 0:
-        raise ValueError("lower_cutoff must be a positive finite value")
+    if not np.isfinite(lower_cutoff) or lower_cutoff < 0:
+        raise ValueError("lower_cutoff must be a non-negative finite value")
     qprime_values, labels = _prepare_evaluation_inputs(qprime_bh, post_excavation_labels)
     hold = np.isfinite(qprime_values) & (qprime_values < lower_cutoff)
     hold_count = int(hold.sum())
@@ -423,8 +437,8 @@ def evaluate_upper_cutoff(
     ``Q'_BH >= upper_cutoff``.
     """
     upper_cutoff = float(upper_cutoff)
-    if not np.isfinite(upper_cutoff) or upper_cutoff <= 0:
-        raise ValueError("upper_cutoff must be a positive finite value")
+    if not np.isfinite(upper_cutoff) or upper_cutoff < 0:
+        raise ValueError("upper_cutoff must be a non-negative finite value")
     qprime_values, labels = _prepare_evaluation_inputs(qprime_bh, post_excavation_labels)
     excavate = np.isfinite(qprime_values) & (qprime_values >= upper_cutoff)
     excavate_count = int(excavate.sum())

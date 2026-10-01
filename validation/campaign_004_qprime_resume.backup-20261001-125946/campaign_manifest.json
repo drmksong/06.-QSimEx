@@ -1,0 +1,22 @@
+{
+  "campaign_type": "isolated_validation",
+  "existing_results_used": false,
+  "profile_intervals": 10,
+  "coverage_intervals": 20,
+  "case_paths": [
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/cases/highq_portfolio_v2/highq_v2_d1000_angle60_focused_large_base.yaml",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/cases/highq_portfolio_v2/highq_v2_d2000_angle60_focused_large_base.yaml"
+  ],
+  "seed_range": [
+    1001,
+    1004
+  ],
+  "iterations_requested": 40,
+  "stop_on_identified": false,
+  "backend": "mlx",
+  "status": "planned",
+  "euler_spec": "validation/highq_density_euler_proposed.json",
+  "initial_csv": null,
+  "initial_results_reused": false,
+  "previous_workdir_backup": "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume.backup-20261001-112548"
+}

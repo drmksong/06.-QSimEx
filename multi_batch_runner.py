@@ -18,6 +18,16 @@ from batch_runner import BatchRunner, BatchConfig, BatchResult
 from src.core.constants import standardize_metrics, STANDARD_COST_KEYS
 
 
+_COMPUTED_PROVENANCE_FIELDS = frozenset(
+    {
+        "domain_id",
+        "generation_signature_hash",
+        "generation_features_json",
+        "generator_version",
+    }
+)
+
+
 @dataclass
 class MultiCaseBatchConfig:
     case_paths: List[str]
@@ -206,5 +216,7 @@ class MultiCaseBatchRunner:
     def _attach_metadata(self, rows: List[Dict[str, Any]], metadata: Dict[str, Any]):
         for row in rows:
             for k, v in metadata.items():
+                if k in _COMPUTED_PROVENANCE_FIELDS and row.get(k) not in (None, ""):
+                    continue
                 # 기존 case_name은 유지하고, metadata는 추가
                 row[k] = v

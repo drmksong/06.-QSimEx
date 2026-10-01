@@ -62,9 +62,13 @@ def validate_strategy_catalog(
                 for feature in strategy["changed_features"]:
                     if not isinstance(feature, dict) or not feature.get("name"):
                         raise ValueError("each changed feature requires a name")
-            elif not strategy.get("recipe") or strategy.get("factor") is None:
+            elif not (
+                strategy.get("feature_family") == "D"
+                and strategy.get("candidate_case_path")
+            ) and (not strategy.get("recipe") or strategy.get("factor") is None):
                 raise ValueError(
-                    "strategy requires changed_features or legacy recipe/factor"
+                    "strategy requires changed_features, a reviewed D candidate case, "
+                    "or legacy recipe/factor"
                 )
 
 _IDENTITY_METADATA_KEYS = frozenset(
@@ -100,9 +104,34 @@ def _canonical_identity_value(value: Any) -> Any:
     return value
 
 
+def _generation_identity_mapping(case_mapping: Dict[str, Any]) -> Dict[str, Any]:
+    """Project a case YAML mapping onto the runner's generation-feature schema."""
+    if not {"domain", "tunnel", "joint_sets"}.issubset(case_mapping):
+        return case_mapping
+    domain = case_mapping["domain"]
+    tunnel = case_mapping["tunnel"]
+    rqd = case_mapping.get("rqd", {})
+    return {
+        "domain_size": [domain["nx"], domain["ny"], domain["nz"]],
+        "grid_spacing": [domain["dx"], domain["dy"], domain["dz"]],
+        "tunnel": {
+            "center_y": tunnel["center_y"],
+            "center_z": tunnel["center_z"],
+            "radius": tunnel["radius"],
+        },
+        "borehole_offsets": [
+            [borehole.get("dy", 0.0), borehole.get("dz", 0.0)]
+            for borehole in case_mapping.get("boreholes", [])
+        ],
+        "rqd_scan_length": rqd.get("scan_length", 5.0),
+        "joint_sets": case_mapping["joint_sets"],
+        "global_params": case_mapping.get("global_params", {}),
+    }
+
+
 def compute_generation_signature_hash(case_mapping: Dict[str, Any]) -> str:
     """Hash canonical generation/configuration data without run metadata."""
-    canonical = _canonical_identity_value(case_mapping)
+    canonical = _canonical_identity_value(_generation_identity_mapping(case_mapping))
     payload = json.dumps(canonical, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -116,7 +145,7 @@ def compute_domain_id(
 ) -> str:
     """Hash generation identity plus seed and generator/domain identity."""
     payload = {
-        "generation": _canonical_identity_value(case_mapping),
+        "generation": _canonical_identity_value(_generation_identity_mapping(case_mapping)),
         "seed": int(seed),
         "generator_version": str(generator_version),
         "domain_identity": _canonical_identity_value(domain_identity or {}),
@@ -746,7 +775,19 @@ def plan_gap_candidates(
     plans: List[Dict[str, Any]] = []
     validate_strategy_catalog(strategy_catalog)
     for gap in rank_coverage_gaps(audit, gap_class_priority=gap_class_priority):
-        strategies = strategy_catalog.get(gap["gap_class"], ())
+        strategies = list(strategy_catalog.get(gap["gap_class"], ()))
+        targeted_strategies = [
+            strategy
+            for catalog_strategies in strategy_catalog.values()
+            for strategy in catalog_strategies
+            if int(gap["bin_index"])
+            in (strategy.get("validity_constraints") or {}).get("target_bins", ())
+        ]
+        seen_strategy_ids = {strategy.get("strategy_id") for strategy in strategies}
+        strategies.extend(
+            strategy for strategy in targeted_strategies
+            if strategy.get("strategy_id") not in seen_strategy_ids
+        )
         for strategy in strategies:
             recipe = strategy.get("recipe")
             direction = strategy.get("direction", "forward")
@@ -783,9 +824,18 @@ def plan_gap_candidates(
                     "direction": direction,
                     "factor": factor,
                     "strategy_id": strategy.get("strategy_id"),
+                    "status": strategy.get("status", "approved_for_screening"),
+                    "feature_family": strategy.get("feature_family"),
                     "parent_signature": strategy.get("parent_signature"),
+                    "parent_case_path": strategy.get("parent_case_path"),
+                    "candidate_case_path": strategy.get("candidate_case_path"),
                     "changed_features": changed_features,
+                    "step_size": strategy.get("step_size"),
+                    "generator_version": strategy.get("generator_version"),
                     "expected_effect": strategy.get("expected_effect"),
+                    "selection_reason": strategy.get("selection_reason"),
+                    "validity_constraints": strategy.get("validity_constraints"),
+                    "response_update": strategy.get("response_update"),
                     "reason": reason or gap.get("recommendation", "coverage gap"),
                     "estimated_runtime_seconds": estimated_runtime,
                     "expected_information_gain": expected_information_gain,
@@ -875,6 +925,12 @@ def _build_planned_candidate(
     screening_seed: int,
     plan: Dict[str, Any],
 ) -> Dict[str, Any]:
+    if plan.get("feature_family") in {"A", "B", "C", "D"}:
+        return build_reviewed_strategy_candidate(
+            plan,
+            round_id=round_id,
+            screening_seed=screening_seed,
+        )
     if not plan.get("recipe"):
         raise ValueError(
             "changed_features plans require build_euler_update_candidate; "
@@ -928,6 +984,147 @@ def _build_planned_candidate(
         "domain_id": domain_id,
         "seed_values": [int(screening_seed)],
         "case": data,
+    }
+
+
+def build_reviewed_strategy_candidate(
+    plan: Dict[str, Any],
+    *,
+    round_id: int,
+    screening_seed: int,
+    generator_version: str = "qsimex-generation-v1",
+) -> Dict[str, Any]:
+    """Materialize one approved single-feature plan or reviewed discrete D case."""
+    family = plan.get("feature_family")
+    if family not in {"A", "B", "C", "D"}:
+        raise ValueError("reviewed strategy requires feature_family D, A, B, or C")
+    if plan.get("status") != "approved_for_screening":
+        raise ValueError("strategy must be approved_for_screening before materialization")
+    parent_path = plan.get("parent_case_path")
+    if not parent_path:
+        raise ValueError("strategy requires parent_case_path")
+    parent = load_case_mapping(str(parent_path))
+    parent_signature = compute_generation_signature_hash(parent)
+    if parent_signature != plan.get("parent_signature"):
+        raise ValueError("strategy parent signature does not match parent_case_path")
+
+    changed_feature = None
+    orientation_validation = None
+    if family == "D":
+        candidate_path = plan.get("candidate_case_path")
+        if not candidate_path:
+            raise ValueError("D strategy requires candidate_case_path")
+        candidate_case = load_case_mapping(str(candidate_path))
+        if compute_generation_signature_hash(candidate_case) == parent_signature:
+            raise ValueError("D strategy candidate must have a distinct signature")
+    else:
+        changes = plan.get("changed_features")
+        if not isinstance(changes, list) or len(changes) != 1:
+            raise ValueError(f"{family} strategy must change exactly one feature")
+        changed_feature = dict(changes[0])
+        feature_path = changed_feature.get("name")
+        if not feature_path:
+            raise ValueError("changed feature requires a name")
+        if "target_value" not in changed_feature:
+            raise ValueError("changed feature requires an explicit target_value")
+        bounds = changed_feature.get("bounds")
+        if not isinstance(bounds, (list, tuple)) or len(bounds) != 2:
+            raise ValueError("changed feature requires explicit [lower, upper] bounds")
+        lower, upper = (float(bounds[0]), float(bounds[1]))
+        target_value = float(changed_feature["target_value"])
+        if not all(math.isfinite(value) for value in (lower, upper, target_value)):
+            raise ValueError("feature value and bounds must be finite")
+        if lower >= upper or not lower <= target_value <= upper:
+            raise ValueError("target_value must be inside its approved feature bounds")
+        parent_value = float(_get_mapping_path(parent, feature_path))
+        if not lower <= parent_value <= upper:
+            raise ValueError("parent feature is outside the strategy's approved bounds")
+        candidate_case = copy.deepcopy(parent)
+        _set_mapping_path(candidate_case, feature_path, target_value)
+        changed_feature.update({
+            "parent_value": parent_value,
+            "target_value": target_value,
+            "bounds": [lower, upper],
+        })
+        if family == "C":
+            joint_set_index = int(feature_path.split(".")[1])
+            before_set = parent["joint_sets"][joint_set_index]
+            after_set = candidate_case["joint_sets"][joint_set_index]
+            if feature_path.endswith((".mean_dip", ".mean_dip_dir")):
+                before_dip = math.radians(float(before_set["mean_dip"]))
+                before_dir = math.radians(float(before_set["mean_dip_dir"]))
+                after_dip = math.radians(float(after_set["mean_dip"]))
+                after_dir = math.radians(float(after_set["mean_dip_dir"]))
+                before_normal = (
+                    math.sin(before_dip) * math.cos(before_dir),
+                    math.sin(before_dip) * math.sin(before_dir),
+                    math.cos(before_dip),
+                )
+                after_normal = (
+                    math.sin(after_dip) * math.cos(after_dir),
+                    math.sin(after_dip) * math.sin(after_dir),
+                    math.cos(after_dip),
+                )
+                cosine = min(1.0, max(-1.0, sum(
+                    left * right for left, right in zip(before_normal, after_normal)
+                )))
+                plane_angle = math.degrees(math.acos(abs(cosine)))
+                if plane_angle <= 1e-12:
+                    raise ValueError("C orientation target does not change the realized plane angle")
+                orientation_validation = {
+                    "method": "unoriented_plane_normal_angle",
+                    "realized_plane_angle_degrees": plane_angle,
+                    "status": "mean_plane_changed",
+                }
+            else:
+                orientation_validation = {
+                    "method": "fisher_kappa_distribution_change",
+                    "realized_plane_angle_degrees": 0.0,
+                    "status": "orientation_spread_only",
+                }
+
+    signature_hash = compute_generation_signature_hash(candidate_case)
+    candidate_id = (
+        f"r{round_id:03d}-{family.lower()}-{signature_hash[:12]}"
+    )
+    parent_name = str(parent.get("name", Path(str(parent_path)).stem))
+    root_name = parent_name.split("__r", maxsplit=1)[0]
+    candidate_case["name"] = f"{root_name}__{candidate_id}"
+    candidate_case["seed"] = int(screening_seed)
+    domain_id = compute_domain_id(
+        candidate_case,
+        seed=screening_seed,
+        generator_version=generator_version,
+    )
+    candidate_case.setdefault("tags", {}).update({
+        "candidate_id": candidate_id,
+        "coverage_round": int(round_id),
+        "coverage_target": plan["target_region"],
+        "feature_family": family,
+        "strategy_id": plan["strategy_id"],
+        "parent_case": parent_name,
+        "generation_signature_hash": signature_hash,
+        "domain_id": domain_id,
+        "generator_version": generator_version,
+        "update_method": "reviewed_strategy_candidate",
+    })
+    return {
+        "candidate_id": candidate_id,
+        "candidate_case_path": plan.get("candidate_case_path") if family == "D" else None,
+        "parent_case_path": str(parent_path),
+        "parent_signature": parent_signature,
+        "target_region": plan["target_region"],
+        "bin_index": int(plan["bin_index"]),
+        "feature_family": family,
+        "strategy_id": plan["strategy_id"],
+        "changed_feature": changed_feature,
+        "orientation_validation": orientation_validation,
+        "selection_reason": plan.get("selection_reason"),
+        "expected_effect": plan.get("expected_effect"),
+        "generation_signature_hash": signature_hash,
+        "domain_id": domain_id,
+        "seed": int(screening_seed),
+        "case": candidate_case,
     }
 
 

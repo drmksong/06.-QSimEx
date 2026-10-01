@@ -1,0 +1,67 @@
+name: highq_v2_d2000_angle60_focused_large_base__r007-euler-probes-6f4869043208
+description: 'Revised high-Q signature: strong density, angle-controlled orientation,
+  and large-fracture size range; no small-size reduction.'
+seed: 1001
+tags:
+  coverage_stage: high_q_portfolio_v2
+  parent_case: highq_v2_d2000_angle60_focused_large_base__r006-euler-probes-e55b99f958f5
+  density_factor: 2000.0
+  orientation_variant: angle60_focused
+  expected_mean_plane_angle_deg: 60.0
+  size_variant: large_base
+  screening_seeds:
+  - 325
+  - 326
+  - 327
+  - 328
+  target_gap_qprime_bh:
+  - 76.14615754863519
+  - 174.5235314204193
+  approval_status: proposed_review_before_execution
+  coverage_round: 7
+  candidate_id: r007-euler-probes-6f4869043208
+  coverage_target: high_q_gap
+  update_method: bounded_explicit_euler_style_multi_probe
+  generation_signature_hash: 6f486904320879a410d663511ee540173fb9f1125f36b5554a8ebcef24561868
+  domain_id: 428c89f6ad1214852f57f13e0d4d8a9a50a97b57d9337eb70a2e6a25e6aff6f6
+  generator_version: qsimex-generation-v1
+domain:
+  nx: 60
+  ny: 30
+  nz: 30
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+tunnel:
+  center_y: 15.0
+  center_z: 15.0
+  radius: 5.0
+boreholes:
+- dy: 0.0
+  dz: 0.0
+rqd:
+  scan_length: 5.0
+global_params:
+  Jw_mean: 1.0
+  Jw_std: 0.05
+  SRF_mean: 1.0
+  SRF_std: 0.2
+joint_sets:
+- set_id: 1
+  name: sparse_large_favorable
+  mean_dip: 60.0
+  mean_dip_dir: 90.0
+  fisher_kappa: 8.0
+  size_alpha: 2.5
+  size_r_min: 10.0
+  size_r_max: 100.0
+  density_type: P32
+  P32: 516.6666666666664
+  mean_spacing: 50.0
+  Jr_mean: 4.0
+  Jr_std: 0.1
+  Ja_mean: 0.75
+  Ja_std: 0.1
+cost:
+  cost_fp: 1
+  cost_fn: 5

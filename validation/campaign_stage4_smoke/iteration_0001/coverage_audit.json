@@ -1,0 +1,164 @@
+{
+  "qprime_bh_key": "Qp_bh_mean",
+  "cutoffs": [
+    0.0,
+    0.22919545389923282,
+    0.5253055608807535,
+    1.203976464618554,
+    2.7594593229224307,
+    6.32455532033676,
+    14.495593273553926,
+    33.22324079870857,
+    76.14615754863519,
+    174.5235314204193,
+    400.0
+  ],
+  "observed_min": 253.80191557937593,
+  "observed_max": 262.2830011066381,
+  "n_records": 3,
+  "n_finite_records": 3,
+  "bins": [
+    {
+      "bin_index": 0,
+      "qprime_bh_lower": 0.0,
+      "qprime_bh_upper": 0.22919545389923282,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 1,
+      "qprime_bh_lower": 0.22919545389923282,
+      "qprime_bh_upper": 0.5253055608807535,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 2,
+      "qprime_bh_lower": 0.5253055608807535,
+      "qprime_bh_upper": 1.203976464618554,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 3,
+      "qprime_bh_lower": 1.203976464618554,
+      "qprime_bh_upper": 2.7594593229224307,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 4,
+      "qprime_bh_lower": 2.7594593229224307,
+      "qprime_bh_upper": 6.32455532033676,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 5,
+      "qprime_bh_lower": 6.32455532033676,
+      "qprime_bh_upper": 14.495593273553926,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 6,
+      "qprime_bh_lower": 14.495593273553926,
+      "qprime_bh_upper": 33.22324079870857,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 7,
+      "qprime_bh_lower": 33.22324079870857,
+      "qprime_bh_upper": 76.14615754863519,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 8,
+      "qprime_bh_lower": 76.14615754863519,
+      "qprime_bh_upper": 174.5235314204193,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 9,
+      "qprime_bh_lower": 174.5235314204193,
+      "qprime_bh_upper": 400.0,
+      "n_records": 3,
+      "n_domains": 3,
+      "n_cases": 3,
+      "n_signatures": 3,
+      "signature_hashes": [
+        "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a",
+        "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8",
+        "bac3e544b20b1c49512a7b7a8293b709102e4adc686321db47c1c208eccb7645"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    }
+  ],
+  "signature_bins": {
+    "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a": [
+      9
+    ],
+    "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8": [
+      9
+    ],
+    "bac3e544b20b1c49512a7b7a8293b709102e4adc686321db47c1c208eccb7645": [
+      9
+    ]
+  },
+  "source_csv": null,
+  "domain_keys": [
+    "domain_id"
+  ],
+  "provenance_status": "complete",
+  "n_records_with_domain_id": 3,
+  "n_records_with_generation_signature_hash": 3
+}

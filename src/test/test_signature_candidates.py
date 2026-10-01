@@ -6,6 +6,7 @@ import yaml
 
 from src.core.signature_candidates import (
     build_gap_screening_pool,
+    build_reviewed_strategy_candidate,
     build_euler_update_candidate,
     build_euler_update_candidate_from_probes,
     build_neighbor_midpoint_candidate,
@@ -18,6 +19,7 @@ from src.core.signature_candidates import (
     euler_update_feature_vector,
     apply_normalized_features,
     extract_normalized_features,
+    load_case_mapping,
     plan_gap_candidates,
     propose_signature_candidates,
     validate_strategy_catalog,
@@ -300,6 +302,45 @@ class TestSignatureCandidates(unittest.TestCase):
         self.assertEqual(plans[0]["factor"], 1.1)
         self.assertEqual(plans[0]["reason"], "reviewed low-Q probe")
 
+    def test_explicit_target_bin_applies_when_relative_gap_class_changes(self):
+        audit = {
+            "observed_min": 200.0,
+            "observed_max": 260.0,
+            "bins": [
+                {
+                    "bin_index": 8,
+                    "qprime_bh_lower": 76.0,
+                    "qprime_bh_upper": 175.0,
+                    "status": "UNOBSERVED",
+                },
+                {
+                    "bin_index": 9,
+                    "qprime_bh_lower": 175.0,
+                    "qprime_bh_upper": 400.0,
+                    "status": "observed",
+                },
+            ],
+        }
+        strategy = {
+            "strategy_id": "absolute-highq-bin-8",
+            "parent_signature": "parent-highq",
+            "changed_features": [{"name": "joint_sets.0.P32"}],
+            "expected_effect": "move down into the absolute high-Q target",
+            "selection_reason": "explicit target bin",
+            "validity_constraints": {"target_bins": [8]},
+            "status": "approved_for_screening",
+        }
+
+        plans = plan_gap_candidates(
+            audit,
+            strategy_catalog={"high_q_gap": [strategy]},
+            max_candidates=1,
+        )
+
+        self.assertEqual(plans[0]["strategy_id"], "absolute-highq-bin-8")
+        self.assertEqual(plans[0]["bin_index"], 8)
+        self.assertEqual(plans[0]["target_region"], "low_q_gap")
+
     def test_changed_features_catalog_is_validated_and_planned(self):
         audit = {
             "observed_min": 5.0,
@@ -338,6 +379,129 @@ class TestSignatureCandidates(unittest.TestCase):
 
         self.assertEqual(plans[0]["strategy_id"], "lowq-midpoint-01")
         self.assertEqual(plans[0]["changed_features"][0]["name"], "joint_sets.0.P32")
+
+    def test_reviewed_single_feature_strategy_materializes_only_explicit_value(self):
+        with tempfile.TemporaryDirectory() as directory:
+            parent_path = self._case_path(directory)
+            parent = load_case_mapping(str(parent_path))
+            strategy = {
+                "status": "approved_for_screening",
+                "strategy_id": "size-alpha-probe",
+                "feature_family": "B",
+                "target_region": "internal_gap",
+                "bin_index": 4,
+                "parent_signature": compute_generation_signature_hash(parent),
+                "parent_case_path": str(parent_path),
+                "changed_features": [{
+                    "name": "joint_sets.0.size_r_min",
+                    "target_value": 0.75,
+                    "bounds": [0.1, 5.0],
+                }],
+                "selection_reason": "reviewed size-axis probe",
+                "expected_effect": "extend target-bin coverage",
+            }
+
+            candidate = build_reviewed_strategy_candidate(
+                strategy, round_id=2, screening_seed=1101
+            )
+
+        changed_case = candidate["case"]
+        self.assertEqual(changed_case["joint_sets"][0]["size_r_min"], 0.75)
+        self.assertEqual(changed_case["joint_sets"][0]["P32"], parent["joint_sets"][0]["P32"])
+        self.assertEqual(candidate["seed"], 1101)
+        self.assertEqual(candidate["feature_family"], "B")
+        self.assertNotEqual(candidate["generation_signature_hash"], strategy["parent_signature"])
+
+    def test_reviewed_feature_strategy_refuses_inferred_or_out_of_bounds_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            parent_path = self._case_path(directory)
+            parent = load_case_mapping(str(parent_path))
+            base = {
+                "status": "approved_for_screening",
+                "strategy_id": "p32-probe",
+                "feature_family": "A",
+                "target_region": "low_q_gap",
+                "bin_index": 0,
+                "parent_signature": compute_generation_signature_hash(parent),
+                "parent_case_path": str(parent_path),
+                "selection_reason": "reviewed",
+                "expected_effect": "lower Q-prime coverage",
+            }
+
+            missing_target = dict(base, changed_features=[{
+                "name": "joint_sets.0.P32", "bounds": [0.0, 10.0]
+            }])
+            with self.assertRaisesRegex(ValueError, "target_value"):
+                build_reviewed_strategy_candidate(missing_target, round_id=1, screening_seed=1)
+
+            outside_bounds = dict(base, changed_features=[{
+                "name": "joint_sets.0.P32", "target_value": 11.0,
+                "bounds": [0.0, 10.0],
+            }])
+            with self.assertRaisesRegex(ValueError, "inside its approved feature bounds"):
+                build_reviewed_strategy_candidate(outside_bounds, round_id=1, screening_seed=1)
+
+    def test_reviewed_orientation_strategy_records_realized_plane_angle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            parent_path = self._case_path(directory)
+            parent = load_case_mapping(str(parent_path))
+            parent["joint_sets"][0].update({"mean_dip": 30.0, "mean_dip_dir": 45.0})
+            parent_path.write_text(yaml.safe_dump(parent), encoding="utf-8")
+            strategy = {
+                "status": "approved_for_screening",
+                "strategy_id": "dip-probe",
+                "feature_family": "C",
+                "target_region": "internal_gap",
+                "bin_index": 4,
+                "parent_signature": compute_generation_signature_hash(parent),
+                "parent_case_path": str(parent_path),
+                "changed_features": [{
+                    "name": "joint_sets.0.mean_dip",
+                    "target_value": 40.0,
+                    "bounds": [0.0, 90.0],
+                }],
+                "selection_reason": "reviewed orientation-axis probe",
+                "expected_effect": "measure orientation sensitivity",
+            }
+
+            candidate = build_reviewed_strategy_candidate(
+                strategy, round_id=2, screening_seed=1101
+            )
+
+        validation = candidate["orientation_validation"]
+        self.assertEqual(validation["status"], "mean_plane_changed")
+        self.assertAlmostEqual(validation["realized_plane_angle_degrees"], 10.0)
+
+    def test_discrete_D_strategy_uses_reviewed_case(self):
+        with tempfile.TemporaryDirectory() as directory:
+            parent_path = self._case_path(directory)
+            candidate_path = Path(directory) / "two_sets.yaml"
+            candidate_case = load_case_mapping(str(parent_path))
+            candidate_case["name"] = "two_set_case"
+            candidate_case["joint_sets"].append(dict(candidate_case["joint_sets"][0], set_id=2))
+            candidate_path.write_text(yaml.safe_dump(candidate_case), encoding="utf-8")
+            strategy = {
+                "status": "approved_for_screening",
+                "strategy_id": "joint-set-addition",
+                "feature_family": "D",
+                "target_region": "internal_gap",
+                "bin_index": 4,
+                "parent_signature": compute_generation_signature_hash(
+                    load_case_mapping(str(parent_path))
+                ),
+                "parent_case_path": str(parent_path),
+                "candidate_case_path": str(candidate_path),
+                "selection_reason": "reviewed discrete structure case",
+                "expected_effect": "test additional joint set",
+            }
+
+            candidate = build_reviewed_strategy_candidate(
+                strategy, round_id=3, screening_seed=1201
+            )
+
+        self.assertEqual(candidate["feature_family"], "D")
+        self.assertEqual(len(candidate["case"]["joint_sets"]), 2)
+        self.assertEqual(candidate["candidate_case_path"], str(candidate_path))
 
     def test_gap_planning_cycles_across_empty_bins(self):
         audit = {

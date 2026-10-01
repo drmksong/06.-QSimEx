@@ -1,0 +1,381 @@
+{
+  "qprime_bh_key": "Qp_bh_mean",
+  "cutoffs": [
+    0.1,
+    0.1513920255162843,
+    0.22919545389923282,
+    0.3469836400492902,
+    0.5253055608807535,
+    0.7952707287670507,
+    1.203976464618554,
+    1.822724356525379,
+    2.7594593229224307,
+    4.177601362270212,
+    6.32455532033676,
+    9.574872404355748,
+    14.495593273553926,
+    21.945172267435538,
+    33.22324079870857,
+    50.297337187317424,
+    76.14615754863519,
+    115.27921026569989,
+    174.5235314204193,
+    264.21470921992176,
+    400.0
+  ],
+  "observed_min": 7.725301957437186,
+  "observed_max": 266.60013150445957,
+  "n_records": 144,
+  "n_finite_records": 144,
+  "bins": [
+    {
+      "bin_index": 0,
+      "qprime_bh_lower": 0.1,
+      "qprime_bh_upper": 0.1513920255162843,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 1,
+      "qprime_bh_lower": 0.1513920255162843,
+      "qprime_bh_upper": 0.22919545389923282,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 2,
+      "qprime_bh_lower": 0.22919545389923282,
+      "qprime_bh_upper": 0.3469836400492902,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 3,
+      "qprime_bh_lower": 0.3469836400492902,
+      "qprime_bh_upper": 0.5253055608807535,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 4,
+      "qprime_bh_lower": 0.5253055608807535,
+      "qprime_bh_upper": 0.7952707287670507,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 5,
+      "qprime_bh_lower": 0.7952707287670507,
+      "qprime_bh_upper": 1.203976464618554,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 6,
+      "qprime_bh_lower": 1.203976464618554,
+      "qprime_bh_upper": 1.822724356525379,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 7,
+      "qprime_bh_lower": 1.822724356525379,
+      "qprime_bh_upper": 2.7594593229224307,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 8,
+      "qprime_bh_lower": 2.7594593229224307,
+      "qprime_bh_upper": 4.177601362270212,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 9,
+      "qprime_bh_lower": 4.177601362270212,
+      "qprime_bh_upper": 6.32455532033676,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 10,
+      "qprime_bh_lower": 6.32455532033676,
+      "qprime_bh_upper": 9.574872404355748,
+      "n_records": 1,
+      "n_domains": 1,
+      "n_cases": 1,
+      "n_signatures": 1,
+      "signature_hashes": [
+        "811ace8c4f942b8b45f1711e4aa832c65259ab970cd92717bcc178e14f7c60bc"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 11,
+      "qprime_bh_lower": 9.574872404355748,
+      "qprime_bh_upper": 14.495593273553926,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "add configurations to fill an internal coverage gap"
+    },
+    {
+      "bin_index": 12,
+      "qprime_bh_lower": 14.495593273553926,
+      "qprime_bh_upper": 21.945172267435538,
+      "n_records": 5,
+      "n_domains": 5,
+      "n_cases": 3,
+      "n_signatures": 3,
+      "signature_hashes": [
+        "7038cc969f8430eb61fc410ae99080840c09543fbe1020fae438e93274de3360",
+        "811ace8c4f942b8b45f1711e4aa832c65259ab970cd92717bcc178e14f7c60bc",
+        "e5a7863acd14a67aac67d92fbbc87ef2e5b622aec50e7f222faa6b6c26c738b2"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 13,
+      "qprime_bh_lower": 21.945172267435538,
+      "qprime_bh_upper": 33.22324079870857,
+      "n_records": 15,
+      "n_domains": 10,
+      "n_cases": 3,
+      "n_signatures": 3,
+      "signature_hashes": [
+        "7038cc969f8430eb61fc410ae99080840c09543fbe1020fae438e93274de3360",
+        "811ace8c4f942b8b45f1711e4aa832c65259ab970cd92717bcc178e14f7c60bc",
+        "e5a7863acd14a67aac67d92fbbc87ef2e5b622aec50e7f222faa6b6c26c738b2"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 14,
+      "qprime_bh_lower": 33.22324079870857,
+      "qprime_bh_upper": 50.297337187317424,
+      "n_records": 17,
+      "n_domains": 10,
+      "n_cases": 5,
+      "n_signatures": 5,
+      "signature_hashes": [
+        "5d66f7f23e02f676c4fb8b7ab65aba71cb15e02104aae7b3e1882e060fe570b3",
+        "7038cc969f8430eb61fc410ae99080840c09543fbe1020fae438e93274de3360",
+        "811ace8c4f942b8b45f1711e4aa832c65259ab970cd92717bcc178e14f7c60bc",
+        "e5a7863acd14a67aac67d92fbbc87ef2e5b622aec50e7f222faa6b6c26c738b2",
+        "f6fac5b7728fdc7a4dfdb6770ae7ae156b101b3d8efabdc5722d036dbda9a4af"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 15,
+      "qprime_bh_lower": 50.297337187317424,
+      "qprime_bh_upper": 76.14615754863519,
+      "n_records": 18,
+      "n_domains": 9,
+      "n_cases": 4,
+      "n_signatures": 4,
+      "signature_hashes": [
+        "5d66f7f23e02f676c4fb8b7ab65aba71cb15e02104aae7b3e1882e060fe570b3",
+        "7038cc969f8430eb61fc410ae99080840c09543fbe1020fae438e93274de3360",
+        "db4b3ae024b9459591dce72d3fc5d0431450c5912b5666fe37e0dbff09209ed3",
+        "f6fac5b7728fdc7a4dfdb6770ae7ae156b101b3d8efabdc5722d036dbda9a4af"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 16,
+      "qprime_bh_lower": 76.14615754863519,
+      "qprime_bh_upper": 115.27921026569989,
+      "n_records": 10,
+      "n_domains": 7,
+      "n_cases": 3,
+      "n_signatures": 3,
+      "signature_hashes": [
+        "5d66f7f23e02f676c4fb8b7ab65aba71cb15e02104aae7b3e1882e060fe570b3",
+        "db4b3ae024b9459591dce72d3fc5d0431450c5912b5666fe37e0dbff09209ed3",
+        "f6fac5b7728fdc7a4dfdb6770ae7ae156b101b3d8efabdc5722d036dbda9a4af"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 17,
+      "qprime_bh_lower": 115.27921026569989,
+      "qprime_bh_upper": 174.5235314204193,
+      "n_records": 6,
+      "n_domains": 3,
+      "n_cases": 1,
+      "n_signatures": 1,
+      "signature_hashes": [
+        "db4b3ae024b9459591dce72d3fc5d0431450c5912b5666fe37e0dbff09209ed3"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 18,
+      "qprime_bh_lower": 174.5235314204193,
+      "qprime_bh_upper": 264.21470921992176,
+      "n_records": 69,
+      "n_domains": 23,
+      "n_cases": 6,
+      "n_signatures": 6,
+      "signature_hashes": [
+        "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a",
+        "10707638fc94f6ce146511ffa17f3e753282651ee6c5e662912fa881f280e3c3",
+        "2496aaae72d104dc4c749ed59a4aa74b6c5aec8f119f694c0b67b5b0fe5dbce7",
+        "28d8f4e5b4c3f0ee838aa4cc5b585d3ee0f59586e1d74980ba0d682583199eb1",
+        "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8",
+        "aaf669b7b33c4b2bcbe7794ed4bad09319dadbc2efef89892aae2712ed44395a"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 19,
+      "qprime_bh_lower": 264.21470921992176,
+      "qprime_bh_upper": 400.0,
+      "n_records": 3,
+      "n_domains": 1,
+      "n_cases": 1,
+      "n_signatures": 1,
+      "signature_hashes": [
+        "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    }
+  ],
+  "signature_bins": {
+    "811ace8c4f942b8b45f1711e4aa832c65259ab970cd92717bcc178e14f7c60bc": [
+      10,
+      12,
+      13,
+      14
+    ],
+    "7038cc969f8430eb61fc410ae99080840c09543fbe1020fae438e93274de3360": [
+      12,
+      13,
+      14,
+      15
+    ],
+    "e5a7863acd14a67aac67d92fbbc87ef2e5b622aec50e7f222faa6b6c26c738b2": [
+      12,
+      13,
+      14
+    ],
+    "5d66f7f23e02f676c4fb8b7ab65aba71cb15e02104aae7b3e1882e060fe570b3": [
+      14,
+      15,
+      16
+    ],
+    "f6fac5b7728fdc7a4dfdb6770ae7ae156b101b3d8efabdc5722d036dbda9a4af": [
+      14,
+      15,
+      16
+    ],
+    "db4b3ae024b9459591dce72d3fc5d0431450c5912b5666fe37e0dbff09209ed3": [
+      15,
+      16,
+      17
+    ],
+    "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a": [
+      18
+    ],
+    "10707638fc94f6ce146511ffa17f3e753282651ee6c5e662912fa881f280e3c3": [
+      18
+    ],
+    "2496aaae72d104dc4c749ed59a4aa74b6c5aec8f119f694c0b67b5b0fe5dbce7": [
+      18
+    ],
+    "28d8f4e5b4c3f0ee838aa4cc5b585d3ee0f59586e1d74980ba0d682583199eb1": [
+      18
+    ],
+    "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8": [
+      18,
+      19
+    ],
+    "aaf669b7b33c4b2bcbe7794ed4bad09319dadbc2efef89892aae2712ed44395a": [
+      18
+    ]
+  },
+  "source_csv": null,
+  "domain_keys": [
+    "domain_id"
+  ],
+  "provenance_status": "complete",
+  "n_records_with_domain_id": 144,
+  "n_records_with_generation_signature_hash": 144,
+  "source_csvs": [
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_000/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_001/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_002/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_003/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_004/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_005/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_006/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_007/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_008/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_009/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_010/simulation/all_cases_borehole_rows.csv"
+  ]
+}

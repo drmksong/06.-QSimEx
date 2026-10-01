@@ -162,15 +162,15 @@ Bootstrap은 기존 simulation row를 재표본화하는 후처리이며 DFN을 
 
 ## 6.1 기존 접근과 coverage-adaptive 접근의 차이
 
-| 항목              | 기존 접근                                                 | 현재 적용 접근                                                              |
-| ----------------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
-| 실행 순서         | scenario별 seed를 먼저 대량 확장한 뒤 pooled 결과를 분석  | 전체 scenario/signature를 seed 1개씩 sweep한 뒤 coverage를 진단             |
-| coverage gap 대응 | 기존 configuration의 seed를 반복하여 자료량을 늘림        | 빈 구간을 만들 수 있는 신규 generation signature를 추가하고 전체를 재-sweep |
+| 항목              | 기존 접근                                                 | 현재 적용 접근                                                                 |
+| ----------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 실행 순서         | scenario별 seed를 먼저 대량 확장한 뒤 pooled 결과를 분석  | 전체 scenario/signature를 seed 1개씩 sweep한 뒤 coverage를 진단                |
+| coverage gap 대응 | 기존 configuration의 seed를 반복하여 자료량을 늘림        | 빈 구간을 만들 수 있는 신규 generation signature를 추가하고 전체를 재-sweep    |
 | seed 확장 기준    | configuration별로 비교적 균등하게 확장                    | 실제 목표 bin과 profile 방향을 반복한 signature만 후속 seed 확장 대상으로 검토 |
-| 분석 관점         | pooled row와 단일 profile 요약이 중심                     | scenario/signature/domain별 분석을 우선하고 pooled 결과는 보조로 사용       |
-| 독립성 처리       | 동일 domain의 반복 row가 표본 수에 섞일 위험              | `domain_id`를 cluster로 묶어 domain 단위 재현성을 검정                      |
-| 빈 bin 해석       | 관측 부족이 변화 없음 또는 `TR`처럼 해석될 위험           | `UNOBSERVED`로 분리하고 내부 gap·범위 밖 gap을 구분                         |
-| 종료 판단         | 한 번의 실행 결과로 `not_identifiable` 또는 cutoff를 판단 | 최소 3회 screening 후 재현성·coverage·시간 근거로 계속 또는 종료를 판단       |
+| 분석 관점         | pooled row와 단일 profile 요약이 중심                     | scenario/signature/domain별 분석을 우선하고 pooled 결과는 보조로 사용          |
+| 독립성 처리       | 동일 domain의 반복 row가 표본 수에 섞일 위험              | `domain_id`를 cluster로 묶어 domain 단위 재현성을 검정                         |
+| 빈 bin 해석       | 관측 부족이 변화 없음 또는 `TR`처럼 해석될 위험           | `UNOBSERVED`로 분리하고 내부 gap·범위 밖 gap을 구분                            |
+| 종료 판단         | 한 번의 실행 결과로 `not_identifiable` 또는 cutoff를 판단 | 최소 3회 screening 후 재현성·coverage·시간 근거로 계속 또는 종료를 판단        |
 
 따라서 현재 방법은 기존 결과를 폐기하는 방식이 아니라, 기존 결과를 baseline으로
 보존하면서 coverage 다양성, 독립 domain 재현성, 반복 라운드의 변화량을 추가로 검정하는
@@ -459,7 +459,7 @@ domain별 random intercept 또는 random slope를 포함한 계층 모델을 검
 
 다음 두 binning 결과를 비교한다.
 
-- 고정 `0.1~400` 로그 bin
+- 기존 양수 로그 경계에서 첫 경계 `0.1`을 `0`으로 교체한 고정 10-bin primary grid
 - 관측 범위와 domain 수를 고려한 adaptive bin
 
 두 방식에서 상태와 후보가 크게 달라지면 결과를 `provisional`로 낮춘다.
@@ -542,10 +542,10 @@ coverage pilot에서 확인된 gap을 기준으로 필요한 신규 generation s
 1. 기존 signature와 신규 signature를 하나의 pool로 구성한다.
 2. pool 전체를 동일한 공통 seed `S_k`로 한 번씩 실행한다.
 3. 새로 관측된 Q' bin, gap 감소, 중앙부 중복도, profile 방향, provenance metadata를
-  signature별로 기록한다.
+   signature별로 기록한다.
 4. 다음 iteration에서는 공통 seed를 `S_(k+1)`로 바꾸어 전체 pool을 재-sweep한다.
 5. 목표 bin을 만들고 profile 방향을 반복한 signature만 후속 독립 seed 확장 후보로
-  검토한다.
+   검토한다.
 
 공통 seed sweep은 기존 500개 domain을 대체하지 않는다. 기존 결과는 중간 영역의
 baseline으로 계속 사용하며, pilot metadata가 불완전한 경우에만 해당 pilot signature를

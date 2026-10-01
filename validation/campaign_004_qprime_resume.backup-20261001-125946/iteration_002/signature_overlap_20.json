@@ -1,0 +1,208 @@
+{
+  "method": "signature_bin_overlap",
+  "cutoffs": [
+    0.1,
+    0.1513920255162843,
+    0.22919545389923282,
+    0.3469836400492902,
+    0.5253055608807535,
+    0.7952707287670507,
+    1.203976464618554,
+    1.822724356525379,
+    2.7594593229224307,
+    4.177601362270212,
+    6.32455532033676,
+    9.574872404355748,
+    14.495593273553926,
+    21.945172267435538,
+    33.22324079870857,
+    50.297337187317424,
+    76.14615754863519,
+    115.27921026569989,
+    174.5235314204193,
+    264.21470921992176,
+    400.0
+  ],
+  "n_signatures": 4,
+  "n_overlap_only_signatures": 3,
+  "n_unique_coverage_signatures": 1,
+  "bins": [
+    {
+      "bin_index": 0,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 1,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 2,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 3,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 4,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 5,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 6,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 7,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 8,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 9,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 10,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 11,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 12,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 13,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 14,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 15,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 16,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 17,
+      "n_signatures": 0,
+      "generation_signature_hashes": []
+    },
+    {
+      "bin_index": 18,
+      "n_signatures": 4,
+      "generation_signature_hashes": [
+        "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a",
+        "10707638fc94f6ce146511ffa17f3e753282651ee6c5e662912fa881f280e3c3",
+        "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8",
+        "aaf669b7b33c4b2bcbe7794ed4bad09319dadbc2efef89892aae2712ed44395a"
+      ]
+    },
+    {
+      "bin_index": 19,
+      "n_signatures": 1,
+      "generation_signature_hashes": [
+        "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8"
+      ]
+    }
+  ],
+  "signatures": [
+    {
+      "generation_signature_hash": "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        18
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        18
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "10707638fc94f6ce146511ffa17f3e753282651ee6c5e662912fa881f280e3c3",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        18
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        18
+      ],
+      "recommendation": "review_before_expanding"
+    },
+    {
+      "generation_signature_hash": "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        18,
+        19
+      ],
+      "exclusive_bins": [
+        19
+      ],
+      "overlap_bins": [
+        18
+      ],
+      "recommendation": "retain_for_unique_coverage"
+    },
+    {
+      "generation_signature_hash": "aaf669b7b33c4b2bcbe7794ed4bad09319dadbc2efef89892aae2712ed44395a",
+      "n_rows": 12,
+      "n_domains": 4,
+      "covered_bins": [
+        18
+      ],
+      "exclusive_bins": [],
+      "overlap_bins": [
+        18
+      ],
+      "recommendation": "review_before_expanding"
+    }
+  ],
+  "exact_coverage_footprint_groups": [
+    {
+      "covered_bins": [
+        18
+      ],
+      "generation_signature_hashes": [
+        "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a",
+        "10707638fc94f6ce146511ffa17f3e753282651ee6c5e662912fa881f280e3c3",
+        "aaf669b7b33c4b2bcbe7794ed4bad09319dadbc2efef89892aae2712ed44395a"
+      ]
+    }
+  ],
+  "source_data_policy": "preserve_all_signatures_and_rows"
+}

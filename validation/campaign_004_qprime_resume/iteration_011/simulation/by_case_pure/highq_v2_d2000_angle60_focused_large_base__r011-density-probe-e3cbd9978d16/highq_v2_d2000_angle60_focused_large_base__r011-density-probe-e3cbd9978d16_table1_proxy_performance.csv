@@ -1,0 +1,5 @@
+Scenario,Corr,Bias,RMSE,RQD dependency
+highq_v2_d2000_angle60_focused_large_base__r011-density-probe-e3cbd9978d16,0.9921295150527765,-0.8643920848661649,0.8724255583385271,Normal
+highq_v2_d2000_angle60_focused_large_base__r011-density-probe-e3cbd9978d16,-0.9892120085530605,-1.196009009128382,1.239428979878686,Normal
+highq_v2_d2000_angle60_focused_large_base__r011-density-probe-e3cbd9978d16,0.9988782780796,-1.099305971737853,1.112829490425072,Normal
+highq_v2_d2000_angle60_focused_large_base__r011-density-probe-e3cbd9978d16,-0.1855002457870111,-0.8954580292161483,0.9030436110014023,Normal

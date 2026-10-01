@@ -120,6 +120,100 @@ def deduplicate_domain_records(
     }
 
 
+def build_signature_overlap_report(
+    records: Iterable[Dict[str, Any]],
+    *,
+    qprime_bh_key: str = "Qp_bh_mean",
+    domain_key: str = "domain_id",
+    signature_key: str = "generation_signature_hash",
+    cutoffs: Iterable[float] | None = None,
+) -> Dict[str, Any]:
+    """Report signature overlap without removing source signatures or rows."""
+    rows = [dict(row) for row in records]
+    if not rows:
+        raise ValueError("records must not be empty")
+    if any(row.get(signature_key) in {None, ""} for row in rows):
+        raise KeyError(f"records must contain a non-empty '{signature_key}'")
+    if any(row.get(domain_key) in {None, ""} for row in rows):
+        raise KeyError(f"records must contain a non-empty '{domain_key}'")
+
+    audit = audit_qprime_coverage(
+        rows,
+        qprime_bh_key=qprime_bh_key,
+        cutoffs=cutoffs,
+        domain_keys=(domain_key,),
+    )
+    signatures_by_bin = {
+        int(row["bin_index"]): sorted(row["signature_hashes"])
+        for row in audit["bins"]
+    }
+    signature_bins = {
+        str(signature): sorted(int(index) for index in indices)
+        for signature, indices in audit["signature_bins"].items()
+    }
+    domains_by_signature: Dict[str, set] = {}
+    rows_by_signature: Dict[str, int] = {}
+    for row in rows:
+        signature = str(row[signature_key])
+        domains_by_signature.setdefault(signature, set()).add(row[domain_key])
+        rows_by_signature[signature] = rows_by_signature.get(signature, 0) + 1
+
+    signature_details = []
+    footprints: Dict[tuple[int, ...], list[str]] = {}
+    for signature in sorted(rows_by_signature):
+        bins = signature_bins.get(signature, [])
+        exclusive_bins = [
+            index for index in bins if len(signatures_by_bin.get(index, [])) == 1
+        ]
+        overlap_bins = [
+            index for index in bins if len(signatures_by_bin.get(index, [])) > 1
+        ]
+        if exclusive_bins:
+            recommendation = "retain_for_unique_coverage"
+        elif bins:
+            recommendation = "review_before_expanding"
+        else:
+            recommendation = "outside_configured_qprime_range"
+        signature_details.append(
+            {
+                "generation_signature_hash": signature,
+                "n_rows": rows_by_signature[signature],
+                "n_domains": len(domains_by_signature[signature]),
+                "covered_bins": bins,
+                "exclusive_bins": exclusive_bins,
+                "overlap_bins": overlap_bins,
+                "recommendation": recommendation,
+            }
+        )
+        footprints.setdefault(tuple(bins), []).append(signature)
+
+    exact_footprint_groups = [
+        {"covered_bins": list(bins), "generation_signature_hashes": hashes}
+        for bins, hashes in sorted(footprints.items())
+        if len(hashes) > 1
+    ]
+    bin_details = [
+        {
+            "bin_index": index,
+            "n_signatures": len(signatures),
+            "generation_signature_hashes": signatures,
+        }
+        for index, signatures in sorted(signatures_by_bin.items())
+    ]
+    recommendations = [row["recommendation"] for row in signature_details]
+    return {
+        "method": "signature_bin_overlap",
+        "cutoffs": audit["cutoffs"],
+        "n_signatures": len(signature_details),
+        "n_overlap_only_signatures": recommendations.count("review_before_expanding"),
+        "n_unique_coverage_signatures": recommendations.count("retain_for_unique_coverage"),
+        "bins": bin_details,
+        "signatures": signature_details,
+        "exact_coverage_footprint_groups": exact_footprint_groups,
+        "source_data_policy": "preserve_all_signatures_and_rows",
+    }
+
+
 def build_round_record(
     *,
     round_id: int,
@@ -286,6 +380,7 @@ def append_ledger(path: str, record: Dict[str, Any]) -> None:
 
 __all__ = [
     "audit_borehole_csv",
+    "build_signature_overlap_report",
     "append_ledger",
     "build_round_record",
     "build_screening_round_record",

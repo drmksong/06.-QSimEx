@@ -1,5 +1,5 @@
 qprime_cutoff_search:
-  minimum: 0.1
+  minimum: 0.0
   maximum: 400.0
   intervals: 10
   scale: logarithmic

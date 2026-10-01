@@ -1,0 +1,428 @@
+{
+  "qprime_bh_key": "Qp_bh_mean",
+  "cutoffs": [
+    0.0,
+    0.1513920255162843,
+    0.22919545389923282,
+    0.3469836400492902,
+    0.5253055608807535,
+    0.7952707287670507,
+    1.203976464618554,
+    1.822724356525379,
+    2.7594593229224307,
+    4.177601362270212,
+    6.32455532033676,
+    9.574872404355748,
+    14.495593273553926,
+    21.945172267435538,
+    33.22324079870857,
+    50.297337187317424,
+    76.14615754863519,
+    115.27921026569989,
+    174.5235314204193,
+    264.21470921992176,
+    400.0
+  ],
+  "observed_min": 0.0,
+  "observed_max": 266.60013150445957,
+  "n_records": 180,
+  "n_finite_records": 180,
+  "bins": [
+    {
+      "bin_index": 0,
+      "qprime_bh_lower": 0.0,
+      "qprime_bh_upper": 0.1513920255162843,
+      "n_records": 4,
+      "n_domains": 4,
+      "n_cases": 2,
+      "n_signatures": 2,
+      "signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "273feeba586eb9589562028814ad7fa29b2339f072e16b10570efb3cdb9edbe5"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 1,
+      "qprime_bh_lower": 0.1513920255162843,
+      "qprime_bh_upper": 0.22919545389923282,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "add configurations to fill an internal coverage gap"
+    },
+    {
+      "bin_index": 2,
+      "qprime_bh_lower": 0.22919545389923282,
+      "qprime_bh_upper": 0.3469836400492902,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "add configurations to fill an internal coverage gap"
+    },
+    {
+      "bin_index": 3,
+      "qprime_bh_lower": 0.3469836400492902,
+      "qprime_bh_upper": 0.5253055608807535,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "add configurations to fill an internal coverage gap"
+    },
+    {
+      "bin_index": 4,
+      "qprime_bh_lower": 0.5253055608807535,
+      "qprime_bh_upper": 0.7952707287670507,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "add configurations to fill an internal coverage gap"
+    },
+    {
+      "bin_index": 5,
+      "qprime_bh_lower": 0.7952707287670507,
+      "qprime_bh_upper": 1.203976464618554,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "add configurations to fill an internal coverage gap"
+    },
+    {
+      "bin_index": 6,
+      "qprime_bh_lower": 1.203976464618554,
+      "qprime_bh_upper": 1.822724356525379,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "add configurations to fill an internal coverage gap"
+    },
+    {
+      "bin_index": 7,
+      "qprime_bh_lower": 1.822724356525379,
+      "qprime_bh_upper": 2.7594593229224307,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "n_signatures": 0,
+      "signature_hashes": [],
+      "status": "UNOBSERVED",
+      "recommendation": "add configurations to fill an internal coverage gap"
+    },
+    {
+      "bin_index": 8,
+      "qprime_bh_lower": 2.7594593229224307,
+      "qprime_bh_upper": 4.177601362270212,
+      "n_records": 4,
+      "n_domains": 3,
+      "n_cases": 2,
+      "n_signatures": 2,
+      "signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "273feeba586eb9589562028814ad7fa29b2339f072e16b10570efb3cdb9edbe5"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 9,
+      "qprime_bh_lower": 4.177601362270212,
+      "qprime_bh_upper": 6.32455532033676,
+      "n_records": 4,
+      "n_domains": 4,
+      "n_cases": 3,
+      "n_signatures": 3,
+      "signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "273feeba586eb9589562028814ad7fa29b2339f072e16b10570efb3cdb9edbe5",
+        "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 10,
+      "qprime_bh_lower": 6.32455532033676,
+      "qprime_bh_upper": 9.574872404355748,
+      "n_records": 8,
+      "n_domains": 6,
+      "n_cases": 4,
+      "n_signatures": 4,
+      "signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "0e0bb629248fafa566ce3b4274b5b5f33be1a0028cbfe977b6424ee3a266913a",
+        "273feeba586eb9589562028814ad7fa29b2339f072e16b10570efb3cdb9edbe5",
+        "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 11,
+      "qprime_bh_lower": 9.574872404355748,
+      "qprime_bh_upper": 14.495593273553926,
+      "n_records": 6,
+      "n_domains": 5,
+      "n_cases": 3,
+      "n_signatures": 3,
+      "signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "273feeba586eb9589562028814ad7fa29b2339f072e16b10570efb3cdb9edbe5",
+        "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 12,
+      "qprime_bh_lower": 14.495593273553926,
+      "qprime_bh_upper": 21.945172267435538,
+      "n_records": 12,
+      "n_domains": 10,
+      "n_cases": 5,
+      "n_signatures": 5,
+      "signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "0e0bb629248fafa566ce3b4274b5b5f33be1a0028cbfe977b6424ee3a266913a",
+        "61cc1d7328eccfe597e1df73822f0793dc3caf0728b704d1c8dc1dc2564f956f",
+        "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d",
+        "f1afb4e1ba8a1e897a0f4b241635d74d9d3d268e0fa4ab061d237a747903084f"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 13,
+      "qprime_bh_lower": 21.945172267435538,
+      "qprime_bh_upper": 33.22324079870857,
+      "n_records": 19,
+      "n_domains": 14,
+      "n_cases": 5,
+      "n_signatures": 5,
+      "signature_hashes": [
+        "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd",
+        "0e0bb629248fafa566ce3b4274b5b5f33be1a0028cbfe977b6424ee3a266913a",
+        "61cc1d7328eccfe597e1df73822f0793dc3caf0728b704d1c8dc1dc2564f956f",
+        "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d",
+        "f1afb4e1ba8a1e897a0f4b241635d74d9d3d268e0fa4ab061d237a747903084f"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 14,
+      "qprime_bh_lower": 33.22324079870857,
+      "qprime_bh_upper": 50.297337187317424,
+      "n_records": 17,
+      "n_domains": 10,
+      "n_cases": 5,
+      "n_signatures": 5,
+      "signature_hashes": [
+        "0e0bb629248fafa566ce3b4274b5b5f33be1a0028cbfe977b6424ee3a266913a",
+        "287aaf8595d313ca13470893480978dc23785c69fbb03c43abb6e28742f8d3fe",
+        "5039531822e2cea3705e070b1c19bd08957bd5bf1479f709a48c3ac27544fcaf",
+        "61cc1d7328eccfe597e1df73822f0793dc3caf0728b704d1c8dc1dc2564f956f",
+        "f1afb4e1ba8a1e897a0f4b241635d74d9d3d268e0fa4ab061d237a747903084f"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 15,
+      "qprime_bh_lower": 50.297337187317424,
+      "qprime_bh_upper": 76.14615754863519,
+      "n_records": 18,
+      "n_domains": 9,
+      "n_cases": 4,
+      "n_signatures": 4,
+      "signature_hashes": [
+        "287aaf8595d313ca13470893480978dc23785c69fbb03c43abb6e28742f8d3fe",
+        "5039531822e2cea3705e070b1c19bd08957bd5bf1479f709a48c3ac27544fcaf",
+        "61cc1d7328eccfe597e1df73822f0793dc3caf0728b704d1c8dc1dc2564f956f",
+        "84d227aa4925001ad4ccac8f0f1a52db59dcf94f567f45a140c82b13f03ff72f"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 16,
+      "qprime_bh_lower": 76.14615754863519,
+      "qprime_bh_upper": 115.27921026569989,
+      "n_records": 10,
+      "n_domains": 7,
+      "n_cases": 3,
+      "n_signatures": 3,
+      "signature_hashes": [
+        "287aaf8595d313ca13470893480978dc23785c69fbb03c43abb6e28742f8d3fe",
+        "5039531822e2cea3705e070b1c19bd08957bd5bf1479f709a48c3ac27544fcaf",
+        "84d227aa4925001ad4ccac8f0f1a52db59dcf94f567f45a140c82b13f03ff72f"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 17,
+      "qprime_bh_lower": 115.27921026569989,
+      "qprime_bh_upper": 174.5235314204193,
+      "n_records": 6,
+      "n_domains": 3,
+      "n_cases": 1,
+      "n_signatures": 1,
+      "signature_hashes": [
+        "84d227aa4925001ad4ccac8f0f1a52db59dcf94f567f45a140c82b13f03ff72f"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 18,
+      "qprime_bh_lower": 174.5235314204193,
+      "qprime_bh_upper": 264.21470921992176,
+      "n_records": 69,
+      "n_domains": 23,
+      "n_cases": 6,
+      "n_signatures": 6,
+      "signature_hashes": [
+        "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a",
+        "15a6674e66dedea618e95e4f317cb447a9dd1daf3edc6b009776021b89e1282c",
+        "527666e5589ed8e5d455e4baf743b69ad19d6ae0ee1377444c0e3bcbe33a736f",
+        "56a644b1f388559c30175b91d3f368e47e35c3e3384fd156e2cc2f93ef59ee7d",
+        "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8",
+        "c1edb1e8a8851f45f0ba59e75e0ea19bd0bd62a87c66f8854774820e7bea249a"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 19,
+      "qprime_bh_lower": 264.21470921992176,
+      "qprime_bh_upper": 400.0,
+      "n_records": 3,
+      "n_domains": 1,
+      "n_cases": 1,
+      "n_signatures": 1,
+      "signature_hashes": [
+        "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8"
+      ],
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    }
+  ],
+  "signature_bins": {
+    "087d18ccaf266f0ce9a4ecb00ae55dda3e356be329e2eb6f742403d1cf2009dd": [
+      0,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13
+    ],
+    "273feeba586eb9589562028814ad7fa29b2339f072e16b10570efb3cdb9edbe5": [
+      0,
+      8,
+      9,
+      10,
+      11
+    ],
+    "98c3476784c2f3fdfca60c76f7c3db5f498edcfe5e116aa6ca799c6f63f2d90d": [
+      9,
+      10,
+      11,
+      12,
+      13
+    ],
+    "0e0bb629248fafa566ce3b4274b5b5f33be1a0028cbfe977b6424ee3a266913a": [
+      10,
+      12,
+      13,
+      14
+    ],
+    "61cc1d7328eccfe597e1df73822f0793dc3caf0728b704d1c8dc1dc2564f956f": [
+      12,
+      13,
+      14,
+      15
+    ],
+    "f1afb4e1ba8a1e897a0f4b241635d74d9d3d268e0fa4ab061d237a747903084f": [
+      12,
+      13,
+      14
+    ],
+    "287aaf8595d313ca13470893480978dc23785c69fbb03c43abb6e28742f8d3fe": [
+      14,
+      15,
+      16
+    ],
+    "5039531822e2cea3705e070b1c19bd08957bd5bf1479f709a48c3ac27544fcaf": [
+      14,
+      15,
+      16
+    ],
+    "84d227aa4925001ad4ccac8f0f1a52db59dcf94f567f45a140c82b13f03ff72f": [
+      15,
+      16,
+      17
+    ],
+    "098aad42e9d81af4c0ffbac165e95d0d08f29c89e7e04fe67a7679d45cdc3e2a": [
+      18
+    ],
+    "15a6674e66dedea618e95e4f317cb447a9dd1daf3edc6b009776021b89e1282c": [
+      18
+    ],
+    "527666e5589ed8e5d455e4baf743b69ad19d6ae0ee1377444c0e3bcbe33a736f": [
+      18
+    ],
+    "56a644b1f388559c30175b91d3f368e47e35c3e3384fd156e2cc2f93ef59ee7d": [
+      18
+    ],
+    "934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8": [
+      18,
+      19
+    ],
+    "c1edb1e8a8851f45f0ba59e75e0ea19bd0bd62a87c66f8854774820e7bea249a": [
+      18
+    ]
+  },
+  "source_csv": null,
+  "domain_keys": [
+    "domain_id"
+  ],
+  "provenance_status": "complete",
+  "n_records_with_domain_id": 180,
+  "n_records_with_generation_signature_hash": 180,
+  "source_csvs": [
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_000/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_001/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_002/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_003/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_004/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_005/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_006/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_007/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_008/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_009/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_010/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_011/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_012/simulation/all_cases_borehole_rows.csv",
+    "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_013/simulation/all_cases_borehole_rows.csv"
+  ]
+}

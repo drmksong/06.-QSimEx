@@ -1,0 +1,116 @@
+schema_version: 1
+max_candidates_per_iteration: 4
+gap_class_priority:
+  - high_q_gap
+  - internal_gap
+  - low_q_gap
+strategy_catalog:
+  high_q_gap:
+    - strategy_id: highq-p32-paired-euler-01
+      status: approved_for_screening
+      feature_family: A
+      target_gap: high_q_gap
+      parent_signature: 934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8
+      parent_case_path: cases/highq_portfolio_v2/highq_v2_d1000_angle60_focused_large_base.yaml
+      changed_features:
+        - name: joint_sets.0.P32
+          parent_value: 10.0
+          target_value: 20.0
+          bounds: [0.01, 20000.0]
+      step_size: 0.5
+      expected_effect: measure the local P32 response toward primary high-Q bin 8
+      selection_reason: reviewed same-seed density probe from the approved high-Q Euler specification
+      validity_constraints:
+        one_feature_only: true
+        common_seed_required: true
+        target_bins: [8]
+      approval_source: validation/highq_density_euler_proposed.json
+      response_update:
+        method: bounded_explicit_euler
+        target_bins: [8]
+        feature_bounds:
+          joint_sets.0.P32: [0.01, 20000.0]
+        step_size: 0.5
+        generator_version: qsimex-generation-v1
+    - strategy_id: highq-size-rmax-paired-euler-01
+      status: approved_for_screening
+      feature_family: B
+      target_gap: high_q_gap
+      parent_signature: 934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8
+      parent_case_path: cases/highq_portfolio_v2/highq_v2_d1000_angle60_focused_large_base.yaml
+      changed_features:
+        - name: joint_sets.0.size_r_max
+          parent_value: 100.0
+          target_value: 150.0
+          bounds: [100.0, 150.0]
+      step_size: 0.5
+      expected_effect: measure the local maximum-fracture-size response toward primary high-Q bin 8
+      selection_reason: isolate the reviewed large-base to large-tail r_max endpoint while holding r_min fixed
+      validity_constraints:
+        one_feature_only: true
+        common_seed_required: true
+        target_bins: [8]
+        size_r_min_less_than_size_r_max: true
+      approval_source: user request 2026-10-01 and cases/highq_portfolio_v2/manifest.json
+      response_update:
+        method: bounded_explicit_euler
+        target_bins: [8]
+        feature_bounds:
+          joint_sets.0.size_r_max: [100.0, 150.0]
+        step_size: 0.5
+        generator_version: qsimex-generation-v1
+    - strategy_id: highq-kappa-paired-euler-01
+      status: approved_for_screening
+      feature_family: C
+      target_gap: high_q_gap
+      parent_signature: 934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8
+      parent_case_path: cases/highq_portfolio_v2/highq_v2_d1000_angle60_focused_large_base.yaml
+      changed_features:
+        - name: joint_sets.0.fisher_kappa
+          parent_value: 8.0
+          target_value: 2.0
+          bounds: [2.0, 8.0]
+      step_size: 0.5
+      expected_effect: measure the local orientation-spread response toward primary high-Q bin 8
+      selection_reason: reviewed focused-to-broad orientation endpoint with mean plane orientation held fixed
+      validity_constraints:
+        one_feature_only: true
+        common_seed_required: true
+        target_bins: [8]
+        mean_plane_orientation_fixed: true
+      approval_source: user request 2026-10-01 and cases/highq_portfolio_v2/manifest.json
+      response_update:
+        method: bounded_explicit_euler
+        target_bins: [8]
+        feature_bounds:
+          joint_sets.0.fisher_kappa: [2.0, 8.0]
+        step_size: 0.5
+        generator_version: qsimex-generation-v1
+    - strategy_id: highq-dip-direction-paired-euler-01
+      status: approved_for_screening
+      feature_family: C
+      target_gap: high_q_gap
+      parent_signature: 934c7f672785b0fe1ab82fa68e02b4e3845c732c55df8c30e875b58655d47ef8
+      parent_case_path: cases/highq_portfolio_v2/highq_v2_d1000_angle60_focused_large_base.yaml
+      changed_features:
+        - name: joint_sets.0.mean_dip_dir
+          parent_value: 90.0
+          target_value: 45.0
+          bounds: [45.0, 90.0]
+      step_size: 0.5
+      expected_effect: measure the local mean-plane-direction response toward primary high-Q bin 8
+      selection_reason: isolate the reviewed rotated-to-base dip-direction endpoint with dip and kappa fixed
+      validity_constraints:
+        one_feature_only: true
+        common_seed_required: true
+        target_bins: [8]
+        mean_dip_fixed: 60.0
+        fisher_kappa_fixed: 8.0
+      approval_source: user request 2026-10-01 and cases/highq_portfolio/manifest.json
+      response_update:
+        method: bounded_explicit_euler
+        target_bins: [8]
+        feature_bounds:
+          joint_sets.0.mean_dip_dir: [45.0, 90.0]
+        step_size: 0.5
+        generator_version: qsimex-generation-v1

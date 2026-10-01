@@ -1,0 +1,171 @@
+{
+  "candidate_id": "r006-euler-probes-dc94e3b28ca3",
+  "parent_case_path": "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_005/candidate/r005-density-probe-93161f62a643.yaml",
+  "target_region": "high_q_gap",
+  "reason": "multi-probe bounded explicit-Euler-style update",
+  "generation_signature_hash": "dc94e3b28ca3fb04113d1f9ac7a8e082a820c41ff004377e5627a2162a853169",
+  "domain_id": "9546f4ebeae6daaf375556032fa8c080848ee9c4699eb5d5aa51f47aea8cad9a",
+  "seed_values": [
+    1001
+  ],
+  "normalized_features_before": {
+    "joint_sets.0.P32": 0.1649958249791249
+  },
+  "probes": [
+    {
+      "feature_delta": {
+        "joint_sets.0.P32": 0.08000040000200001
+      },
+      "coverage_delta": {
+        "bin_0": 0.0,
+        "bin_1": 0.0,
+        "bin_2": 0.0,
+        "bin_3": 0.0,
+        "bin_4": 0.0,
+        "bin_5": 0.0,
+        "bin_6": 0.0,
+        "bin_7": 0.25,
+        "bin_8": 1.0,
+        "bin_9": -1.0,
+        "proximity_gain": 1.25
+      },
+      "coverage_residual": {
+        "proximity_gain": 1.75
+      },
+      "physical_response": {
+        "Qp_bh_mean": -76.1127821843154,
+        "RQD_bh_mean": -30.245134229605632,
+        "borehole_n_intersections_sum": 62.166666666666664,
+        "borehole_plane_angle_mean_deg": 0.6085127105135868
+      },
+      "seed_physical_responses": {
+        "1002": {
+          "Qp_bh_mean": -84.30157869058817,
+          "RQD_bh_mean": -33.977734477103255,
+          "borehole_n_intersections_sum": 63.66666666666667,
+          "borehole_plane_angle_mean_deg": 0.06260520822613103
+        },
+        "1001": {
+          "Qp_bh_mean": -71.31033120653915,
+          "RQD_bh_mean": -27.716458766384605,
+          "borehole_n_intersections_sum": 55.0,
+          "borehole_plane_angle_mean_deg": 0.09862378617646073
+        },
+        "1004": {
+          "Qp_bh_mean": -65.1147391495544,
+          "RQD_bh_mean": -26.060387324536357,
+          "borehole_n_intersections_sum": 64.66666666666666,
+          "borehole_plane_angle_mean_deg": 2.0570672105477072
+        },
+        "1003": {
+          "Qp_bh_mean": -83.72447969057983,
+          "RQD_bh_mean": -33.225956350398306,
+          "borehole_n_intersections_sum": 65.33333333333333,
+          "borehole_plane_angle_mean_deg": 0.2157546371040553
+        }
+      },
+      "source_case_path": "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx/validation/campaign_004_qprime_resume/iteration_005/candidate/r005-density-probe-93161f62a643.yaml",
+      "nearest_observed_bin": 7,
+      "distance_to_target": 1.75,
+      "parent_case": "highq_v2_d2000_angle60_focused_large_base__r004-density-probe-4301c96f1aa9",
+      "probe_case": "highq_v2_d2000_angle60_focused_large_base__r005-density-probe-93161f62a643",
+      "seed_values": [
+        "1001",
+        "1002",
+        "1003",
+        "1004"
+      ],
+      "parent_signature_hash": "c1edb1e8a8851f45f0ba59e75e0ea19bd0bd62a87c66f8854774820e7bea249a",
+      "probe_signature_hash": "84d227aa4925001ad4ccac8f0f1a52db59dcf94f567f45a140c82b13f03ff72f"
+    }
+  ],
+  "direction": {
+    "joint_sets.0.P32": 0.11200056000280001
+  },
+  "step_size": 0.5,
+  "normalized_features_after": {
+    "joint_sets.0.P32": 0.2209961049805249
+  },
+  "case": {
+    "name": "highq_v2_d2000_angle60_focused_large_base__r006-euler-probes-dc94e3b28ca3",
+    "description": "Revised high-Q signature: strong density, angle-controlled orientation, and large-fracture size range; no small-size reduction.",
+    "seed": 1001,
+    "tags": {
+      "coverage_stage": "high_q_portfolio_v2",
+      "parent_case": "highq_v2_d2000_angle60_focused_large_base__r005-density-probe-93161f62a643",
+      "density_factor": 2000.0,
+      "orientation_variant": "angle60_focused",
+      "expected_mean_plane_angle_deg": 60.0,
+      "size_variant": "large_base",
+      "screening_seeds": [
+        325,
+        326,
+        327,
+        328
+      ],
+      "target_gap_qprime_bh": [
+        76.14615754863519,
+        174.5235314204193
+      ],
+      "approval_status": "proposed_review_before_execution",
+      "coverage_round": 6,
+      "candidate_id": "r006-euler-probes-dc94e3b28ca3",
+      "coverage_target": "high_q_gap",
+      "update_method": "bounded_explicit_euler_style_multi_probe",
+      "generation_signature_hash": "dc94e3b28ca3fb04113d1f9ac7a8e082a820c41ff004377e5627a2162a853169",
+      "domain_id": "9546f4ebeae6daaf375556032fa8c080848ee9c4699eb5d5aa51f47aea8cad9a",
+      "generator_version": "qsimex-generation-v1"
+    },
+    "domain": {
+      "nx": 60,
+      "ny": 30,
+      "nz": 30,
+      "dx": 1.0,
+      "dy": 1.0,
+      "dz": 1.0
+    },
+    "tunnel": {
+      "center_y": 15.0,
+      "center_z": 15.0,
+      "radius": 5.0
+    },
+    "boreholes": [
+      {
+        "dy": 0.0,
+        "dz": 0.0
+      }
+    ],
+    "rqd": {
+      "scan_length": 5.0
+    },
+    "global_params": {
+      "Jw_mean": 1.0,
+      "Jw_std": 0.05,
+      "SRF_mean": 1.0,
+      "SRF_std": 0.2
+    },
+    "joint_sets": [
+      {
+        "set_id": 1,
+        "name": "sparse_large_favorable",
+        "mean_dip": 60.0,
+        "mean_dip_dir": 90.0,
+        "fisher_kappa": 8.0,
+        "size_alpha": 2.5,
+        "size_r_min": 10.0,
+        "size_r_max": 100.0,
+        "density_type": "P32",
+        "P32": 442.0,
+        "mean_spacing": 50.0,
+        "Jr_mean": 4.0,
+        "Jr_std": 0.1,
+        "Ja_mean": 0.75,
+        "Ja_std": 0.1
+      }
+    ],
+    "cost": {
+      "cost_fp": 1,
+      "cost_fn": 5
+    }
+  }
+}
