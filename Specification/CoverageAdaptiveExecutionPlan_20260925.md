@@ -359,3 +359,61 @@ artifact로 보존하고, calibration/validation 자료로 자동 승격하지 �
 이 변경은 DesignSpec의 cutoff 정의, EFPC 분리, Train/Validation 독립성 원칙과
 상충하지 않는다. 실행 탐색의 폭과 seed 배정 방식을 확장한 것이며, 최종 cutoff의
 승격 조건은 기존 설계와 가설검정 방법을 그대로 따른다.
+
+## 13. 2026-10-03 시그니처 업데이트 합의와 후속 작업
+
+### 합의된 탐색 정책
+
+- 업데이트 대상은 세 feature block이다: joint-set별 `P32`, `(mean_dip, mean_dip_dir)`
+  방향 쌍, `size_r_min`·`size_r_max` 크기 쌍.
+- 세 block을 모두 탐색 대상으로 포함하고 round-robin으로 순환한다. 한 probe에서는 한
+  block만 변경한다. 시작 block, block 내부의 probe 방향과 간격은 추가 결정이 필요하다.
+- probe 반응으로 `ΔQ′/ΔX`를 추정한다. 이 기울기는 Q′의 무조건적인 증가가 아니라
+  미관측 Q′ 구간을 향한 coverage 확장에 사용한다.
+- 방향 update 좌표는 관측공 축과 절리면 사이의 사잇각이다. 목표 사잇각으로부터 가능한
+  dip/dip direction 후보를 복원하며, 정의되지 않거나 퇴화하거나 유효 범위를 벗어나는
+  해는 제외한다. 후보 중 선택 규칙은 미정이다.
+- candidate 효과는 탐색 seed와 분리된 독립 seed 3개에서 확인한다. 각 seed에서 parent와
+  candidate를 동일 seed로 짝지어 실행한다. 효과 판정 기준은 미정이다.
+
+### 구현 현황과 작업 항목
+
+현재 `validation/run_campaign.py`의 Euler probe 및 paired-response 경로는 한 번에 하나의
+scalar feature만 변경하는 계약을 갖는다. `src/core/signature_candidates.py`의 bounded
+feature update는 여러 numeric feature를 처리할 수 있지만, 세 feature block을 round-robin
+선택·측정·갱신하는 campaign orchestration은 아직 연결되지 않았다.
+
+관측공 방향도 현재 고정 가정이다. `src/core/tunnel.py`는 sampling line을 `+x`로 만들고,
+`src/core/comparison.py`는 plane-angle과 orientation-bias 계산에 `+x` 축을 사용한다.
+Case configuration에는 borehole 위치 offset은 있지만 방향 vector가 없다. 그러므로
+방향 feature를 campaign에 접목하기 전에 실제 sampling geometry와 response 측정이 동일한
+설정 방향을 사용하도록 일반화해야 한다.
+
+후속 구현 작업:
+
+1. Case schema에 관측공 방향 입력을 추가하고 유효한 단위 방향 vector로 검증한다.
+2. Tunnel sampling, borehole-plane angle 및 방향 민감도 측정이 해당 입력을 공통으로
+   사용하도록 전달 경로를 연결한다. 여러 관측공이 있을 때 방향 적용 범위도 명시한다.
+3. 사잇각에서 방향 후보를 복원하는 변환을 정의한다. dip/dip direction 좌표 규약,
+   법선의 부호 대칭, 경계·퇴화점, 유효하지 않은 후보 제외를 테스트한다.
+4. orientation pair와 min/max-radius pair를 campaign에서 각각 하나의 feature block으로
+   표현하도록 현재 scalar 단일 변경 검사와 ledger schema를 확장한다.
+5. `P32` → orientation → size block을 round-robin으로 probe하는 상태·재개 로직을
+   구현하고, 각 probe의 `ΔX`, `ΔQ′`, 목표 gap, parent signature를 기록한다.
+6. 고정 `P32`에서 size distribution 변경으로 기대 절리 개수가 변하는 효과를 ledger와
+   분석에서 추적한다.
+7. 탐색에 사용하지 않은 새 seed 3개에서 parent/candidate paired validation을 수행하고,
+   결과를 보존하는 테스트와 campaign 검증을 추가한다.
+
+### 미결 설계 결정
+
+- Round-robin의 시작 block, block별 probe 방향과 perturbation 크기
+- 학습률, normalized update 식, step 상한 및 민감도가 불안정하거나 0일 때의 처리
+- `size_r_min`·`size_r_max`를 묶는 parameterization. 공통 배율 `λ`와 `log(λ)` 좌표는
+  검토안이며 합의된 규칙이 아니다.
+- 사잇각이 허용하는 복수 방향 후보 중 선택하는 기준 및 복수 관측공의 처리
+- 3개 독립 seed 결과의 효과 합격 기준
+
+본 절은 설계 합의를 기록하며 자동 simulation 승인이나 실행 승인을 부여하지 않는다.
+위 미결 항목을 확정하고 후보 계획을 검토하기 전까지 다변수 block update를 대규모
+campaign에 적용하지 않는다.

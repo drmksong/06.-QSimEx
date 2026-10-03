@@ -749,6 +749,71 @@ probe 범위는 물리적 상한과 구분해 기록한다.
 중복 분산을 함께 판단한다. 상한에 걸리더라도 자동으로 unreachable이나
 `not_identifiable`로 분류하지 않고 원인·시도 내역을 보고한다.
 
+#### 5.6.8 Signature update 후속 설계 (2026-10-03)
+
+이 절은 signature update의 feature 탐색에 관해 2026-10-03에 합의한 내용을 기록한다.
+기존 5.6.6의 기본 feature 순서 및 제한적 순서 randomization보다 이 날짜의 round-robin
+정책을 우선한다.
+
+탐색 대상은 다음 세 feature block이다. 모든 block을 탐색 대상으로 포함하며, 한 probe에서는
+한 block만 변경한다.
+
+- 밀도: joint set별 `P32`
+- 방향: `(mean_dip, mean_dip_dir)` 쌍. 갱신 좌표는 관측공 축과 절리면 사이의 사잇각으로
+  표현하고, 변경된 사잇각에 맞는 dip/dip direction 후보를 역변환한다.
+- 크기: `size_r_min`과 `size_r_max` 쌍
+
+세 block은 round-robin으로 시험한다. round-robin의 정확한 시작점과 각 block 안의 probe
+방향·간격은 아직 정하지 않았다. 이는 feature 값을 무작위로 선택한다는 뜻이 아니다.
+
+관측 반응으로 feature block의 국소 민감도를 `s_X = ΔQ′ / ΔX`로 추정한다. 업데이트는
+Q′를 일반적으로 키우는 것이 아니라, 목표로 삼은 `UNOBSERVED` Q′ 구간 쪽으로 coverage를
+확장하는 방향이어야 한다. 학습률에 해당하는 step과 민감도를 결합하는 구체적인 식,
+정규화 좌표, probe 간격, step 상한은 추가 논의 전까지 미확정이다.
+
+방향 변환에서 관측공의 축 방향을 고정값으로 가정하지 않는다. 현재 구현은
+`src/core/tunnel.py`의 borehole sampling과 `src/core/comparison.py`의 plane-angle 계산에서
+`[1, 0, 0]`을 사용하고, case 입력은 borehole 위치 offset만 제공한다. 후속 구현은 관측공
+방향을 configuration으로 제공하고 sampling 및 angle 측정 전체에 전달해야 한다. 사잇각에
+대응하는 방향 해가 여러 개일 수 있으므로, 하나의 보존 방향을 선험적으로 강제하지 않고
+복수 후보를 만들 수 있다. 법선·각도 복원이 정의되지 않거나 퇴화하거나 물리적 범위를
+벗어나는 후보는 제외한다. 유효 후보 중 선택하는 기준은 아직 미정이다.
+
+크기 block은 현재 truncated power-law 반경 분포의 `size_alpha`, `size_r_min`,
+`size_r_max` 중 최소·최대 반경을 함께 변경 대상으로 한다. 공통 배율 `λ`로 두 반경을
+변경하고 `log(λ)`를 단일 탐색 좌표로 쓰는 방법은 가능한 설계안일 뿐, 아직 승인된
+parameterization은 아니다. 크기 분포 변경은 고정 `P32`에서 기대 절리 개수에도 영향을
+주므로 그 반응을 size probe 결과에 포함한다. 현재 반경 샘플러의 기준 분포와 역CDF는
+다음과 같다. 여기서 `size_alpha`는 survival-tail 지수이며 PDF의 지수는 `α+1`이다.
+
+$$
+f(r) = \frac{\alpha r_{\min}^{\alpha}}
+{1-(r_{\min}/r_{\max})^{\alpha}} r^{-(\alpha+1)},
+\quad r_{\min} \le r \le r_{\max}
+$$
+
+$$
+r = r_{\min}\left[1-U\left(1-(r_{\min}/r_{\max})^{\alpha}\right)\right]^{-1/\alpha},
+\quad U \sim \mathrm{Uniform}(0,1)
+$$
+
+현재 생성기는 `P32`가 고정된 경우 이 분포의 기대 면적을 사용해 기대 절리 개수를
+정한다. `α > 2`에서 구현된 식은 다음과 같으며, `α <= 2`에서는 코드가 중간 반경 기반
+근사값을 사용한다.
+
+$$
+\mathbb{E}[\pi r^2] =
+\pi\frac{\alpha r_{\min}^{\alpha}}
+{1-(r_{\min}/r_{\max})^{\alpha}}
+\frac{r_{\min}^{2-\alpha}-r_{\max}^{2-\alpha}}{\alpha-2},
+\qquad
+N_{\mathrm{expected}} = \frac{P_{32}V}{\mathbb{E}[\pi r^2]}
+$$
+
+후보의 반복 효과는 탐색에 사용하지 않은 독립 seed 3개로 검증한다. 각 seed에서 parent와
+candidate를 같은 seed로 짝지어 실행하여 signature 효과와 seed 변동을 구분한다. 세 seed의
+결과를 합격으로 판정할 구체적인 통계·효과 기준은 추가 논의 항목이다.
+
 ### 5.7 수행시간과 정보 효율
 
 Coverage 탐색은 제한된 실행시간 안에서 최대한 많은 정보를 얻는 것을 목표로 한다.
