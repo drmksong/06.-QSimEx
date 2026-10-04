@@ -11,6 +11,16 @@
   - `src/core/profile_exploration.py`
   - `src/core/reporting.py`
 
+> **계획 적용 상태 (2026-10-04):** 이 계획의 Phase 3 목적과 구현·실험 이력은
+> 보존한다. 그러나 row-level `Qp_bh_mean` 입력과 예전 후보 생성/update 절차를 새
+> geometry 기반 profile 작업의 현재 실행 명세로 사용하지 않는다. 최신 Q′ 계산, geometry,
+> profile 및 round-length 계약은 [DesignSpec_20260922.md](DesignSpec_20260922.md)의
+> 5.8을 따른다. Signature coverage update는 DesignSpec 5.6.9와
+> [CoverageAdaptiveExecutionPlan_20260925.md](CoverageAdaptiveExecutionPlan_20260925.md)의
+> 2026-10-04 addendum을 따른다. Cutoff 분석에서 longitudinal profile의 표본 단위,
+> 가중 및 repeated-measure 처리 방식은 아직 미결이다. 이를 결정하기 전까지 새 profile에
+> 대한 PR/TR/POST 또는 cutoff 자동 산출 task를 실행 가능한 것으로 간주하지 않는다.
+
 ## 1. 목적
 
 가상굴착 시뮬레이션 결과를 이용하여 시추공 `Q'_BH`의 3단계 판정 후보를 탐색한다.
@@ -761,3 +771,30 @@ large-campaign gates are recorded in
 pass; the smoke is `awaiting_review`, primary bins 0-8 remain unobserved, and no
 cutoff is identified. Continue with the documented fresh four-seed paired smoke,
 not by treating the old smoke checkpoint as production evidence.
+
+## 19. 2026-10-04 후속 정합성 경계
+
+이 계획서의 이전 구현 단계와 실행 evidence는 작성 당시 상태의 기록으로 유지한다.
+2026-10-04 이후 새 implementation task를 만들거나 재개할 때는 다음 순서를 적용한다.
+
+1. Q′ 계산 입력과 provenance를 DesignSpec 5.8.1에 맞춘다. Barton category, RQD 하한,
+   `Jn` case/domain 정의, no-intersection fallback convention을 기존 legacy column과
+   혼동하지 않는다.
+2. 시추공·터널 geometry 및 clipping을 DesignSpec 5.8.2~5.8.3에 맞춘다. 기존 offset-only,
+   `+x` 고정축, scalar face-window 입력은 새 geometry contract로 간주하지 않는다.
+3. `Q′BH` 전체 profile과 station 순서의 `Q′Face`를 저장하고, 실제 overlap과 길이 metadata를
+   보존한다. Q′Face를 tunnel 전체 scalar 평균으로 축약하지 않는다.
+4. Coverage update는 profile observed-bin과 positive-length support, parent별 gap,
+   길이 가중 proximity 및 50:50 score를 사용한다. 동일 cutoff grid가 아닌 결과끼리
+   coverage delta를 직접 비교하지 않는다.
+5. Update는 중앙차분 score 민감도 기반, 양수 값의 내부 로그 좌표, 약 5% update,
+   orientation 상대각 β의 ±5° probe 및 최대 5° update로 제한한다. Round-robin은 밀도 →
+   크기 → 방향이며 `fisher_kappa`는 이 campaign에서 고정한다.
+6. 탐색 seed 외 추가 seed 3개에서 paired 검증하고, 2개 이상에서 score 엄격 증가 및
+   observed-bin 비감소가 있어야 update 방향을 채택한다. 모든 주 파라미터가 유효 경계에
+   도달하면 campaign을 멈추며 자동으로 κ/다른 조건으로 전환하지 않는다.
+7. Coverage score는 cutoff 산출과 분리한다. Cutoff method의 longitudinal 표본 단위와
+   가중 정책이 추가 합의되기 전에는 새 profile 기반 cutoff 추정은 미결/blocked다.
+
+이 기록은 문서 정합성 경계이며 코드 변경, 기존 campaign checkpoint 재작성 또는 새
+simulation 실행을 승인하지 않는다.

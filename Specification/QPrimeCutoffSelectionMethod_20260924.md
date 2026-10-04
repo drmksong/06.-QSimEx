@@ -3,7 +3,16 @@
 - 작성일: 2026-09-24
 - 적용 대상: QSimEx 시뮬레이션 기반 Q' 판정 기준값 제안
 - 관련 기준 문서: `DesignSpec_20260922.md`, `ImplementationPlan_20260924.md`
-- 상태: 방법론 초안
+- 상태: 방법론 초안; legacy row-level profile method. 2026-10-04 longitudinal profile
+  입력으로의 연결 방식은 미결이며 아래 후속 결정 기록 참조.
+
+> **현재 적용 경계:** 이 문서의 cutoff 의미, PR/TR/POST profile 결합 개념,
+> `not identifiable` 규칙은 계속 참고한다. 그러나 이 문서의 `Qp_bh_mean` row-level
+> 입력·bin 요약을 새 Q′BH/Q′Face longitudinal profile의 표본 단위로 간주하지 않는다.
+> Signature coverage score는 cutoff 선정식이 아니다. 새 profile 데이터를 cutoff 분석에
+> 사용할 때의 관측 단위·길이 가중 및 domain 내 의존성 처리는 아래의 미결 사항을 확정하기
+> 전까지 구현 규칙으로 삼지 않는다. 최신 기하·Q′ 계산 계약은
+> [DesignSpec_20260922.md](DesignSpec_20260922.md)의 5.8을 참조한다.
 
 ## 1. 목적
 
@@ -202,3 +211,35 @@ Q' 단독 기준값 산출 불가
 가이드다. 실제 현장 안전이나 처분 적합·부적합을 자동 보증하지 않는다. EFPC가
 완성되거나 독립 평가 adapter가 연결되면 `P_compatibility` 프로파일과 처분 적합성
 결과를 추가하여, 동일한 결합 함수와 별도 검증 절차로 잠정 기준값을 재검증한다.
+
+## 10. 2026-10-04 longitudinal profile 입력에 대한 후속 결정 및 미결 사항
+
+이 절은 2026-09-24 방법론을 삭제하거나 과거 분석에 소급 적용하지 않는다. 새 geometry
+기반 자료 계약은 DesignSpec 5.8에 따라 Q′BH 전체 profile, 거리순 Q′Face station sequence,
+실제 overlap 구간, station/segment 위치와 실제 대표 길이를 보존한다. 이 profile 구조는
+향후 cutoff 분석이 사용할 수 있는 입력 정보의 계약이지, cutoff method가 이미 선택한
+통계적 표본 단위라는 뜻은 아니다.
+
+Signature coverage 탐색에서는 DesignSpec 5.6.9의 `P_b`, `D`, `C`, `ΔS`를 사용해
+candidate update의 coverage 효과를 비교한다. 이 score는 generation signature 탐색을 위한
+운영 지표이며 `Q'_lowerbound`/`Q'_upperbound` 산출, PR/TR/POST 상태 추정 또는 공학적
+판정과 동일시하지 않는다.
+
+다음 선택은 아직 확정되지 않았으며 cutoff 분석을 longitudinal profile에 연결하기 전에
+결정하고 방법론·검증 기록에 남겨야 한다.
+
+1. **Q′ 축과 참조 프로파일의 표본 단위:** legacy 분석의 borehole row를 유지할지, 각
+   station/segment를 독립 표본으로 취급할지, domain/borehole별 요약 후 분석할지.
+2. **거리 및 길이 가중:** 실제 round length/segment length를 cutoff profile 집계에
+   적용할지, 적용한다면 domain/borehole 간 가중을 어떻게 하여 긴 profile이나 많은
+   station이 과도하게 영향력을 갖지 않게 할지.
+3. **반복 측정 의존성:** 동일 borehole, tunnel segment, DFN domain 안의 station 상관을
+   bootstrap 및 상태 판정에 어떻게 반영할지. Coverage score의 길이 가중식을 cutoff
+   통계에 그대로 가져오지 않는다.
+4. **Q′ bin grid와 비교 가능성:** cutoff 상태 분석에 사용할 grid와 legacy `[0,400]`
+   row-level 결과를 비교·보고할 방법. grid 변경 전후 coverage delta를 직접 비교하지 않는다.
+
+이 선택이 완료되기 전까지 cutoff 방법론의 기존 legacy row-level 분석 설명은 해당 자료의
+해석에만 사용한다. 새 geometry 기반 profile 자료에 대한 PR/TR/POST와 cutoff 추정은
+“방법론 미결”로 표시하고 수치 cutoff를 자동 산출하지 않는다. 결정 후에는 날짜가 붙은
+후속 절을 추가하고, 본 절의 미결 목록을 해결된 항목과 근거·대안·검증 결과로 갱신한다.

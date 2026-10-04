@@ -8,6 +8,29 @@
   - `DesignSpec_20260922.md`
   - `ImplementationPlan_20260925.md`
 
+## 현재 적용 상태 (2026-10-04)
+
+이 계획서는 2026-09-25에 작성되고 이후 날짜별로 보완된 작업 기록이다. 아래의 과거
+계획과 변경 이력은 당시 판단을 보존하기 위한 것으로, 이 안내와 DesignSpec의 최신
+날짜별 후속 결정에 어긋나는 항목을 현재 실행 규칙으로 사용하지 않는다. 새 방법이
+필요하면 기존 기록을 지우지 않고 이 절 또는 별도 날짜별 후속 기록을 갱신한다.
+
+현재 구현·후보 실행 전에 적용할 계약은
+[DesignSpec_20260922.md](DesignSpec_20260922.md)의 5.6.9와 5.8이다.
+
+| 주제 | 현재 적용 계약 | 이 계획의 과거 항목 처리 |
+|---|---|---|
+| feature 탐색 | 밀도 → 크기 → 방향 round-robin; 한 probe에서는 한 block만 변경; `fisher_kappa` 제외 | 90/10 schedule randomization 및 D/A/B/C/E 순서를 활성 정책으로 쓰지 않음 |
+| coverage 관측 | 실제 profile 값이 속한 bin만 observed; 양의 길이 support; gap은 각 paired seed의 parent 기준 | scalar-only coverage는 legacy row 결과의 audit 맥락에 한정 |
+| update | coverage score의 중앙차분 민감도 기반 bounded ascent; 양수 파라미터는 로그 좌표 계산, 약 5% update; 방향 `β` probe ±5°, update 최대 5° | 고정 `η=0.5`, update 미정/후보 판정 미정은 과거 제안 |
+| 반복성 | 첫 탐색 seed 후 별도 seed 3개에서 paired parent/candidate; 2/3 이상에서 `ΔS>0` 및 observed-bin 비감소 시 방향 채택 | 최소 3회 screening 및 기존 거리/새 bin 판정은 과거 절차 |
+| 경계·종료 | 도달한 파라미터는 가능한 방향에서 고정; 나머지를 계속 조정; 주 파라미터 전부 소진 시 campaign 중단 | 자동 κ/기타 조건 변경으로 재시도하지 않음 |
+| simulation geometry | 물리 시추공 선형 geometry, tunnel polyline, profile overlap·station 보존·굴진장 규칙은 DesignSpec 5.8 적용 | offset-only 및 고정 +x 가정은 새 입력 계약으로 사용하지 않음 |
+| cutoff | cutoff 산출은 별도 방법론; profile signature score는 cutoff 자체가 아님 | cutoff selection method의 미결 표본 단위를 임의로 결정하지 않음 |
+
+위 표는 방법 간 정합성 안내이지 실행 승인이나 자동 대규모 simulation 승인이 아니다.
+기존 round 산출물과 ledger는 변경하지 않는다.
+
 ## 1. 목적
 
 시뮬레이션 결과를 한 번 분석하고 종료하지 않고, Q' coverage와 profile 검정 결과를
@@ -360,7 +383,11 @@ artifact로 보존하고, calibration/validation 자료로 자동 승격하지 �
 상충하지 않는다. 실행 탐색의 폭과 seed 배정 방식을 확장한 것이며, 최종 cutoff의
 승격 조건은 기존 설계와 가설검정 방법을 그대로 따른다.
 
-## 13. 2026-10-03 시그니처 업데이트 합의와 후속 작업
+## 13. 2026-10-03 시그니처 업데이트 합의와 후속 작업 (당시 기록; 2026-10-04 후속 결정 전)
+
+> 이 절은 2026-10-03 당시의 합의·미결 목록을 보존한다. 아래의 “미정” 항목과 제안
+> 순서는 현재 규칙이 아니다. 현재 결정은 문서 상단의 적용 상태와 DesignSpec 5.6.9를
+> 참조한다.
 
 ### 합의된 탐색 정책
 
@@ -417,3 +444,40 @@ Case configuration에는 borehole 위치 offset은 있지만 방향 vector가 �
 본 절은 설계 합의를 기록하며 자동 simulation 승인이나 실행 승인을 부여하지 않는다.
 위 미결 항목을 확정하고 후보 계획을 검토하기 전까지 다변수 block update를 대규모
 campaign에 적용하지 않는다.
+
+## 17. 2026-10-04 profile coverage 기반 후속 실행 계약
+
+이 절은 이전 iteration 계획과 실험 결과를 삭제하거나 재해석하지 않고, 다음 단계의
+signature update 실행에서 적용할 현재 규칙을 DesignSpec 5.6.9 및 5.8에 연결한다.
+
+1. **입력·관측 단위:** 새 실행은 물리 geometry로 정의된 시추공 Q′BH profile과 tunnel
+   Q′Face station profile을 보존한다. 실제 tunnel/borehole overlap 구간만 대응 비교에
+   사용하고, 나머지 시추공 profile도 독립 자료로 남긴다. 레거시 CSV row 단위 자료는
+   그 당시 입력 단위와 provenance를 유지하며 새 profile처럼 재해석하지 않는다.
+2. **Coverage audit:** cutoff grid의 실제 profile 값 점유만 bin coverage로 센다. 양의
+   길이 support를 인정하며, 범위/envelope만 통과한 bin은 채우지 않는다. Profile 통계와
+   관측 bin 집합은 각각 보존한다.
+3. **Candidate score:** paired parent/candidate에서 각 seed의 parent 미관측 bin을 gap으로
+   고정한다. 그 gap에 대해 실제 profile 길이 가중 proximity `P_b`, 평균 proximity 변화
+   `D`, 새 점유 비율 `C`, `ΔS=0.5D+0.5C`를 산출한다. bin grid가 다르면 score 비교 전에
+   같은 grid임을 검증하고, 다르면 직접 delta 비교를 하지 않는다.
+4. **Probe/update:** round-robin은 밀도 → 크기 → 방향이다. 양수 probe는 로그 좌표에서
+   ×/÷1.1을 시작값으로 하고, 중앙차분으로 score 민감도를 구한다. 양수 update는 로그
+   좌표 기준 약 5%, orientation `β` probe는 ±5°, orientation update는 최대 5°다.
+   실제 입력·저장값은 물리 단위다. update 후보는 물리 bounds와 `size_r_max >
+   size_r_min > 0`을 만족해야 한다.
+5. **Paired validation:** 탐색 seed에서 효과가 확인된 update 방향은 탐색에 사용하지 않은
+   사전 고정 seed 3개로 평가한다. 각 seed 안에서 parent/candidate를 같은 seed로 짝지어
+   실행하고, seed별 parent gap에서 `ΔS>0` 및 전체 observed-bin 수 비감소를 모두 만족하면
+   성공이다. 3개 중 2개 이상 성공할 때 update 방향을 채택한다. 별도 1% 최소 개선치는 없다.
+6. **경계·종료:** 한 파라미터가 해당 방향의 유효 경계에 닿으면 그 방향 update에서
+   고정하고 다른 조정 가능 파라미터를 처리한다. 주 파라미터가 모두 경계에 도달해
+   진행할 방향이 없으면 현재 campaign을 중단한다. 자동으로 `fisher_kappa`나 다른
+   조건을 바꾸지 않는다. 새 조건의 campaign은 결과를 검토한 사용자가 별도로 결정한다.
+7. **cutoff 분리:** 이 signature score는 coverage 탐색/update 선택용이다. 이를
+   `Q'_lowerbound` 또는 `Q'_upperbound`로 해석하지 않는다. Cutoff 방법론 문서에서
+   새 longitudinal profile을 cutoff 상태 추정에 넣는 관측 단위와 가중 방식을 정하기
+   전까지 해당 변환은 미결이다.
+
+이번 계약의 수치 및 방법은 구현 전 설계 선택이다. 관측된 실행 결과나 학술적 타당성
+주장으로 기록하지 않으며, 이후 성능·민감도 평가는 별도 evidence 기록으로 남긴다.

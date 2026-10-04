@@ -23,6 +23,13 @@
 - 구현 계획은 수행 여부와 순서를 관리하는 문서로만 사용한다.
 - 구현 과정에서 기준 문서의 의미가 바뀌어야 한다면, 별도 기준 문서 업데이트를 통해 정리하고 이 계획은 그 변경을 반영하는 실행 계획으로 간다.
 
+> **현재 상태 (2026-10-04):** 이 문서는 2026-09-24의 계획과 작업 이력을 보존한다.
+> 그 시점의 경로·입력 계약·예정 작업을 최신 실행 지침으로 사용하지 않는다. 최신 설계는
+> [DesignSpec_20260922.md](DesignSpec_20260922.md)의 날짜별 기록, adaptive execution plan의
+> 2026-10-04 addendum 및 Phase 3 implementation plan의 후속 정합성 경계를 함께 참조한다.
+> 새 longitudinal profile을 cutoff 분석에 연결하는 표본 단위·가중 규칙은 아직 정해지지
+> 않았으므로 해당 부분은 결정 전까지 실행하지 않는다.
+
 ### Q' 의사결정과 시뮬레이션 검증의 분리
 
 실제 굴착 여부를 결정할 때 사용할 수 있는 입력은 굴착 전에 시추로 얻는
@@ -398,3 +405,16 @@
 - [ ] Phase 8: 문서 및 실행 정리 완료
 
 이 체크리스트는 기준 문서와의 정합성을 유지하면서 실제 구현 마감 상태를 추적하는 용도로 사용한다.
+
+## 2026-10-04 현재 설계와의 관계
+
+이전 계획과 checklist는 과거 단계 이력으로 유지한다. 현행 Q′ 산식·Barton category,
+물리 시추공 geometry, tunnel polyline, Q′BH/Q′Face profile, overlap, variable round length,
+coverage score 및 signature update는 현재 DesignSpec와 adaptive execution plan의
+후속 결정 기록에 정의되어 있다. 따라서 본 문서의 기존 scalar/row-level 단계는 그 당시
+자료와 구현 상태를 설명할 뿐, 새 profile pipeline의 완료 정의가 아니다.
+
+또한 signature coverage score는 cutoff method가 아니며, longitudinal profile에 PR/TR/POST
+또는 cutoff를 적용하려면 cutoff selection method에서 관측 단위, 길이 가중, repeated
+measure 의존성과 grid 비교 규칙을 먼저 결정해야 한다. 후속 구현 task는 이 경계를 반영하고
+과거 체크리스트의 완료 여부와 새 profile 작업의 완료 여부를 별도로 추적한다.

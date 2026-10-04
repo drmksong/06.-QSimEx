@@ -749,42 +749,69 @@ probe 범위는 물리적 상한과 구분해 기록한다.
 중복 분산을 함께 판단한다. 상한에 걸리더라도 자동으로 unreachable이나
 `not_identifiable`로 분류하지 않고 원인·시도 내역을 보고한다.
 
-#### 5.6.8 Signature update 후속 설계 (2026-10-03)
+#### 5.6.8 Signature update 후속 설계 (2026-10-03, 2026-10-04 보완)
 
-이 절은 signature update의 feature 탐색에 관해 2026-10-03에 합의한 내용을 기록한다.
-기존 5.6.6의 기본 feature 순서 및 제한적 순서 randomization보다 이 날짜의 round-robin
-정책을 우선한다.
+이 절은 signature update의 feature 탐색에 관해 2026-10-03과 2026-10-04에 합의한
+내용을 기록한다. 이 절의 round-robin 순서와 갱신·검증 정책은 기존 5.6.5~5.6.7의
+제안보다 우선한다. 특히 기존의 고정 `η=0.5`, 최소 3회 screening 및 순서
+randomization은 이 절에서 정한 정책으로 대체한다.
 
 탐색 대상은 다음 세 feature block이다. 모든 block을 탐색 대상으로 포함하며, 한 probe에서는
 한 block만 변경한다.
 
 - 밀도: joint set별 `P32`
+- 크기: `size_r_min`과 `size_r_max` 쌍
 - 방향: `(mean_dip, mean_dip_dir)` 쌍. 갱신 좌표는 관측공 축과 절리면 사이의 사잇각으로
   표현하고, 변경된 사잇각에 맞는 dip/dip direction 후보를 역변환한다.
-- 크기: `size_r_min`과 `size_r_max` 쌍
 
-세 block은 round-robin으로 시험한다. round-robin의 정확한 시작점과 각 block 안의 probe
-방향·간격은 아직 정하지 않았다. 이는 feature 값을 무작위로 선택한다는 뜻이 아니다.
+세 block은 **밀도 → 크기 → 방향** 순서로 round-robin 시험한다. 각 probe는 해당 순서의
+한 block만 변경한다. 밀도 block에서는 joint set별 `P32`를 정해진 순서로 하나씩 변경해
+각 절리군의 민감도를 구분한다. 무작위 순서나 무작위 feature 값으로 대체하지 않는다.
 
-관측 반응으로 feature block의 국소 민감도를 `s_X = ΔQ′ / ΔX`로 추정한다. 업데이트는
-Q′를 일반적으로 키우는 것이 아니라, 목표로 삼은 `UNOBSERVED` Q′ 구간 쪽으로 coverage를
-확장하는 방향이어야 한다. 학습률에 해당하는 step과 민감도를 결합하는 구체적인 식,
-정규화 좌표, probe 간격, step 상한은 추가 논의 전까지 미확정이다.
+갱신은 backpropagation의 파라미터 업데이트에서 영감을 받은, 목표 coverage 오차와
+관측 민감도를 이용하는 bounded update로 설계한다. 정규화된 feature block을
+`x`, 현재 관측 반응을 `q(x)`, 목표 `UNOBSERVED` 구간을 대표하는 값 또는 경계값을
+`q_target`이라 두면 다음 gradient-style 식을 후보 규칙으로 삼는다.
 
-방향 변환에서 관측공의 축 방향을 고정값으로 가정하지 않는다. 현재 구현은
+$$
+L(x) = \frac{1}{2}(q_{target} - q(x))^2,
+\qquad
+x_{k+1} = \operatorname{Project}_{\Omega}
+\left(x_k - \eta_k \nabla L(x_k)\right)
+= \operatorname{Project}_{\Omega}
+\left(x_k + \eta_k (q_{target} - q(x_k)) \nabla q(x_k)\right)
+$$
+
+여기서 `∇q`는 controlled probe 반응으로 추정하는 국소 민감도이며, 실제 전역 gradient로
+간주하지 않는다. 갱신 목적은 Q′를 무조건 키우는 것이 아니라 목표 `UNOBSERVED` 구간으로
+coverage를 확장하는 것이다. Feature와 Q′는 기록된 좌표계에서 정규화하고, block별 민감도와
+갱신량을 산출한다. 양수 파라미터의 초기 probe는 로그 좌표의 10% 배율 변화
+(`×1.1` 또는 `÷1.1`), 방향 사잇각은 5° 변화를 기본값으로 한다. 이 값은 실행 설정에서
+바꿀 수 있는 screening 시작값이지 과학적 경계값이 아니다. 반응이 없으면 간격을 단계적으로
+넓히고 목표에서 멀어지면 줄이며, 항상 물리적 유효 범위에 투영한다. 기존의 고정
+`η=0.5`는 확정된 값으로 사용하지 않는다.
+
+크기 block은 `log(size_r_min)`과 `log(size_r_max)`의 2차원 좌표로 탐색한다. 민감도 probe는
+한 번에 한 경계만 변경해 두 경계의 반응을 식별하고, 갱신에서는 두 좌표를 함께 조정할 수
+있다. 투영 후에도 `size_r_max > size_r_min > 0`을 만족해야 한다. 두 경계에 공통 배율만
+적용해 반경 비율을 고정하는 방식은 사용하지 않는다.
+
+방향 변환에서 관측공의 축 방향을 고정값으로 가정하지 않는다. 관측공 configuration은
+물리 좌표계의 시작점, 방향, 길이를 canonical 표현으로 삼는다. 시작점과 끝점 입력은 이
+표현으로 정규화한다. 관측공 위치와 축 방향은 borehole sampling 및 plane-angle 계산 모두에
+전달해야 한다. 현재 구현은
 `src/core/tunnel.py`의 borehole sampling과 `src/core/comparison.py`의 plane-angle 계산에서
-`[1, 0, 0]`을 사용하고, case 입력은 borehole 위치 offset만 제공한다. 후속 구현은 관측공
-방향을 configuration으로 제공하고 sampling 및 angle 측정 전체에 전달해야 한다. 사잇각에
-대응하는 방향 해가 여러 개일 수 있으므로, 하나의 보존 방향을 선험적으로 강제하지 않고
-복수 후보를 만들 수 있다. 법선·각도 복원이 정의되지 않거나 퇴화하거나 물리적 범위를
-벗어나는 후보는 제외한다. 유효 후보 중 선택하는 기준은 아직 미정이다.
+`[1, 0, 0]`을 사용하고, case 입력은 borehole 위치 offset만 제공한다. 사잇각에 대응하는
+방향 해가 여러 개일 때는 parent 방향에서 각도 변화가 가장 작은 해를 우선 후보로 삼는다.
+다른 방위 변화는 별도 probe로 다룬다. 법선·각도 복원이 정의되지 않거나 퇴화하거나 물리적
+범위를 벗어나는 후보는 제외한다. 기존 offset 입력은 호환성을 위해 유지하면서 새 선형
+configuration으로 변환한다.
 
-크기 block은 현재 truncated power-law 반경 분포의 `size_alpha`, `size_r_min`,
-`size_r_max` 중 최소·최대 반경을 함께 변경 대상으로 한다. 공통 배율 `λ`로 두 반경을
-변경하고 `log(λ)`를 단일 탐색 좌표로 쓰는 방법은 가능한 설계안일 뿐, 아직 승인된
-parameterization은 아니다. 크기 분포 변경은 고정 `P32`에서 기대 절리 개수에도 영향을
-주므로 그 반응을 size probe 결과에 포함한다. 현재 반경 샘플러의 기준 분포와 역CDF는
-다음과 같다. 여기서 `size_alpha`는 survival-tail 지수이며 PDF의 지수는 `α+1`이다.
+크기 block은 현재 truncated power-law 반경 분포의 `size_r_min`과 `size_r_max`를 각각
+독립적으로 변경하며 `size_alpha`는 고정한다. 크기 분포 변경은 고정 `P32`에서 기대 절리
+개수에도 영향을 주므로 그 반응을 size probe 결과에 포함한다. 현재 반경 샘플러의 기준
+분포와 역CDF는 다음과 같다. 여기서 `size_alpha`는 survival-tail 지수이며 PDF의 지수는
+`α+1`이다.
 
 $$
 f(r) = \frac{\alpha r_{\min}^{\alpha}}
@@ -810,9 +837,85 @@ $$
 N_{\mathrm{expected}} = \frac{P_{32}V}{\mathbb{E}[\pi r^2]}
 $$
 
-후보의 반복 효과는 탐색에 사용하지 않은 독립 seed 3개로 검증한다. 각 seed에서 parent와
-candidate를 같은 seed로 짝지어 실행하여 signature 효과와 seed 변동을 구분한다. 세 seed의
-결과를 합격으로 판정할 구체적인 통계·효과 기준은 추가 논의 항목이다.
+탐색 중 효과가 관측된 signature는 실행 설정에 명시된 탐색 미사용 독립 seed 3개에서 동일
+조건으로 검증한다. Seed 목록은 검증 전에 고정하고 탐색 seed와 겹치지 않아야 한다. 각
+seed에서 parent와 candidate를 같은 seed로 짝지어 실행하여 signature 효과와 seed 변동을
+구분한다. 한 seed에서 효과가 재현된 것으로 보려면 (a) 목표 bin까지의 거리가 감소하거나
+목표 bin 또는 인접 bin이 새로 관측되고, 동시에 (b) 전체 관측 bin 수가 parent보다 줄지
+않아야 한다. 같은 판정으로 3개 중 2개 이상 seed에서 효과가 재현되면 해당 signature의
+효과가 입증된 것으로 기록한다. 이는 경험적 재현성 기준이며, 통계적 유의성이나 운영
+cutoff의 승인으로 해석하지 않는다.
+
+#### 5.6.9 후속 결정 기록: profile coverage와 update 채택 규칙 (2026-10-04)
+
+이 절은 5.6.8을 대체하거나 과거 합의를 소급 수정하지 않는다. 아래 항목은 2026-10-04에
+추가로 합의한 변경·정밀화 기록이다. 구현 전 설계 계약이며, 경험적 성능이나 과학적
+유효성이 이미 입증되었다는 뜻은 아니다.
+
+**Coverage 대상의 변경.** 앞선 signature 설계에서 scalar Q′ 또는 목표 bin 거리로 요약하던
+비교를 profile 관측에 기반하도록 구체화한다. Profile 값이 실제로 들어간 bin만 점유로
+인정하고, 해당 bin에 양의 길이 support가 있으면 observed로 본다. min–max 또는 분위수
+envelope가 지나가는 미관측 bin은 점유 처리하지 않는다. Profile의 요약 범위와 분위수는
+bin 점유와 별개로 보존한다.
+
+각 paired parent/candidate seed 비교에서 gap 집합 `G`는 해당 seed의 parent profile이
+점유하지 않은 bin으로 정의한다. Candidate가 새로 점유한 bin의 수와 parent gap별
+proximity를 별도로 평가한다. Gap bin `b`의 proximity는 profile 구간 길이로 가중한다.
+
+$$
+P_b = \frac{\sum_i \ell_i w_i}{\sum_i \ell_i},
+\qquad
+w_i = 10^{-\delta_i/9}
+$$
+
+여기서 `ℓ_i`는 profile segment/round의 실제 대표 길이이고, `δ_i`는 log10 Q′ 공간에서
+bin 폭 단위로 정규화한 거리이다. 첫 bin `[0,U₀]`에서는 `q≤U₀`일 때 `δ=0`,
+`q>U₀`일 때 `δ=log10(q/U₀)`로 계산한다. 거리 변화와 새 점유 bin 비율을 50:50으로
+결합한다.
+
+$$
+D = \frac{1}{|G|}\sum_{b\in G}(P_b^{candidate}-P_b^{parent}),
+\qquad
+C = \frac{|\{b\in G: b\text{ is newly observed}\}|}{|G|},
+\qquad
+\Delta S = 0.5D + 0.5C
+$$
+
+`D`는 gap bin 전반의 평균 proximity 변화, `C`는 parent gap 중 candidate가 새로 점유한
+비율이다. Parent와 candidate는 같은 seed와 같은 `G`로 paired 비교한다. 따라서 검증
+seed마다 해당 seed의 parent로 gap을 정하며, 최초 탐색 seed의 gap 목록을 모든 seed에
+고정하지 않는다.
+
+**민감도와 update 크기의 정밀화.** 기존 BP-inspired 제안은 update 수식과 probe 간격은
+정했으나, 중앙차분을 이용한 score 민감도와 update 변화량은 확정하지 않았다. 후속 결정으로
+중앙차분 coverage-score 민감도를 사용하고, score가 증가하는 방향으로 bounded
+gradient-ascent 후보를 생성한다. 양수 파라미터는 계산에만 로그 좌표를 쓰며 입력·저장값은
+실제 단위로 유지한다. 양수 파라미터의 한 번의 update 크기는 약 5%를 기준으로 한다.
+이는 기존의 ×/÷1.1 probe 간격(약 10%)과 다른 값이며, probe는 민감도 측정, 5%는 update
+변화량에 적용한다. 방향 update는 시추공 축과 절리면 법선 사이 상대각
+`β=asin(|n·d|)` 좌표를 쓰고 probe는 ±5°, 한 번의 update는 최대 5°로 제한한다. 법선은
+최소 대원 회전으로 변환해 `dip`/`dip_dir` 후보를 얻는다.
+
+**Seed 재현성 판정의 정밀화.** 5.6.8의 2026-10-03/04 기록은 목표 bin 거리 또는 새 bin을
+사용한 효과 판정을 설명한다. 2026-10-04의 후속 합의에서는 위 profile coverage score를
+paired 판정 기준으로 구체화한다. 최초 탐색 seed에서 효과를 찾은 뒤 서로 다른 추가 seed
+3개로 검증한다. 추가 3개 중 2개 이상에서 paired `ΔS>0`이고 observed-bin 수가 감소하지
+않으면 update 방향을 채택한다. 이 기준은 경험적 재현성 정책이며, 통계적 유의성이나
+운영 cutoff 승인으로 해석하지 않는다. 별도의 최소 1% 개선 임계값은 두지 않는다.
+
+**탐색 순서·정지 조건의 명확화.** Feature block 순서는 밀도 → 크기 → 방향이며,
+`fisher_kappa`는 이번 update 범위에서 고정한다. 경계에 걸린 파라미터는 해당 방향에서
+고정하고 다른 조정 가능한 주 파라미터를 계속 탐색한다. 주 파라미터가 모두 경계에 도달해
+진행 가능한 방향이 없으면 현재 campaign을 중단한다. 이 자동 흐름에서 `fisher_kappa`나
+파라미터가 아닌 조건을 변경해 재시도하지 않는다. 새 campaign에서 다른 조건을 바꿀지는
+결과를 검토한 사용자가 결정한다.
+
+이 절의 핵심 제안은 논문에서 설계 선택과 검증 결과를 구분해 평가한다. 평가 항목은
+profile 기반 점유가 scalar 평균 방식과 비교해 coverage 정보를 얼마나 보존하는지, 50:50
+score와 길이 가중 proximity가 다른 합리적 집계 방식에 비해 어떤 특성을 갖는지, 중앙차분
+민감도와 약 5% update가 seed 변동·bounds·parameter coupling 아래서 안정적인지, 3개 seed 중
+2개 기준이 재현성에 어떤 영향을 주는지이다. 결론은 실제 실험 결과로 뒷받침하며, 본 스펙의
+선택 자체를 검증 결과로 주장하지 않는다.
 
 ### 5.7 수행시간과 정보 효율
 
@@ -880,3 +983,119 @@ screening 우선순위는 다음 순서로 정한다.
 시간 효율 기준은 coverage의 질을 대체하지 않는다. 최종 선택은 `정보획득량`,
 `독립성`, `중복도`, `profile 재현성`, `수행시간`을 함께 고려하며, 실행이 빠르다는
 이유만으로 전략을 유지하지 않는다.
+
+### 5.8 Q′ 계산 및 시추공·터널 profile 계약 (2026-10-04)
+
+이 절은 2026-10-04 논의에서 추가로 합의한 Q′ 계산, 입력 geometry, profile 및 굴진장
+계약을 날짜별로 기록한다. 기존 설계·가설·계산식 기록을 삭제하거나 소급 수정하지 않는다.
+여기에 적힌 값 중 QSimEx 편의상 도입한 convention은 Barton/NGI의 지질 판정 기준과
+구분하여 provenance에 표시한다.
+
+#### 5.8.1 Q′ 및 Barton 매개변수 사용
+
+Q′는 다음 식으로 산정하며 지하수 및 응력 인자는 제외한다.
+
+$$
+Q' = \left(\frac{RQD}{J_n}\right)\left(\frac{J_r}{J_a}\right)
+$$
+
+RQD가 10 이하인 경우 계산에 사용하는 RQD는 10으로 둔다. `Jn`은 해당 위치의 case/domain
+설정에 정의된 절리군 수로 정하고, profile 구간의 교차 수로 대체하지 않는다.
+
+절리 교차가 있는 구간은 교차한 joint별 `Jr/Ja`를 산출하고, 비율이 가장 작은 joint의
+`Jr`와 `Ja`를 한 쌍으로 사용한다. `Jr`와 `Ja`를 서로 다른 joint에서 독립적으로 골라
+조합하지 않는다. 이 계산이 Barton 표의 여러 joint 상태를 대표하는 적절한 집계인지 여부는
+실제 자료와 대안 집계 방식에 대한 비교 평가 대상이다.
+
+`Jr` 및 `Ja` 입력은 Barton Q-system 표의 이산 평가 범주를 사용하며 joint별 정규분포
+샘플링으로 대체하지 않는다. 범위형 표 항목은 범주를 보존하고 범위의 중간값을 계산에
+사용한다. 예를 들어 `Ja=8–12`는 계산값 10, `Ja=13–20`은 16.5로 둔다. 선택 범주와
+산출 수치는 provenance에 모두 기록한다.
+
+교차가 없는 구간은 QSimEx convention으로 `RQD=100, Jr=4, Ja=0.75`를 사용한다. 이
+fallback은 무교차 관측만으로 거칠고 맞물린 무변질 절리벽 조건이 입증되었다는 뜻이 아니다.
+산출값에는 관측값이 아닌 fallback convention임을 식별할 수 있는 provenance를 붙인다.
+제공된 Barton Q 등급 경계와 기존 코드의 `ROCK_CLASSES` 경계가 일치하는지도 구현 때
+대조하고, 불일치가 있으면 출처와 적용 정책을 명시한다.
+
+#### 5.8.2 시추공 geometry와 Q′BH profile
+
+일반 시추공은 터널 geometry와 독립적인 물리 좌표 `(x,y,z)`의 선형 geometry다. 입력은
+시작점, 방향, 요청 길이로 표현하며, 시작점-끝점 입력도 같은 canonical 형식으로 정규화할
+수 있다. 방향은 정규화하고, domain clipping 이후 실제 계산 길이를 기록한다. 기존의
+`borehole_offsets` 입력과 그에 의존하는 case 설정은 새 물리 geometry 입력으로 이전하고
+활성 계약에서는 제거한다.
+
+Q′BH profile 간격 `dx′`는 기본 1m로 하고 설정 가능하게 한다. 이는 전역 grid spacing과
+독립이다. domain clipping 뒤 길이가 `dx′`의 정수배가 아닌 경우 완전한 구간만 계산하고
+남은 불완전 구간은 버린다. 계산된 profile 전체와 그로부터 산출한 summary를 모두 보존한다.
+
+터널 진행과 같은 방향에 해당하는 구간만 선택적으로 face profile과 비교한다. 수직 등 다른
+방향의 일반 시추공은 독립 Q′BH 자료로 유지하며 tunnel face profile에 억지로 대응시키지
+않는다. 시추공은 터널 chainage 순서대로 처리하며, 한 시점에 현재 차례의 시추공 하나만
+분석하고 완료 결과를 저장한 다음 다음 시추공으로 이동한다.
+
+#### 5.8.3 Tunnel polyline, Q′Face profile 및 비교 범위
+
+터널은 시작점에서 종점 방향으로 진행하는 순서 있는 직선 polyline segment로 표현한다.
+각 segment에는 시작점·방향·길이를 명시하고, 연속 segment의 연결성을 검증한다. 현재
+차례의 시추공 및 대응 profile은 tunnel chainage 순서를 따른다.
+
+굴진면 `Q′Face`는 station마다 산출해 거리순 시퀀스로 보존한다. 전체 터널 구간의 평균 하나로
+축약하지 않는다. 이는 기존 station별 face 계산 모델의 longitudinal 결과 보존에 관한 결정이며,
+새 cell별 face Q′ 모델을 도입한다는 의미는 아니다. Face와 시추공 profile의 비교는 tunnel
+segment와 시추공의 실제 overlap 범위에서만 수행한다. overlap 밖의 Q′BH 값은 독립 profile에
+그대로 보존한다.
+
+비교는 station별 일대일 차이가 아니라 비짝지음 profile 분포 비교로 한다. 원본 profile과
+station 표식을 유지하며 Wasserstein-1 거리 및 기술통계를 산출한다. 방향이 바뀌는 polyline
+vertex에서는 round를 직전 직선 segment 끝에서 종료하고 다음 segment에서 새 round를
+시작한다. vertex face 방향은 도달한 직전 segment 방향으로 평가한다.
+
+domain 경계에서 원형 face의 domain 안쪽 부분만 계산한다. in-domain face area가 전체 face
+area의 50% 미만이면 해당 station을 무효 처리하고 경계에서 tunnel 진행을 멈춘다. 마지막
+유효 face와 중단 사유를 결과에 기록한다. 이 50% 기준은 모델 운용 계약이며, 경계 근처 결과의
+민감도와 대안 threshold 영향은 검증에서 평가한다.
+
+#### 5.8.4 Q′ 기반 자동 굴진장
+
+`face_step`은 고정 공간 sampling 간격이 아니라 암질에 따라 정하는 1회 굴진장(round
+length)이다. 자동 굴진장 선택에는 `Jw=SRF=1`로 취급한 Q′를 사용한다. 이는 굴진장
+정책에만 적용하는 convention이며 Q′ 또는 full Q 계산식을 바꾸지 않는다.
+
+현재 굴진면의 `Q′Face`는 다음 round 길이를 정한다. 시작 face는 첫 round 길이 결정에
+사용하지만, 미래 face 비교 profile에는 포함하지 않는다. 유한 길이 범위의 대표 굴진장은
+범위 중간값으로 정하고, `Q′>10`이면 4.0m, `Q′≤0.1`이면 0.75m로 둔다. Round가 직선
+polyline segment 끝을 넘으려 하면 segment 끝에서 잘라 round를 종료한다.
+
+이에 따라 face station의 chainage 간격은 불균등할 수 있다. 분포 통계에서는 실제 대표
+굴진장으로 가중한다. 각 미래 face 값은 그 face에 도달하기까지의 직전 실제 굴진장으로
+가중한다. 이 결정의 영향은 일정 간격 sampling 및 비가중 통계와 비교해 논문/검증에서
+평가한다.
+
+#### 5.8.5 본문·논문에서의 평가 원칙
+
+이 절의 수치·집계 정책은 구현 전에 합의한 설계 계약이지, 모두가 Barton 표의 직접 지시이거나
+이미 실증된 최선의 선택이라는 주장이 아니다. 논문에서는 적어도 다음을 근거와 함께 평가한다.
+
+- 무교차 fallback과 범위형 `Ja` 중간값 사용이 결과에 미치는 영향 및 provenance로 관측과
+  convention을 구분하는 방식
+- 교차 joint 중 최소 `Jr/Ja` 쌍을 대표로 선택하는 것이 profile Q′ 및 대안 집계와 어떻게
+  다른지
+- 1m 기본 profile 간격, 불완전 마지막 구간 폐기, face area 50% 유효 조건의 민감도
+- 실제 overlap 기반·비짝지음 profile 비교가 scalar/일대일 비교와 제공하는 정보 차이
+- 암질별 굴진장과 길이 가중 통계가 face profile 결과에 주는 영향
+- profile-based coverage, 50:50 coverage score, 중앙차분 update, 약 5% step, 추가 3개 seed 중
+  2개 채택 기준의 안정성 및 대안에 대한 민감도
+
+논문은 합의된 규칙을 단순히 권위 있는 기준으로 인용하지 않고, 출처가 있는 지질학적
+정의·QSimEx 계산 convention·경험적으로 검증해야 할 정책을 분리한다. 대안 비교 결과와
+한계는 합의된 사양과 별도로 기록하여 이후 변경 이력도 추적 가능하게 한다.
+
+#### 5.8.6 활성 계산에서 제외할 경험적 보정 (이전 합의; 당시 날짜 미기록, 2026-10-04 기록)
+
+Practice realism 보정은 활성 계산 경로와 public API에서 제거하고 Git history에만 보존한다.
+적용 대상에는 mechanical break, microfracture 추가, core recovery 보정, `Jr/Ja` scale 및
+face conservative estimator가 포함된다. 이는 본 절의 Q′ 산식이나 geology category 값을
+바꾸는 근거로 사용하지 않는다. 논문에서는 해당 보정을 기본 Q′ 계산에서 제외한 이유와,
+필요하다면 별도 민감도/대안 분석으로 다룰 범위를 명확히 구분한다.

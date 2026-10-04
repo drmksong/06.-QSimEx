@@ -5,6 +5,11 @@
 - 단계: 탐색적 확인
 - 판정: PR/TR/POST 분할 및 기준값 제안은 아직 수행하지 않음
 
+> **기록의 범위:** 이 문서는 2026-09-24 레거시 borehole-row 자료로 수행한 1차 탐색
+> 기록이다. 아래 입력, bin별 통계, 해석은 당시 그대로 보존하며 현재 물리 geometry 기반
+> Q′BH/Q′Face longitudinal profile 계약을 설명하지 않는다. 현재 계산·탐색 규칙은
+> [DesignSpec_20260922.md](DesignSpec_20260922.md)의 2026-10-04 후속 기록을 참조한다.
+
 ## 1. 입력 자료
 
 보존된 레거시 시뮬레이션 결과 중 시추공 단위 파일을 사용했다.
@@ -121,3 +126,21 @@ config/profile_mc_exploration.yml
 conda run -n dlo-cq python run_profile_mc.py \
 	--config config/profile_mc_exploration.yml
 ```
+
+## 9. 2026-10-04 후속 정합성 메모
+
+이 메모는 1~8절의 결과나 원자료를 수정하지 않는다. 당시 `Qp_bh_mean` row를 관측
+단위로 삼고 `Qp_face_mean` 등 참조지표를 Q′ 구간별로 요약한 결과는 legacy row-level
+exploratory evidence로 유지한다. 그 표본 단위·요약 통계는 새 profile contract에 따른
+station/segment-level 자료와 동일하지 않으며, 두 자료를 하나의 연속 profile로 이어 붙이지
+않는다.
+
+후속 실행은 물리 좌표의 시추공 geometry와 tunnel polyline을 사용하고, 전체 Q′BH
+profile 및 거리순 Q′Face station sequence를 보존한다. Face/BH 대응 분석은 실제 overlap에
+한정하고, overlap 밖 Q′BH 자료는 독립 관측으로 유지한다. Bin coverage는 profile 값이
+실제로 점유한 bin과 양의 길이 support로 판단하며 envelope만으로 빈 bin을 채우지 않는다.
+상세 계약은 DesignSpec 5.8 및 adaptive execution plan의 2026-10-04 후속 기록을 따른다.
+
+이전 파일과 같은 입력으로 재분석하지 않는 한 이 후속 계약은 본 문서의 2026-09-24
+수치표를 갱신하지 않는다. 새 profile 데이터로 분석하는 경우에는 별도 결과 파일과 날짜,
+입력 manifest, 코드/설정 식별자, 관측 단위 및 요약 규칙을 기록한다.
