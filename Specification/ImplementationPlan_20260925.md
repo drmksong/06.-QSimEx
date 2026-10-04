@@ -798,3 +798,357 @@ not by treating the old smoke checkpoint as production evidence.
 
 이 기록은 문서 정합성 경계이며 코드 변경, 기존 campaign checkpoint 재작성 또는 새
 simulation 실행을 승인하지 않는다.
+
+## 20. 2026-10-04 Q′ profile 및 coverage 코드 리팩토링 계획
+
+### 20.1 목적과 제한
+
+이 계획은 DesignSpec 5.6.9 및 5.8에 기록된 Q′ 계산, 물리 geometry, longitudinal
+profile, coverage 기반 signature update 계약을 코드에 반영하기 위한 실행 순서다.
+이 절은 계획 기록이며 코드 수정, 테스트 실행, campaign 승인 또는 cutoff 정책 확정을
+승인하지 않는다. 이전 절의 실행 결과와 Stage handoff는 당시 기록으로 보존한다.
+
+구현은 아래 단계 순서로 진행한다. 각 단계는 해당 단계의 결정사항과 검증을 마친 뒤
+다음 단계로 넘어간다. 진행 중 기존 결정으로 해소되지 않는 설계 선택을 만나면 그 지점에서
+멈추고 사용자 결정을 받은 뒤 계획 또는 구현을 갱신한다.
+
+### 20.2 단계별 구현 범위
+
+#### 단계 1 — Q′ 입력 모델, 계산 및 provenance
+
+대상 파일:
+
+- `src/core/domain.py`
+- `src/core/joint_models.py`
+- `src/core/q_calculator.py`
+- `src/core/dfn_generator.py`
+- 관련 case YAML 및 Q′ 계산 테스트
+
+작업:
+
+1. Q′ 계산에 RQD 하한 10을 적용한다. Q′용 입력 보정이 full Q의 `Jw/SRF` 처리와
+   혼동되지 않도록 계산 경로를 분리한다.
+2. `Jn`은 case/domain의 절리군 정의에서 가져오고 profile 구간의 교차 개수로 대체하지
+   않는다.
+3. Barton Q-system의 discrete `Jr/Ja` 범주를 joint 입력으로 표현하고, 범위형 category의
+   중간값과 category 원문을 모두 보존한다.
+4. 교차 joint 집계는 최소 `Jr/Ja` 비율을 가진 동일 joint의 한 쌍을 사용한다.
+5. 교차가 없을 때 `RQD=100, Jr=4, Ja=0.75` fallback을 관측값과 구별되는 계산
+   convention으로 provenance에 기록한다.
+6. `QCalculator.ROCK_CLASSES`를 승인된 Q 등급 경계와 대조하고 등급 경계·명칭의 차이를
+   명시적으로 처리한다.
+
+**결정 gate:** `Jr/Ja` category를 case의 joint-set 설정에 둘지 개별 joint realization
+입력으로 둘지, 그리고 category 선택이 set 내부에서 결정적인지 seed별로 변할 수 있는지
+확정한다. 이는 기존 `Jr_mean/Jr_std`, `Ja_mean/Ja_std`의 대체 schema를 결정하므로 임의로
+선택하지 않는다.
+
+완료 검증: RQD 0/10/10 초과 경계, Barton category 및 range midpoint, fallback provenance,
+동일 joint pair 선택, `Jn` 독립성, 등급 경계 테스트를 추가·통과한다.
+
+#### 단계 2 — 물리 시추공 geometry와 tunnel polyline
+
+대상 파일:
+
+- `src/core/domain.py`
+- `src/core/case_library.py`
+- `cases/*.yaml`
+- `src/core/tunnel.py`
+- geometry 관련 테스트
+
+작업:
+
+1. 시추공을 물리 좌표계의 시작점·방향·요청 길이로 정의하고 시작점-끝점 표현은 같은
+   canonical geometry로 변환한다.
+2. 방향 벡터 정규화와 입력 유효성 검증을 수행하고, domain clipping 뒤 계산 길이를
+   기록한다.
+3. Tunnel을 순서 있는 직선 polyline segment들로 표현하고 연결성과 각 segment 길이를
+   검증한다.
+4. YAML loader/saver 및 case schema를 새 geometry로 이전하고 `borehole_offsets` 전용
+   활성 입력 경로를 제거한다.
+5. sampling과 plane-angle 계산에서 동일한 물리 시추공 축을 사용하도록 전달 경로를
+   연결한다.
+
+완료 검증: geometry 정규화, 시작점-끝점 변환, 잘못된 입력, clipping, polyline 연결/불연속,
+YAML 왕복 및 기존 case 이전 테스트를 추가·통과한다.
+
+#### 단계 3 — Q′BH/Q′Face longitudinal profile과 비교
+
+대상 파일:
+
+- `src/core/tunnel.py`
+- `src/core/comparison.py`
+- 결과 serialization 및 batch output schema
+- `src/core/profile_exploration.py`
+- profile/comparison 테스트
+
+작업:
+
+1. Q′BH를 `dx′` 기본 1m, 설정 가능 간격으로 산출한다. Domain clipping 후 완전한
+   구간만 계산하고 마지막 불완전 구간은 제외하며, 계산 길이와 profile 전체를 보존한다.
+2. Q′Face를 station 순서와 chainage가 있는 sequence로 저장한다. 터널 전체 평균 하나로
+   축약하지 않는다.
+3. Face와 borehole profile의 대응은 물리 geometry가 겹치는 실제 overlap 구간에 한정하고,
+   overlap 외 시추공 profile은 독립 자료로 유지한다.
+4. 비교는 비짝지음 분포 비교로 구성하고 원 profile/station 정보를 보존하면서
+   Wasserstein-1 거리와 기술통계를 산출한다.
+5. Domain 경계의 원형 face는 내부 영역만 계산한다. 내부 면적이 전체의 50% 미만이면
+   그 station을 무효 처리하고 진행을 멈추며 마지막 유효 face와 사유를 결과에 남긴다.
+
+완료 검증: 완전/불완전 마지막 profile 구간, overlap clipping, station 순서 보존,
+분포 비교, face 유효 면적 50% 경계 및 중단 metadata 테스트를 추가·통과한다.
+
+#### 단계 4 — 암질 기반 round length와 polyline 진행
+
+대상 파일:
+
+- `src/core/tunnel.py`
+- face profile 및 round metadata serialization
+- tunnel round 테스트
+
+작업:
+
+1. `face_step`을 고정 sampling 간격이 아니라 현재 face Q′로 다음 굴진 round 길이를
+   결정하는 값으로 변경한다. 자동 굴진장 선택에서만 `Jw=SRF=1` convention을 사용한다.
+2. 지정된 Q′ 구간별 대표 길이 정책을 적용한다. 유한 범위는 중간값, `Q′>10`은 4.0m,
+   `Q′≤0.1`은 0.75m로 계산한다.
+3. Round가 polyline segment 끝을 넘지 않게 자르고 segment 방향 변경점에서 다음 round를
+   새로 시작한다. Vertex face 방향은 직전 segment 방향으로 처리한다.
+4. 시작 face는 첫 round 결정에 사용하고 미래 face 비교 profile에서는 제외한다.
+5. 불균등 station 통계는 실제 대표 round 길이로 가중하고 길이 metadata를 저장한다.
+
+완료 검증: 각 Q′ 경계의 round length, segment 끝 절단, vertex 방향, 시작 face 처리,
+길이 가중 통계 테스트를 추가·통과한다.
+
+#### 단계 5 — Profile 기반 coverage score
+
+대상 파일:
+
+- `src/core/profile_exploration.py`
+- `src/core/coverage_rounds.py`
+- `src/core/qprime_cutoff_search.py`의 coverage audit 연동부
+- `validation/run_campaign.py`
+- coverage/profile 테스트
+
+작업:
+
+1. Coverage bin 점유는 실제 profile 값이 들어간 bin만 인정한다. 양의 길이 support가
+   있으면 observed로 보고 min/max 또는 분위수 envelope만 닿는 bin은 점유시키지 않는다.
+2. 각 paired seed에서 parent가 미관측한 bin 집합을 parent/candidate 공통 gap으로 고정한다.
+3. Gap별 `P_b`는 profile segment/round 길이로 가중한 proximity로 계산한다.
+4. 동일 cutoff grid에서 `D=mean(P_candidate-P_parent)`,
+   `C=newly_occupied_bins/parent_gap_bins`, `ΔS=0.5D+0.5C`를 산출한다.
+5. Grid 식별자/경계가 다른 coverage 결과의 delta 비교를 거부하고, profile 요약 통계와
+   observed-bin 집합을 별도로 보존한다.
+6. 이 score는 signature coverage/update 용도에만 연결한다. Cutoff selector의 PR/TR/POST
+   추정에 재사용하지 않는다.
+
+**보류 gate:** Longitudinal profile을 Q′ cutoff 상태/경계 추정에 넣을 표본 단위, 길이
+가중, domain/borehole/station 반복 측정 의존성 정책은 별도 결정 전까지 구현하지 않는다.
+Coverage score를 이 미결 결정을 대신하는 것으로 사용하지 않는다.
+
+완료 검증: empty gap, positive-length 여부, candidate 새 bin, 50:50 score 수치, 첫 bin 거리,
+다른 grid 거부, parent/candidate 동일 gap 사용에 대한 테스트를 추가·통과한다.
+
+#### 단계 6 — Sensitivity update와 paired seed 검증
+
+대상 파일:
+
+- `src/core/signature_candidates.py`
+- `src/core/coverage_rounds.py`
+- `validation/run_campaign.py`
+- campaign ledger/provenance 및 update 테스트
+
+작업:
+
+1. 탐색 순서를 밀도 → 크기 → 방향으로 round-robin 구성하고 probe별로 한 block만 바꾼다.
+   `fisher_kappa`는 이 update 범위에서 고정한다.
+2. 양수 feature의 민감도는 내부 로그 좌표에서 계산하되, 입력·저장값은 실제 물리값으로
+   유지한다. 기존 ×/÷1.1은 probe 시작 간격으로 사용한다.
+3. Coverage score의 중앙차분 민감도를 이용해 score 증가 방향 candidate를 생성한다.
+4. 양수 파라미터 1회 update를 약 5%로 제한하고 방향은 상대각
+   `β=asin(|n·d|)`를 사용한다. 방향 probe 및 update의 1회 변화는 최대 5°로 제한하며,
+   법선 변화는 최소 대원 회전으로 dip/dip direction 후보에 변환한다.
+5. `size_r_max > size_r_min > 0` 및 각 파라미터의 승인된 유효 bounds를 적용한다.
+6. 탐색에서 효과가 관측되면 탐색에 사용하지 않은 사전 고정 seed 3개에서 paired
+   parent/candidate 검증을 한다. 2개 이상에서 `ΔS>0`이고 observed-bin 수가 감소하지
+   않으면 update 방향을 채택한다. 별도 1% 개선 threshold는 적용하지 않는다.
+7. 경계에 도달한 파라미터는 더 진행할 수 없는 방향에서 고정하고 나머지를 계속 탐색한다.
+   주 파라미터 모두 더 진행할 수 없으면 campaign을 중단하며 κ나 다른 조건을 자동으로
+   바꾸지 않는다.
+
+**결정 gate:** “약 5%” 변화는 기준에 포함됐으나, 다변수 gradient로부터 정규화된
+update vector를 산출하는 구체적 식은 아직 확정되지 않았다. 구현 전에 약 5%를 각 활성
+양수 파라미터별 변화 상한으로 둘지, block vector 전체의 정규화 step 상한으로 둘지
+사용자와 확정한다. 이 결정 전에는 update 크기 산출 코드를 구현하지 않는다.
+
+완료 검증: 로그 좌표의 중앙차분, 0/비정상 민감도, 5% 및 5° 상한, 크기 경계 투영,
+방향 퇴화 후보 제외, paired seed 2/3 합격·불합격, 경계 포화 후 중단 테스트를 추가·통과한다.
+
+#### 단계 7 — 모든 실행 표면과 legacy 보정 경로 정합화
+
+대상 파일:
+
+- `batch_runner.py`
+- `multi_batch_runner.py`
+- `run_profile_mc.py`
+- `src/core/tunnel.py`
+- case config, output schema 및 관련 문서
+
+작업:
+
+1. 새 geometry, profile schema, provenance, seed 및 계산 설정을 모든 실행 경로에 전달한다.
+2. `correction_mode`가 연결된 모든 호출부와 설정을 찾아 practice realism 보정을 활성
+   계산 경로/API에서 제거한다. Mechanical break, microfracture, core recovery, `Jr/Ja`
+   scale, conservative face estimator가 일부 실행기에서만 남지 않도록 확인한다.
+3. legacy 결과는 당시 schema/provenance를 유지하고 새 profile 결과와 암묵적으로 혼합하지
+   않는다.
+4. 결과에 geometry/clipping, `dx′`, round length, fallback convention, Barton category,
+   profile overlap 및 계산 provenance를 기록한다.
+
+완료 검증: CLI/batch/profile MC 실행에서 동일 case 입력이 같은 새 schema 계약을 따르는지
+통합 smoke 및 schema regression으로 확인한다. Legacy reader가 필요하면 입력 출처와
+legacy status가 유지되는지 확인한다.
+
+#### 단계 8 — 통합 회귀 검증 및 문서 정합화
+
+대상 파일:
+
+- 관련 `src/test/` 테스트
+- `Specification/DesignSpec_20260922.md`
+- cutoff/adaptive/implementation 문서의 해당 날짜 후속 기록
+
+작업:
+
+1. 위 단계별 테스트를 실행하고 기존 기능의 의도된 동작과 새 계약을 분리 검증한다.
+2. Q′ 계산부터 geometry sampling, profile serialization, coverage audit, candidate update까지
+   최소 통합 경로를 검증한다.
+3. 미결 cutoff 표본 단위나 약 5% update vector 결정이 완료되지 않은 상태라면 해당
+   경로는 blocked로 남기고, 임시 default를 추가하지 않는다.
+4. 결과와 논문 평가 항목은 설계 기록과 별도의 evidence로 작성한다. 설계 선택 자체를
+   실험 결과나 학술적 근거로 서술하지 않는다.
+
+### 20.3 의존 관계와 중단 조건
+
+```text
+1 Q′ data/calculation
+  -> 2 geometry/schema
+  -> 3 longitudinal profile/comparison
+  -> 4 round-length profile
+  -> 5 profile coverage score
+  -> 6 sensitivity/update campaign
+  -> 7 execution surfaces/legacy corrections
+  -> 8 integrated verification and documentation
+```
+
+단계 1의 Barton category 입력 모델이 정해지지 않으면 해당 모델에 의존하는 계산기·DFN
+변경을 시작하지 않는다. 단계 5에서 cutoff용 표본 단위 미결은 signature coverage 작업을
+막지 않지만 cutoff 연결은 차단한다. 단계 6의 약 5% update vector 규칙이 결정되지 않으면
+score·민감도 측정까지와 candidate update를 분리하고 update 실행은 차단한다. 기존 데이터,
+checkpoint, ledger를 새 schema로 소급 덮어쓰지 않는다.
+
+### 20.4 계획과 실행 승인 구분
+
+이 계획은 코드 리팩토링의 작업 범위·순서·검증 기준을 기록한다. 실제 코드 수정과 테스트
+실행은 사용자의 별도 요청 또는 승인을 받은 뒤 시작한다. 대규모 simulation/campaign 실행,
+기존 결과 승격, cutoff 수치 확정은 각각 별도 승인과 미결 방법론 결정을 요구한다.
+
+## 21. 2026-10-04 작업 종료 로그 — 새 오일러 시그니처 갱신 campaign
+
+### 21.1 진행 방향 변경과 작업 원칙
+
+20절은 당시 리팩토링 계획으로 보존한다. 이후 사용자는 기존 계산·실행 경로를 계속
+수정하는 대신, 얽힘을 줄이고 읽기 쉬운 새 구조를 작성하는 방향을 선택했다.
+궁극적인 목적은 오일러 방식 같은 시그니처 업데이트를 뜻하는 **오일러 시그니처
+갱신법**을 새 campaign에 연결하는 것이다. 특정 수치해석 구현식까지 확정됐다는
+의미는 아니다.
+
+- 새 작업 위치: `src/euler_campaign/`. 먼저 `.pyi` 선언 골격을 작성하고 승인받은
+  범위만 `.py`로 순차 구현한다.
+- 기존 코드 재사용은 의무가 아니다. 얽힘을 늘리면 새로 투명하게 구현한다. 현재
+  새 구현은 기존 `src/core` 또는 기존 campaign을 import하지 않는다.
+- 기존 `validation/run_campaign.py`, 전용 모듈, case, 결과는 기존 자리에 유지한다.
+  새 campaign 완성·검증 확인 후 별도 요청을 받아 아카이브한다.
+- 각 단계 완료 후 사용자가 확인하고 다음 단계를 요청할 때만 진행한다. 미결 정책은
+  임의로 가정하지 않고 멈춰 협의한다.
+- 테스트 실행은 사용자가 직접 진행했다. Git 조회·stage·commit·push는 수행하지 않는다.
+
+### 21.2 오늘 확인된 후속 결정
+
+1. Q′ 계산의 RQD 하한 10을 사용자가 명시적으로 유지하기로 했다. 원 RQD와 계산용
+   RQD를 구별한다. Full Q 계산 변경으로 확대하지 않는다.
+2. Q 암질 등급의 경계는 아래 등급의 상한에 포함한다. 예: `4 < Q <= 10`은 보통 암반.
+   Q′에 Q 등급표를 적용하거나 등급명을 변경하는 결정은 아니다.
+3. 각 절리군은 Barton `Jr/Ja` 범주 한 쌍을 고정한다. 기존 정규분포 입력 방식은 새
+   campaign에서 유지하지 않는다. 범주 미지정 case는 차단하며 기존 평균값으로 범주를
+   자동 추정하지 않는다. Case loader와 joint 생성의 실제 차단·전달 구현은 아직 남았다.
+4. 비교용 시추공은 터널 방향과 동일하게 단순화하고, 요청 경로 전체가 굴착 예정 체적
+   안에 있어야 한다. 천공 시작점이 터널 밖이면 용도와 무관하게 오류다.
+5. 터널 내부에서 시작해 외부로 돌출되는 시추공은 비교용이면 오류다. 독립 Q′BH 조사용으로
+   명시하면 허용하지만 Face 비교 overlap을 생성하지 않는다. `BoreholeSpec.purpose`는
+   `face_comparison` 또는 `independent`의 필수 입력이다.
+6. 시추공 RQD는 실제 교차 위치를 사용하는 Deere 직접법, Face RQD는 Priest–Hudson법이다.
+   일반 Face는 중앙 수평 scanline을 사용한다. 수직 터널은 x·y 직교 scanline에서 각각
+   RQD를 계산한 후 두 RQD를 산술평균한다. 절리 빈도를 먼저 평균하지 않는다.
+7. Face 계산과 굴진장 정책을 분리한다. Face 결과에 미정 굴진장을 임시값으로 넣지 않는다.
+   유효 면적 50% 미만인 Face는 Q′ 없이 명시적인 무효 결과를 반환한다.
+
+### 21.3 구현 및 검증 상태
+
+| 파일 | 오늘 구현된 범위 | 검증 상태 |
+|---|---|---|
+| `src/euler_campaign/models.py` | 불변 입력 자료구조, 범주 원문·범위 보존, 범주 기본 유효성 검사, 고정 범주 쌍, 시추공 용도 | 사용자 실행에서 models/geometry 묶음 테스트 통과 보고 |
+| `src/euler_campaign/qprime.py` | 범주 중간값, 최소 비율 joint의 동일 쌍, 계산용 RQD 하한, 무교차 convention 및 provenance, domain Jn 유지 | 사용자 Q′ 테스트 전체 통과 보고 |
+| `src/euler_campaign/geometry.py` | 방향·시추공 변환, domain clipping, polyline station, Face 면적, 비교용 체적 검사, overlap | 반원 면적 오류 수정 후 사용자 테스트 전체 통과 보고 |
+| `src/euler_campaign/profiles.py` | 완전 구간 BH profile 및 Deere RQD, Face Priest–Hudson RQD, 수직 Face 방향별 RQD 평균, scanline metadata, 무효 Face 처리 | 사용자 profile 테스트 전체 통과 보고; 마지막 확인 20:23 |
+
+대응 테스트는 `src/test/test_euler_models.py`, `test_euler_qprime.py`,
+`test_euler_geometry.py`, `test_euler_profiles.py`다. 편집기 오류 확인에서는 오류가
+보고되지 않았다. 테스트 통과는 사용자가 실행해 보고한 결과이며 assistant가 실행한
+결과로 기록하지 않는다. 실제 DFN backend와 연결한 통합 simulation은 아직 검증하지 않았다.
+
+Geometry 반원 면적 실패는 원에 접하는 선분의 중점을 원 내부로 취급한 오류였다.
+접선 구간을 원호 면적으로 처리하도록 수정하고 네 방향 경계 회귀 테스트를 추가했다.
+이 실패·수정 이력도 보존한다.
+
+### 21.4 남은 구현 작업과 재개 지점
+
+아래는 남은 작업 목록이며, 일괄 실행 승인이 아니다. 다음 재개 시에는 굴진장 정책과
+터널 진행을 한 단계씩 검토하고 사용자 요청 범위만 구현한다.
+
+- [ ] **굴진장 정책 확정 및 구현:** `profiles.py`의 `next_round_length`.
+  `Q′>10`은 4.0m, `Q′<=0.1`은 0.75m, 유한 범위는 중간값이라는 기존 결정은 유지한다.
+  중간 Q′ 구간별 길이 표는 현재 확인된 문서에 구체 수치가 없으므로 사용자와 확인한다.
+- [ ] **Tunnel profile 진행:** `sample_tunnel`. 시작 Face는 첫 굴진장 결정에만 사용,
+  미래 Face 값에 직전 실제 굴진장 support 부여, segment 끝에서 round 절단, vertex 직전
+  방향, 무효 경계 Face에서 중단 및 마지막 유효 결과 보존.
+- [ ] **분포 비교:** `compare_profiles`. 실제 overlap으로 길이 support를 자르고
+  비짝지음 길이 가중 기술통계 및 Wasserstein-1 산출. 독립 조사용 시추공은 비교에서 제외.
+- [ ] **Case 검증과 identity:** `models.py`의 `validate_case`, `identify_signature`,
+  `identify_domain`은 현재 명시적으로 `NotImplementedError`다. 범주·geometry·절리군
+  일관성 검증과 signature/domain identity 계약을 검토한 뒤 구현한다.
+- [ ] **범주·case 설정 입출력:** `config.pyi`의 실제 구현. 승인된 범주표와 새 schema,
+  범주 미지정 오류, 기존 평균·표준편차 입력 거부, 왕복 저장. 기존 case의 범주는 사용자가
+  지정하며 자동 변환하지 않는다.
+- [ ] **DFN 생성과 실제 교차 계산:** `ports.pyi`의 `JointFactory`, `Simulator`,
+  `profiles.pyi`의 `JointGeometry` 구현체. 절리군 고정 조건을 joint에 전달하고 Face의
+  domain 내부 부분만 교차 대상으로 반환한다. 지금까지 테스트는 통제된 교차 입력이다.
+- [ ] **Profile coverage:** `coverage.pyi` 구현. 양의 실제 길이 bin 점유, seed별 parent gap,
+  길이 가중 proximity, 동일 grid 비교 및 `ΔS=0.5D+0.5C`. Cutoff selector와 분리한다.
+- [ ] **오일러 시그니처 갱신:** `euler.pyi` 구현. 밀도→크기→방향, 로그 좌표 probe,
+  중앙차분, 약 5%/최대 5° 갱신, bounds, κ 고정, 독립 seed 3개 중 2개 이상 채택 기준.
+  민감도를 약 5% 갱신 vector에 연결하는 정확한 정규화 식은 협의 전 구현하지 않는다.
+- [ ] **새 campaign orchestration:** `campaign.pyi`를 구현. Parent→probe→민감도→후보→
+  paired 검증→채택/비채택→다음 block, 경계 고정·전체 포화 중단, 명시적 실패 상태.
+- [ ] **저장·재개 구현체:** `CampaignStore` 구현. Profile·seed·signature·grid·결정
+  provenance 및 round/state의 일관된 저장, 중단 후 재개, 기존 결과와 혼합 방지.
+- [ ] **실행 진입점:** 새 CLI와 simulation/store/update-rule 연결. 기존
+  `validation/run_campaign.py`는 아직 교체하지 않는다.
+- [ ] **통합 검증과 문서 정합화:** 실제 backend의 최소 end-to-end 경로, 재현성,
+  중단·재개·seed 채택 검증을 단계별 승인 후 수행. 검증된 새 campaign만 전환 대상으로
+  삼고 기존 파일 아카이브는 별도 승인 후 진행한다.
+
+파일 수는 고정하지 않는다. 현재 선언 골격은 핵심 책임 분리이며, simulation·저장소
+구현체와 실행 진입점이 빠져 있다. 선언 파일 존재를 구현 완료로 간주하지 않는다.
+Longitudinal cutoff 표본 단위·가중·반복 측정 정책은 별도 미결 방법론으로 남으며,
+오일러 갱신 구현에 암묵적으로 포함하지 않는다.
