@@ -1,13 +1,42 @@
 from dataclasses import replace
 import unittest
 import math
+from typing import Literal
 
-from src.euler_campaign.geometry import TunnelStation
+from src.euler_campaign.geometry import OverlapInterval, TunnelStation
 from src.euler_campaign.models import (
     BartonCategory, BoreholeSpec, CaseSpec, DomainSpec, JointCondition,
     JointRealization, LineIntersection, TunnelSpec, Vector3,
 )
-from src.euler_campaign.profiles import sample_borehole, sample_face
+from src.euler_campaign.profiles import (
+    BoreholeProfile, ProfileInterval, TunnelProfile, compare_profiles,
+    next_round_length, sample_borehole, sample_face, sample_tunnel,
+)
+from src.euler_campaign.qprime import QPrimeProvenance, QPrimeResult
+
+
+class TestNextRoundLength(unittest.TestCase):
+    def test_uses_confirmed_ranges_for_the_next_advance(self) -> None:
+        cases = (
+            (10.1, 4.0),
+            (10.0, 2.5),
+            (4.000001, 2.5),
+            (4.0, 1.75),
+            (1.000001, 1.75),
+            (1.0, 1.1),
+            (0.100001, 1.1),
+            (0.1, 0.75),
+            (0.0, 0.75),
+        )
+        for qprime, expected in cases:
+            with self.subTest(qprime=qprime):
+                self.assertEqual(next_round_length(qprime), expected)
+
+    def test_rejects_invalid_qprime(self) -> None:
+        for qprime in (-0.1, float("nan"), float("inf"), float("-inf")):
+            with self.subTest(qprime=qprime):
+                with self.assertRaises(ValueError):
+                    next_round_length(qprime)
 
 
 class FixedGeometry:
@@ -200,6 +229,194 @@ class TestEulerFaceProfiles(unittest.TestCase):
             sample_face(
                 self.case, TunnelStation(5.0, 0, (5.0, 6.0, 5.0), (1.0, 0.0, 0.0)),
                 FaceGeometry(self.joint, ((),)),
+            )
+
+
+class NoIntersectionGeometry:
+    def __init__(self) -> None:
+        self.face_stations: list[TunnelStation] = []
+
+    def line_intersections(
+        self, start: Vector3, direction: Vector3, length: float,
+    ) -> tuple[LineIntersection, ...]:
+        return ()
+
+    def face_intersections(
+        self, station: TunnelStation, radius: float, domain: DomainSpec,
+    ) -> tuple[JointRealization, ...]:
+        self.face_stations.append(station)
+        return ()
+
+
+class TestEulerTunnelProfiles(unittest.TestCase):
+    def setUp(self) -> None:
+        self.domain = DomainSpec((10, 10, 10), (1.0, 1.0, 1.0), 4.0)
+
+    def _case(self, tunnel: TunnelSpec) -> CaseSpec:
+        return CaseSpec("tunnel-case", self.domain, (), (), tunnel)
+
+    def test_start_face_only_sets_first_advance_and_future_faces_get_support(self) -> None:
+        tunnel = TunnelSpec(((1.0, 5.0, 5.0), (10.0, 5.0, 5.0)), 1.0)
+        geometry = NoIntersectionGeometry()
+        result = sample_tunnel(self._case(tunnel), tunnel, geometry)
+
+        self.assertEqual(result.stop_reason, "tunnel_end")
+        self.assertIsNone(result.rejected_face)
+        self.assertEqual([item.station.chainage for item in result.observations], [4.0, 8.0, 9.0])
+        self.assertEqual(
+            [(item.start, item.end) for item in result.intervals],
+            [(0.0, 4.0), (4.0, 8.0), (8.0, 9.0)],
+        )
+        self.assertEqual(len(geometry.face_stations), 4)
+
+    def test_round_stops_at_vertex_and_next_round_uses_next_segment(self) -> None:
+        tunnel = TunnelSpec(
+            ((1.0, 5.0, 5.0), (3.0, 5.0, 5.0), (3.0, 5.0, 10.0)), 1.0,
+        )
+        result = sample_tunnel(self._case(tunnel), tunnel, NoIntersectionGeometry())
+
+        self.assertEqual([item.station.chainage for item in result.observations], [2.0, 6.0, 7.0])
+        self.assertEqual(
+            [item.station.direction for item in result.observations],
+            [(1.0, 0.0, 0.0), (0.0, 0.0, 1.0), (0.0, 0.0, 1.0)],
+        )
+        self.assertEqual(
+            [(item.start, item.end) for item in result.intervals],
+            [(0.0, 2.0), (2.0, 6.0), (6.0, 7.0)],
+        )
+        self.assertEqual(result.stop_reason, "tunnel_end")
+
+    def test_invalid_boundary_face_stops_and_preserves_valid_profile(self) -> None:
+        tunnel = TunnelSpec(
+            ((1.0, 5.0, 5.0), (5.0, 0.0, 5.0), (10.0, -5.0, 5.0)), 1.0,
+        )
+        result = sample_tunnel(self._case(tunnel), tunnel, NoIntersectionGeometry())
+
+        self.assertEqual(result.stop_reason, "invalid_boundary_face")
+        self.assertEqual([item.station.chainage for item in result.observations], [4.0, math.hypot(4.0, 5.0)])
+        self.assertEqual(len(result.intervals), 2)
+        self.assertIsNotNone(result.rejected_face)
+        assert result.rejected_face is not None
+        self.assertFalse(result.rejected_face.valid)
+
+    def test_invalid_start_face_returns_empty_profile(self) -> None:
+        tunnel = TunnelSpec(((1.0, 0.0, 0.0), (9.0, 0.0, 0.0)), 1.0)
+        result = sample_tunnel(self._case(tunnel), tunnel, NoIntersectionGeometry())
+
+        self.assertEqual(result.observations, ())
+        self.assertEqual(result.intervals, ())
+        self.assertEqual(result.stop_reason, "invalid_boundary_face")
+        self.assertIsNotNone(result.rejected_face)
+
+    def test_rejects_tunnel_that_differs_from_case_geometry(self) -> None:
+        case_tunnel = TunnelSpec(((1.0, 5.0, 5.0), (9.0, 5.0, 5.0)), 1.0)
+        other_tunnel = TunnelSpec(((1.0, 5.0, 5.0), (8.0, 5.0, 5.0)), 1.0)
+        with self.assertRaisesRegex(ValueError, "case.tunnel"):
+            sample_tunnel(self._case(case_tunnel), other_tunnel, NoIntersectionGeometry())
+
+
+class TestEulerProfileComparison(unittest.TestCase):
+    def setUp(self) -> None:
+        self.borehole_spec = BoreholeSpec(
+            "bh", (0.0, 5.0, 5.0), (1.0, 0.0, 0.0), 10.0, 1.0, "face_comparison",
+        )
+        self.provenance = QPrimeProvenance(
+            "no_intersection_convention", None, None, None,
+            "qsimex_no_intersection_rqd100_jr4_ja0.75",
+        )
+
+    def _interval(self, start: float, end: float, value: float) -> ProfileInterval:
+        qprime = QPrimeResult(100.0, 100.0, 4.0, 4.0, 0.75, value, self.provenance)
+        return ProfileInterval(start, end, qprime)
+
+    def _borehole(
+        self,
+        intervals: tuple[ProfileInterval, ...],
+        purpose: Literal["face_comparison", "independent"] = "face_comparison",
+    ) -> BoreholeProfile:
+        return BoreholeProfile(replace(self.borehole_spec, purpose=purpose), None, intervals, 0.0)
+
+    def _tunnel(self, intervals: tuple[ProfileInterval, ...]) -> TunnelProfile:
+        return TunnelProfile((), intervals, "tunnel_end", None)
+
+    def test_clips_to_overlap_and_computes_length_weighted_summaries_and_wasserstein(self) -> None:
+        borehole = self._borehole((
+            self._interval(0.0, 2.0, 2.0),
+            self._interval(2.0, 5.0, 6.0),
+        ))
+        tunnel = self._tunnel((
+            self._interval(10.0, 11.0, 1.0),
+            self._interval(11.0, 14.0, 5.0),
+        ))
+
+        result = compare_profiles(
+            borehole, tunnel, (OverlapInterval(1.0, 4.0, 10.0, 13.0),),
+        )
+
+        assert result.borehole_summary is not None
+        assert result.face_summary is not None
+        self.assertEqual(result.borehole_summary.support_length, 3.0)
+        self.assertEqual(result.borehole_summary.minimum, 2.0)
+        self.assertEqual(result.borehole_summary.maximum, 6.0)
+        self.assertAlmostEqual(result.borehole_summary.mean, 14.0 / 3.0)
+        self.assertEqual(result.face_summary.support_length, 3.0)
+        self.assertEqual(result.face_summary.minimum, 1.0)
+        self.assertEqual(result.face_summary.maximum, 5.0)
+        self.assertAlmostEqual(result.face_summary.mean, 11.0 / 3.0)
+        self.assertAlmostEqual(result.wasserstein_1, 1.0)
+        self.assertIsNone(result.unavailable_reason)
+
+    def test_compares_only_shared_positive_length_profile_support(self) -> None:
+        borehole = self._borehole((self._interval(0.0, 1.0, 2.0),))
+        tunnel = self._tunnel((self._interval(11.0, 12.0, 5.0),))
+
+        result = compare_profiles(
+            borehole, tunnel, (OverlapInterval(0.0, 2.0, 10.0, 12.0),),
+        )
+
+        assert result.borehole_summary is not None
+        assert result.face_summary is not None
+        self.assertEqual(result.borehole_summary.support_length, 1.0)
+        self.assertEqual(result.face_summary.support_length, 1.0)
+        self.assertEqual(result.wasserstein_1, 3.0)
+
+    def test_independent_borehole_and_empty_overlap_are_unavailable(self) -> None:
+        tunnel = self._tunnel((self._interval(0.0, 1.0, 3.0),))
+        independent = self._borehole((), purpose="independent")
+        independent_result = compare_profiles(independent, tunnel, ())
+        no_overlap_result = compare_profiles(self._borehole(()), tunnel, ())
+
+        self.assertEqual(independent_result.unavailable_reason, "independent_borehole")
+        self.assertEqual(no_overlap_result.unavailable_reason, "no_overlap")
+        self.assertIsNone(independent_result.wasserstein_1)
+        self.assertIsNone(no_overlap_result.wasserstein_1)
+
+    def test_no_shared_profile_support_is_unavailable(self) -> None:
+        result = compare_profiles(
+            self._borehole((self._interval(0.0, 1.0, 2.0),)),
+            self._tunnel((self._interval(11.0, 12.0, 5.0),)),
+            (OverlapInterval(2.0, 3.0, 10.0, 11.0),),
+        )
+
+        self.assertEqual(result.unavailable_reason, "no_shared_profile_support")
+        self.assertIsNone(result.borehole_summary)
+        self.assertIsNone(result.face_summary)
+        self.assertIsNone(result.wasserstein_1)
+
+    def test_rejects_mismatched_or_overlapping_support_mappings(self) -> None:
+        borehole = self._borehole((self._interval(0.0, 3.0, 2.0),))
+        tunnel = self._tunnel((self._interval(0.0, 3.0, 5.0),))
+
+        with self.assertRaisesRegex(ValueError, "lengths must match"):
+            compare_profiles(
+                borehole, tunnel, (OverlapInterval(0.0, 2.0, 10.0, 13.0),),
+            )
+        with self.assertRaisesRegex(ValueError, "must not overlap"):
+            compare_profiles(
+                borehole, tunnel, (
+                    OverlapInterval(0.0, 2.0, 0.0, 2.0),
+                    OverlapInterval(1.0, 3.0, 2.0, 4.0),
+                ),
             )
 
 

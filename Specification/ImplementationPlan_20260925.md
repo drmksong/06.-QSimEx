@@ -838,10 +838,11 @@ profile, coverage 기반 signature update 계약을 코드에 반영하기 위�
 6. `QCalculator.ROCK_CLASSES`를 승인된 Q 등급 경계와 대조하고 등급 경계·명칭의 차이를
    명시적으로 처리한다.
 
-**결정 gate:** `Jr/Ja` category를 case의 joint-set 설정에 둘지 개별 joint realization
-입력으로 둘지, 그리고 category 선택이 set 내부에서 결정적인지 seed별로 변할 수 있는지
-확정한다. 이는 기존 `Jr_mean/Jr_std`, `Ja_mean/Ja_std`의 대체 schema를 결정하므로 임의로
-선택하지 않는다.
+**결정 완료 (2026-10-05):** 현장 실무에 맞춰 `Jr/Ja` category 한 쌍을 각 절리군에
+지정하고, 그 절리군의 모든 절리가 해당 조건을 공유한다. 개별 절리마다 category를
+재선택하거나 seed별로 category를 재추첨하지 않는다. Seed는 DFN의 기하 realization에
+사용하며, category 값은 Case 설정으로 고정한다. 이전 `Jr_mean/Jr_std`, `Ja_mean/Ja_std`
+정규분포 입력은 새 campaign에서 사용하지 않는다. 구현 계약은 21.2의 결정 기록을 따른다.
 
 완료 검증: RQD 0/10/10 초과 경계, Barton category 및 range midpoint, fallback provenance,
 동일 joint pair 선택, `Jn` 독립성, 등급 경계 테스트를 추가·통과한다.
@@ -888,10 +889,12 @@ YAML 왕복 및 기존 case 이전 테스트를 추가·통과한다.
    구간만 계산하고 마지막 불완전 구간은 제외하며, 계산 길이와 profile 전체를 보존한다.
 2. Q′Face를 station 순서와 chainage가 있는 sequence로 저장한다. 터널 전체 평균 하나로
    축약하지 않는다.
-3. Face와 borehole profile의 대응은 물리 geometry가 겹치는 실제 overlap 구간에 한정하고,
-   overlap 외 시추공 profile은 독립 자료로 유지한다.
-4. 비교는 비짝지음 분포 비교로 구성하고 원 profile/station 정보를 보존하면서
-   Wasserstein-1 거리와 기술통계를 산출한다.
+3. Face와 borehole profile의 대응은 물리 geometry가 겹치는 실제 overlap 구간과 유효한
+   굴진면 평가 범위에 한정하고, overlap 외 시추공 profile은 독립 자료로 유지한다.
+4. 비교는 overlap 안의 각 profile 유효 Q′ 값을 각각 사용한 비짝음 분포 비교로 구성한다.
+   두 profile의 chainage별 공통 표본 support를 요구하지 않으며, overlap 안에서 한 profile에
+   값이 없는 구간은 그 profile의 분포에서 제외한다. Profile별 실제 support 길이를 보존·보고하고,
+   원 profile/station 정보를 유지하면서 Wasserstein-1 거리와 기술통계를 산출한다.
 5. Domain 경계의 원형 face는 내부 영역만 계산한다. 내부 면적이 전체의 50% 미만이면
    그 station을 무효 처리하고 진행을 멈추며 마지막 유효 face와 사유를 결과에 남긴다.
 
@@ -1023,8 +1026,9 @@ legacy status가 유지되는지 확인한다.
 1. 위 단계별 테스트를 실행하고 기존 기능의 의도된 동작과 새 계약을 분리 검증한다.
 2. Q′ 계산부터 geometry sampling, profile serialization, coverage audit, candidate update까지
    최소 통합 경로를 검증한다.
-3. 미결 cutoff 표본 단위나 약 5% update vector 결정이 완료되지 않은 상태라면 해당
-   경로는 blocked로 남기고, 임시 default를 추가하지 않는다.
+3. cutoff 표본 단위가 미결이면 cutoff 경로는 blocked로 남긴다. 약 5% update vector는
+   DesignSpec 5.6.9의 2026-10-05 사용자 결정에 따라 적용하며, 이를 임시 default로 취급하지
+   않는다.
 4. 결과와 논문 평가 항목은 설계 기록과 별도의 evidence로 작성한다. 설계 선택 자체를
    실험 결과나 학술적 근거로 서술하지 않는다.
 
@@ -1043,9 +1047,9 @@ legacy status가 유지되는지 확인한다.
 
 단계 1의 Barton category 입력 모델이 정해지지 않으면 해당 모델에 의존하는 계산기·DFN
 변경을 시작하지 않는다. 단계 5에서 cutoff용 표본 단위 미결은 signature coverage 작업을
-막지 않지만 cutoff 연결은 차단한다. 단계 6의 약 5% update vector 규칙이 결정되지 않으면
-score·민감도 측정까지와 candidate update를 분리하고 update 실행은 차단한다. 기존 데이터,
-checkpoint, ledger를 새 schema로 소급 덮어쓰지 않는다.
+막지 않지만 cutoff 연결은 차단한다. 단계 6의 update는 DesignSpec 5.6.9에서 결정한
+max-normalized rule과 물리 bounds를 따른다. 기존 데이터, checkpoint, ledger를 새 schema로
+소급 덮어쓰지 않는다.
 
 ### 20.4 계획과 실행 승인 구분
 
@@ -1079,9 +1083,11 @@ checkpoint, ledger를 새 schema로 소급 덮어쓰지 않는다.
    RQD를 구별한다. Full Q 계산 변경으로 확대하지 않는다.
 2. Q 암질 등급의 경계는 아래 등급의 상한에 포함한다. 예: `4 < Q <= 10`은 보통 암반.
    Q′에 Q 등급표를 적용하거나 등급명을 변경하는 결정은 아니다.
-3. 각 절리군은 Barton `Jr/Ja` 범주 한 쌍을 고정한다. 기존 정규분포 입력 방식은 새
-   campaign에서 유지하지 않는다. 범주 미지정 case는 차단하며 기존 평균값으로 범주를
-   자동 추정하지 않는다. Case loader와 joint 생성의 실제 차단·전달 구현은 아직 남았다.
+3. 현장 실무에 따라 각 절리군에 Barton `Jr/Ja` 범주 한 쌍을 고정하고, 그 set의 모든
+   절리가 같은 조건을 사용한다. 개별 절리별·seed별 category 재선택은 하지 않는다. 기존
+   정규분포 입력 방식은 새 campaign에서 유지하지 않으며, 범주 미지정 case는 차단한다.
+   기존 평균값으로 범주를 자동 추정하지 않는다. Case loader는 구현됐고, joint 생성 시
+   조건 전달은 실제 DFN backend 구현에서 검증한다.
 4. 비교용 시추공은 터널 방향과 동일하게 단순화하고, 요청 경로 전체가 굴착 예정 체적
    안에 있어야 한다. 천공 시작점이 터널 밖이면 용도와 무관하게 오류다.
 5. 터널 내부에서 시작해 외부로 돌출되는 시추공은 비교용이면 오류다. 독립 Q′BH 조사용으로
@@ -1113,42 +1119,357 @@ Geometry 반원 면적 실패는 원에 접하는 선분의 중점을 원 내부
 
 ### 21.4 남은 구현 작업과 재개 지점
 
-아래는 남은 작업 목록이며, 일괄 실행 승인이 아니다. 다음 재개 시에는 굴진장 정책과
-터널 진행을 한 단계씩 검토하고 사용자 요청 범위만 구현한다.
+아래는 남은 작업 목록이며, 일괄 실행 승인이 아니다. 2026-10-05에 확정한 다중 시작점과
+중단 후 결과 재사용 요구사항으로 이전 단일 시작점 campaign orchestration은 부분 구현으로
+재분류한다. 이 절의 목표는 단순히 multi-start 기능을 마치는 것이 아니라 새 Euler 경로로
+대규모 simulation을 안전하게 실행할 수 있는 상태를 만드는 것이다. 아래 범위·의존관계는
+기록이며, 실제 대규모 실행 승인이 아니다.
+각 미완료 항목은 소스 변경에 앞서 21.5의 Core/Euler 재사용 검토를 수행한다.
 
-- [ ] **굴진장 정책 확정 및 구현:** `profiles.py`의 `next_round_length`.
-  `Q′>10`은 4.0m, `Q′<=0.1`은 0.75m, 유한 범위는 중간값이라는 기존 결정은 유지한다.
-  중간 Q′ 구간별 길이 표는 현재 확인된 문서에 구체 수치가 없으므로 사용자와 확인한다.
-- [ ] **Tunnel profile 진행:** `sample_tunnel`. 시작 Face는 첫 굴진장 결정에만 사용,
+#### 대규모 simulation 실행 준비 관문
+
+1. **실행 manifest 동결:** 실행할 Case와 Barton catalog, 시작 signature 목록 및 순서,
+   coverage grid/bounds, exploration·verification seed 계획, coverage 완료 또는 모든 시작
+   lineage saturation에 따른 종료 정책, backend와 target device policy, 출력 보존 위치를 사전에
+   고정한다. Backend/device policy는 Apple Silicon MLX GPU이며 실제 장치와 runtime fingerprint는
+   실행 시 기록한다. 첫 revision은 고정 라운드 예산 없이 coverage 완료 또는 모든 lineage
+   saturation까지 실행한다. Calibration/validation 자료 포함 여부와 split도 실행 전에 기록한다.
+   Domain 수는 완료 목표가 아니라 수행량·용량 기록으로 취급하며, 별도 resource ceiling은 완료
+   판정과 분리해 기록한다. 숫자나 장비는 이 계획에서 임의로 정하지 않는다.
+2. **계획·설정·저장 구현:** Case와 CampaignProject YAML 입출력, SQLite 영속 store,
+   immutable plan revision과 predecessor fingerprint, generation별 simulation/state/round,
+   provenance 및 coverage 저장이 구현됐다. Round와 다음 state는 단일 transaction으로
+   checkpoint하며, immutable revision·simulation·round 변경을 거부한다. 신규 Store 및
+   orchestration 회귀 테스트를 작성했으나 이번 구현 작업에서는 테스트를 실행하지 않았다.
+3. **GPU 실행 진입점 연결:** CPU NumPy 기반의 현재 Euler DFN/profile 경로를 GPU 지원으로
+   포팅하고, manifest를 읽어 MLX backend, campaign orchestration, update rule, 저장소를 연결하는
+   실행 command를 제공한다. 이 campaign은 Apple Silicon의 MLX GPU를 고정 사용하며, MLX를 쓸 수
+   없으면 simulation 전에 실패해야 한다. CPU simulation fallback은 허용하지 않는다. 진행 상태,
+   오류/실패 seed, 로그, 실제 backend/device 및 code/config 식별자와 결과 위치를 출력한다.
+   현재 `validation/run_campaign.py`는
+   `src.core`의 기존 screening pipeline을 사용하므로 이 새 Euler 실행 진입점을 대신하지 않는다.
+4. **실제 GPU backend end-to-end smoke/resume:** 작은 고정 Case·seed 집합에서 catalog→Case→
+   GPU DFN→borehole/tunnel profile→coverage/update→저장까지 연결 검증한다. 중간 종료 후 재개 결과가
+   uninterrupted 실행과 같고 완료된 simulation을 다시 호출하지 않는지 확인한다. 라운드 예산
+   extension 후에는 이전 완료 라운드가 보존되고 새로 추가된 라운드만 시작하는지, saturation 후
+   새 start signature를 추가하면 이전 결과와 coverage를 보존하고 신규 lineage만 시작하는지
+   검증한다. `force-from-scratch`는 새 `run_generation_id`에서 이전 결과를 재사용하지 않고
+   시작점과 라운드를 처음부터 재수행하며 coverage를 세대별로 분리하는지 확인한다. 다른 담당자가
+   같은 immutable revision과 execution fingerprint로 재현했을 때 canonical 결과·coverage·
+   lineage decision이 일치하는지도 확인한다. 기존 단위 테스트 성공만으로 이 관문을 통과한 것으로
+   보지 않는다.
+5. **대표 GPU pilot 및 용량 산정:** 목표 GPU backend/장비에서 대표 Case로 단계적 pilot을 수행해
+   domain당 시간, peak memory, 결과 저장량, 실패율, 병렬 실행 안정성을 측정한다. 측정값으로
+   coverage 완료 또는 모든 lineage saturation까지의 예상 시간·저장 공간·재개 단위를 산정한다.
+   Domain 수는 결과 coverage와 함께 기록하되 campaign 완료 조건으로 사용하지 않는다. Pilot
+   결과가 없으면 실행 규모나 완료 시간을 추정치로 확정하지 않는다.
+6. **대규모 실행 승인:** 위 1–5의 결과와 manifest를 검토한 뒤 별도 승인으로 시작한다.
+   Coverage 탐색용 원자료 생성과 cutoff/calibration/validation 결론은 구별한다. Raw simulation은
+   cutoff 방법론의 미결 사항을 대신 결정하지 않으며, cutoff를 주장하기 전에는 독립 domain
+   표본 설계·불확실성 분석·별도 validation 조건도 충족해야 한다.
+
+2026-10-05 진행 기록: 새 Euler schema를 채울 수 있도록
+[`cases/euler/case_template.yaml`](../cases/euler/case_template.yaml)과
+[`cases/euler/barton_categories_template.yaml`](../cases/euler/barton_categories_template.yaml)을
+추가했다. 이어 legacy high-Q d20000 Case에서 schema 간 의미가 명확히 대응되는 값만
+[`highq_euler_d20000_case_draft.yaml`](../cases/euler/highq_euler_d20000_case_draft.yaml)에
+복사하고, 표현 방식이 달라졌거나 원본에 없는 필드는 미기입으로 남겼다. 초안은 원본이
+`proposed_review_before_execution` 상태였으며, 2026-10-05 사용자가 현 Case 파라미터와 Barton
+범주표를 값 변경 없이 이 campaign 입력으로 승인했다. 파일명은 schema 및 실행 연결 전까지
+초안 상태를 표시하기 위해 유지한다. `P32`와
+`proposed_density_factor`는 숫자는 다르지만 해당 기존 case 계열에서 100배 scale-label 관계
+(`P32=50/100/200` ↔ `factor=5000/10000/20000`)를 확인해 초안은 P32를 canonical 입력으로
+사용한다. 사용자는 `Jn`을 절리군 수로 유지하고 high-Q case를 `Jn=3`으로 구성하기로 결정했다.
+이에 초안은 기존 set 1 값을 set 2/set 3에 임시 복제해 세 joint-set 항목을 구성했다.
+사용자가 set 2/set 3의 density, 크기 및 방향 파라미터를 수정한 현재 초안 상태를 보존한다.
+2026-10-05 명확화에 따라 절리 방향 입력은 `mean_normal` 벡터가 아니라 `mean_dip`과
+`mean_dip_dir`로 표현하며, 법선벡터는 내부 계산용으로 파생한다. 사용자가 세 joint set의
+Jr/Ja Barton 범주를 선택해 case 참조와 [`barton_categories.yaml`](../cases/euler/barton_categories.yaml)에
+반영했다. 시추공 ID는 `bh-1`로 확정했다. 이후 2026-10-05에 사용자가 Case/Barton 입력과
+campaign 실행 설정 결정을 승인했다.
+
+실행 manifest에 대해 추가로 확인된 결정:
+
+- 시작 signature의 개수·값·순서는 campaign 입력으로 받으며 사전 고정하지 않는다. 현재
+  High-Q Case 초안을 첫 시작점으로 하고, 사용자가 2026-10-05에 P32 시작값
+  `(set 1: 200, 100, 50; sets 2/3: 2000, 1000)`과 목록 순서를 확정했다. 사용자는 2026-10-05
+  현재 Case 및 Barton 범주 입력을 승인했다. 단, CampaignPlan loader/runner 연결 전까지 파일은
+  실행 가능한 형식이 아니다.
+- 입력 형식은 별도 Campaign YAML이 공통 Case YAML을 참조하고, 순서가 있는 시작 signature
+  목록을 갖는 방식으로 한다. 각 목록 항목에는 모든 joint set의 시작점별 파라미터
+  (`density_value`, `size_alpha`, `size_r_min`, `size_r_max`, `mean_dip`, `mean_dip_dir`,
+  `fisher_kappa`)를 명시한다. Geometry와 Jr/Ja 등 공통 조건은 Case에서 가져오며 시작점
+  항목에 중복 기입하지 않는다. 현재 Case 초안에 해당하는 첫 항목도 목록에 명시한다.
+- 각 시작점의 수치 파라미터는 사용자 입력으로 기록하며 `size_alpha`, `fisher_kappa` 등에
+  시스템 임의의 고정값을 부여하지 않는다. 두 값은 시작점별 입력값으로 사용하고 해당
+  lineage에서는 유지한다. 터널·시추공 geometry와 joint set별 Jr/Ja 조건은 시작점 간
+  고정·공유한다.
+- update 탐색 축은 밀도 → 크기 → 방향 순서로 round-robin 진행하고 probe마다 한 block만
+  변경한다. 이는 시작 signature 목록의 개수·값을 제한하지 않는다. 사용자는 P32 bounds를
+  set 1 `[50, 5000]`, set 2 `[2000, 10000]`, set 3 `[1000, 20000]`으로 확정했으며,
+  세 시작점 값을 모두 포함한다. 크기 bounds는 모든 set에서 `size_r_min: [5, 20]`,
+  `size_r_max: [50, 150]`으로 확정했다. 시작값을 변경하지 않고 현재 초안 및 기존 High-Q
+  large_base/large_tail 범위를 포함한다. 방향 bounds는 각 set의
+  `orientation_beta@bh-1`을 `[0°, 90°]`로 한다. updater의 step 제한은 기존대로 최대 `5°`다.
+- Euler campaign은 별도 edge를 만들지 않고 기존 10-bin primary profile grid의 edge를
+  재사용한다. 경계는 `geomspace(0.1, 400, 11)`의 첫 edge를 `0`으로 바꾼 11개 값이다.
+  edge를 공유하되 campaign 누적 coverage와 calibration 자료는 별도 결과로 취급한다.
+- seed schedule은 exploration `[1001]`, verification `[1002, 1003, 1004]`로 확정했다.
+
+시작점 목록, feature bounds, primary profile grid, seed schedule 및 실행 정책을 확정했다.
+2026-10-05 사용자는 결과 경로를
+`results/euler_campaigns/<campaign_id>/runs/<run_generation_id>`로 정하고, 결과는 coverage
+탐색 전용으로 사용하며 calibration/validation 자료에 포함하지 않기로 했다. 첫 campaign revision은
+고정 라운드 예산 없이 coverage 완료 또는 모든 lineage saturation까지 실행한다. 사용자는 현 Case
+및 Barton 범주 입력을 승인했다. 별도 resource ceiling은 설정하지 않았으며 완료 조건으로 사용하지
+않는다. 실행 manifest는 이제 사용자 입력 결정 면에서 고정됐지만, CampaignPlan schema·durable
+store·runner 구현, MLX preflight 및 실제 device/runtime fingerprint 기록 전까지 실행 가능한
+manifest로 간주하지 않는다.
+
+2026-10-05 campaign decision: 사용자는 출력 template
+`results/euler_campaigns/<campaign_id>/runs/<run_generation_id>`, coverage 탐색 전용 결과 분류,
+calibration/validation 비포함, 고정 라운드 예산 없는 최초 revision, 그리고 현재 Case/Barton 입력을
+확정했다. 132개 테스트 통과를 사용자가 확인했다. 이 승인은 manifest 입력 결정을 고정한 것이며,
+아직 존재하지 않는 CampaignPlan loader, 영속 store, CLI 또는 실제 GPU 실행을 승인/검증한 것은
+아니다.
+
+실행 규모/운영 검증 관문: `EulerSimulator(backend="mlx")`와 Euler campaign CLI 경로는 구현됐지만,
+실제 장비에서의 GPU smoke/resume 및 처리량·peak-memory pilot은 아직 수행하지 않았다. 현재 Case의 시작점 값과
+`60×30×30 m` 도메인으로 `_expected_joint_area` 공식을 적용하면 도메인당 기대 절리 수는 약
+461,078개다. 확정된 P32 bounds 상한과 각 set의 최소 허용 크기
+(`size_r_min=5 m`, `size_r_max=50 m`)를 적용하면 기대 절리 수는
+약 7,016,409개까지 올라간다. 현재 profile 경로는 60개 시추공 구간에서 절리 전체를 반복 검사하고,
+터널 face마다 선 교차와 원판 교차를 다시 검사하므로 시작점에서도 최소 약 42M, bounds 상단에서는
+약 646M–1,558M joint/profile 후보 검사 규모다. 이 수치는 작업량 추정이지 실행 시간 측정이 아니다.
+MLX 경로는 compact GPU array 생성·교차를 사용하고 결과에 필요한 자료만 CPU로 전달한다.
+위 작업량 수치는 실행 시간 측정치가 아니다. 대표 Case GPU pilot으로 도메인당 시간·peak memory를
+측정하기 전에는 campaign 총 소요 시간을 확정하지 않는다. smoke/resume 및 pilot 검증 전에는
+manifest를 운영 검증 완료로 표시하지 않는다.
+
+2026-10-05 진행 기록: `src/euler_campaign/mlx_backend.py`에 실제 MLX GPU 연산 preflight와
+compact-array Case DFN 생성의 첫 구현을 추가했다. 중심·법선·반경·절리군 ID는 MLX 배열로 생성하며
+Python 절리 객체를 만들지 않는다. MLX에 Poisson primitive가 없어 Poisson 제안 난수는 MLX에서
+생성하고 소규모 PTRS count candidate 계산·acceptance와 안정적 `lgamma`만 host에서 처리한다.
+이는 CPU simulation fallback이 아니며 per-joint 생성과 기하 계산은 계속 GPU 대상이다. 현 단계는
+DFN 생성 기반만 추가한 것으로 Euler profile geometry와 `EulerSimulator`에는 아직 연결되지 않았고,
+선·원판 교차, profile, campaign 연결도 미완료다. `src/test/test_euler_mlx.py`를 작성했으나 사용자
+요청에 따라 테스트는 assistant가 실행하지 않는다.
+
+2026-10-05 후속 진행: `MlxJointArrays.line_intersections`에 bounded chunk 기반 MLX 유한 원판 선
+교차를 추가했다. GPU는 평면 교차 거리, 선 구간 및 원판 내 포함 여부를 필터링하고, 실제 교차한
+joint만 기존 `LineIntersection`/`JointRealization` 결과 계약으로 변환한다. 평행면 제외, 양 끝점
+포함 및 거리 정렬을 반영했으며, 빈 배열·chunk 처리·finite-disk/end-point 사례의 테스트를 추가했다.
+이 새 테스트는 아직 실행되지 않았다. Face-disk 교차와 simulator/profile 연결은 계속 미완료다.
+
+2026-10-05 face geometry 진행: `MlxJointArrays.face_intersections`에 non-parallel disk 교차선의
+두 disk interval 및 domain slab 교집합 검사, 공면 원판 overlap의 plane-box/circle-boundary 후보
+검사를 chunk 단위로 추가했다. 각 chunk에서 GPU가 기하 후보를 판정하고 일치 여부 mask만 host로
+가져와 hit joint를 기존 타입으로 변환한다. 일반 교차, 공면 교차, domain 바깥 겹침을 확인하는
+테스트를 추가했으나 실행하지 않았다.
+
+2026-10-05 Simulator 연결 진행: `EulerSimulator(backend="mlx")` 경로를 추가해 생성 시 MLX GPU
+preflight를 수행하고, 기존 `JointGeometry` profile 계약에 `MlxJointArrays`를 연결했다. 기존
+기본 동작은 `backend="numpy"`로 유지하며 MLX 요청 시 GPU가 없으면 생성 단계에서 오류로 중단한다.
+`identify_domain`에 기본값이 기존 버전인 `generator_version` 인자를 추가해 MLX generation identity가
+NumPy 결과와 충돌하지 않도록 했다. end-to-end MLX simulator, GPU 미사용 거부, identity 분리 테스트를
+추가했다. 2026-10-05 사용자가 line/face geometry 및 MLX Simulator 변경을 포함한 전체 테스트
+통과를 확인했다. Campaign runner·CLI·SQLite 저장/재개 연결도 구현됐으며, 실제 장비에서의 통합
+smoke/resume와 scale pilot이 남아 있다.
+
+MLX 포팅의 상세 순서와 통과 기준:
+
+1. **실행 계약·환경 preflight:** 이 campaign의 backend는 `mlx`로 고정하고 CPU simulation
+   fallback을 금지한다. 실행 진입점은 시작 전 MLX import, GPU device 확인 및 실제 GPU 연산
+   preflight를 수행하며, 실패하면 simulation 시작 전에 종료한다. Run summary에는 backend/device,
+   execution fingerprint와 plan fingerprint를 기록한다. 실제 target 장비에서의 preflight 및
+   end-to-end 동작은 smoke 단계에서 확인한다.
+2. **GPU 상주 DFN 생성:** `CaseJointFactory`의 NumPy/`JointRealization` per-fracture 생성 대신
+   중심·법선·반경·절리군/조건 식별자를 compact array로 관리한다. Poisson 절리 개수, power-law
+   반경, Fisher 방향, domain buffer를 포함한 대량 난수 배열 생성은 MLX GPU 경로로 구현하고,
+   기존 분포 정의·조건 연결·seed 재현성을 보존한다. MLX가 필요한 분포 연산을 제공하지 않으면
+   GPU에서 동작하는 동등 sampler를 구현·검증하며 CPU sampler로 조용히 우회하지 않는다.
+3. **GPU 기하 교차:** borehole/face scanline의 유한 원판 교차와 tunnel face의 절리 disk 교차를
+   MLX array 연산으로 구현한다. 평행·끝점·허용오차·domain clipping·coplanar disk overlap 등
+   현재 `dfn.py` 계약을 보존한다. 모든 joint×profile 쌍을 한 번에 만들지 말고 joint/query를
+   memory-bounded chunk로 처리한다. chunk 크기는 임의로 고정하지 않고 pilot의 peak memory와
+   처리량으로 정한다.
+4. **GPU profile 계산 및 Simulator 연결:** 시추공 구간별 RQD, 교차 거리 정렬, 약한 Jr/Ja
+   category 선택과 provenance, face scanline RQD, Q′, 순차 tunnel advancement를 기존
+   `SimulationResult` 계약에 연결한다. Q′ 동률 선택과 joint ID provenance를 결정적으로 유지한다.
+   CPU는 입력 검증, 순차 제어, checkpoint/I/O 및 작은 결과 요약에만 사용하고 대량 geometry/profile
+   계산이나 배열 전체의 host 복사는 허용하지 않는다.
+5. **정확도·재현성 검증:** analytic geometry fixture로 선/원판 교차와 경계 사례를 검증하고,
+   동일한 작은 입력 배열에서 MLX 계산 결과와 알려진 기대값을 비교한다. power-law/Fisher 분포의
+   통계 특성, 같은 MLX 버전·seed의 재현성, Q′/provenance, 기존 profile 경계·굴진장 계약을
+   검사한다. 난수 생성 의미가 바뀌는 경우 기존 CPU 결과와 domain ID를 공유하지 않도록
+   `GENERATOR_VERSION` 또는 동등한 generation identity를 갱신한다.
+6. **Campaign 연결·중단/재개·동일 campaign 확장 검증:** `DesignSpec 5.6.10`의 ordered
+   start signatures와 독립 lineage 상태, append-only revision, generation별 결과/coverage 분리,
+   CampaignProject YAML, 영속 `CampaignStore`, revision/provenance, simulation 재사용 fingerprint,
+   원자 checkpoint 및 새 Euler CLI를 구현했다. 남은 검증에서는 강제 종료 후 재개와 saturation/
+   budget extension 결과가 uninterrupted 실행과 일치하는지, 완료 simulation이 불필요하게
+   재실행되지 않는지, `force-from-scratch`가 새 generation에서 결과를 격리하는지 확인한다.
+7. **단계적 GPU pilot·ETA 산정:** 작은 고정 fixture smoke 이후 Start 1 대표 Case로 시간·peak
+   memory·결과 크기·처리량을 측정하고, bounds 상단 stress workload는 측정 위험을 검토한 뒤
+   별도 단계로 실행한다. 측정치를 이용해 예상 수행 시간과 저장량을 산정하되 domain 수를 완료
+   목표로 사용하지 않는다. Coverage 완료 또는 모든 lineage 포화가 종료 조건이다. 이 pilot 및
+   결과 검토가 끝나기 전에는 대규모 campaign을 시작하지 않는다.
+
+사용자 요청에 따라 시작점 3개를 담는
+[`highq_euler_multistart_campaign_draft.yaml`](../cases/euler/highq_euler_multistart_campaign_draft.yaml)을
+작성했다. 첫 항목은 현재 Case 초안의 세 joint set 값을 명시적으로 복사하고, 두 추가 항목은
+사용자가 2026-10-05에 확정한 순서대로 set 1의 `P32`만 각각 100과 50으로 바꿨다. 이 두 값은 기존
+[`highq_v2_d10000_angle60_focused_large_base.yaml`](../cases/highq_portfolio_v2/highq_v2_d10000_angle60_focused_large_base.yaml)
+및
+[`highq_v2_d5000_angle60_focused_large_base.yaml`](../cases/highq_portfolio_v2/highq_v2_d5000_angle60_focused_large_base.yaml)에서
+가져왔다. 해당 legacy Case들이 단일 joint set이므로 그 방향·크기·조건은 새 Case에 적용하지
+않았으며, 사용자 수정분인 set 2/3와 나머지 시작점 파라미터는 현재 Euler 초안 값을 보존한다.
+시작점과 순서는 확정됐고 CampaignProject YAML loader 및 CLI가 구현됐다. 파일명은 여전히
+`draft`이므로 실제 실행 전에 참조 Case/catalog와 고정된 manifest 값의 최종 입력 검토를 수행한다.
+GPU smoke/resume 및 scale pilot을 통과하기 전까지는 운영 검증 완료로 취급하지 않는다.
+
+- [x] **굴진장 정책 구현:** `profiles.py`의 `next_round_length`. 정책은 확정되어 있으며
+  [DesignSpec 5.8.4](DesignSpec_20260922.md#584-q-기반-자동-굴진장)의 Q′ 구간별
+  다음 굴진장 표를 그대로 구현한다. 구간형 길이는 범위 중간값이다. 경계 및 입력 검증
+  테스트를 추가했고, 2026-10-05 사용자가 전체 42개 테스트 성공을 확인했다.
+- [x] **Tunnel profile 진행:** `sample_tunnel`. 시작 Face는 첫 굴진장 결정에만 사용,
   미래 Face 값에 직전 실제 굴진장 support 부여, segment 끝에서 round 절단, vertex 직전
-  방향, 무효 경계 Face에서 중단 및 마지막 유효 결과 보존.
-- [ ] **분포 비교:** `compare_profiles`. 실제 overlap으로 길이 support를 자르고
-  비짝지음 길이 가중 기술통계 및 Wasserstein-1 산출. 독립 조사용 시추공은 비교에서 제외.
-- [ ] **Case 검증과 identity:** `models.py`의 `validate_case`, `identify_signature`,
-  `identify_domain`은 현재 명시적으로 `NotImplementedError`다. 범주·geometry·절리군
-  일관성 검증과 signature/domain identity 계약을 검토한 뒤 구현한다.
-- [ ] **범주·case 설정 입출력:** `config.pyi`의 실제 구현. 승인된 범주표와 새 schema,
-  범주 미지정 오류, 기존 평균·표준편차 입력 거부, 왕복 저장. 기존 case의 범주는 사용자가
-  지정하며 자동 변환하지 않는다.
-- [ ] **DFN 생성과 실제 교차 계산:** `ports.pyi`의 `JointFactory`, `Simulator`,
-  `profiles.pyi`의 `JointGeometry` 구현체. 절리군 고정 조건을 joint에 전달하고 Face의
-  domain 내부 부분만 교차 대상으로 반환한다. 지금까지 테스트는 통제된 교차 입력이다.
-- [ ] **Profile coverage:** `coverage.pyi` 구현. 양의 실제 길이 bin 점유, seed별 parent gap,
+  방향, 무효 경계 Face에서 중단 및 마지막 유효 결과 보존. 구현과 회귀 테스트를 추가했고,
+  2026-10-05 사용자가 전체 47개 테스트 성공을 확인했다.
+- [x] **분포 비교:** `compare_profiles`. 계획 터널과 시추공의 실제 물리적 overlap 및 유효한
+  굴진면 평가 범위에서 각 profile의 유효 Q′ support를 각각 취해 비교한다. 두 profile의
+  chainage별 공통 표본 support는 요구하지 않으며, 각 profile에 값이 없는 구간은 해당 분포에서
+  제외하고 profile별 support 길이를 보존한다. 길이 가중 기술통계와 비짝음 Wasserstein-1을
+  산출하며 독립 조사용 시추공은 비교하지 않는다. `compare_profiles`를 이 계약에 맞게
+  수정했다. 구문 검사는 통과했으며, 2026-10-05 사용자가 전체 52개 테스트 성공을 확인했다.
+- [x] **Case 검증과 identity:** `models.py`의 `validate_case`, `identify_signature`,
+  `identify_domain`을 구현했다. Domain, 절리군, 터널 및 시추공 입력의 일관성을 검증하고,
+  canonical 절리군 생성 feature와 Q′ 조건 값으로 signature를, signature·seed·domain·
+  `qsimex-generation-v1`로 domain identity를 계산한다. 관련 테스트를 갱신·추가했으며
+  구문 및 편집기 진단을 통과했다. 2026-10-05 사용자가 전체 71개 테스트 성공을 확인했다.
+- [x] **범주·case 설정 입출력:** `config.py`에 YAML 범주 카탈로그 load, 명시적 category ID
+  참조를 사용하는 새 Case schema load/save, unknown/missing category 거부, `Jr/Ja` 평균·
+  표준편차 legacy key 거부, 입력 유효성 및 왕복 테스트를 구현했다. 승인된 Barton 범주표는
+  저장소에 없어 런타임에 사용자가 전달하는 카탈로그만 읽으며, 과거 Case를 자동 변환하지
+  않는다. 각 절리군이 지정된 범주 쌍을 공유하는 설정 계약이다. 2026-10-05 사용자가 전체
+  76개 테스트 성공을 확인했다. 이 완료 범위는 Barton catalog와 Case schema만 포함하며,
+  CampaignPlan 설정 입출력은 제공하지 않는다. 이를 Case schema에 섞지 않고 별도 잔여
+  작업으로 둔다.
+- [x] **DFN 생성과 실제 교차 계산:** `ports.pyi`의 `JointFactory`, `Simulator`,
+  `profiles.pyi`의 `JointGeometry` 구현체. Case와 seed로 전체 domain의 DFN을 생성한 뒤,
+  동일한 고정 DFN을 시추공 및 순차적인 tunnel-face 평가에 사용한다. DFN 자체를 굴진에
+  맞춰 점진 생성하지 않는다. 절리군 고정 조건을 해당 set의 모든 joint에 전달하고 Face의
+  domain 내부 부분만 교차 대상으로 반환한다. 절리 disk와 face가 정확히 coplanar인 경우도
+  두 disk가 domain 내부 face support에서 겹치면 포함한다. 현재 profile 단위 테스트의 `FixedGeometry`
+  등은 미리 정한 교차점을 반환하는 test double이므로 profile 계산만 검증하며 실제 DFN 생성·
+  교차 계산을 검증하지 않는다. 이 DFN/backend 작업을 coverage, updater, campaign의 실제
+  backend 연결에 선행한다. `euler_campaign/dfn.py`, `simulator.py` 및 실제 원판 교차 단위
+  테스트를 추가했다. Pylance 구문·진단 검사를 통과했고, 2026-10-05 사용자가 전체
+  85개 테스트 성공을 확인했다.
+- [x] **Profile coverage:** `coverage.pyi` 구현. 양의 실제 길이 bin 점유, seed별 parent gap,
   길이 가중 proximity, 동일 grid 비교 및 `ΔS=0.5D+0.5C`. Cutoff selector와 분리한다.
-- [ ] **오일러 시그니처 갱신:** `euler.pyi` 구현. 밀도→크기→방향, 로그 좌표 probe,
-  중앙차분, 약 5%/최대 5° 갱신, bounds, κ 고정, 독립 seed 3개 중 2개 이상 채택 기준.
-  민감도를 약 5% 갱신 vector에 연결하는 정확한 정규화 식은 협의 전 구현하지 않는다.
-- [ ] **새 campaign orchestration:** `campaign.pyi`를 구현. Parent→probe→민감도→후보→
-  paired 검증→채택/비채택→다음 block, 경계 고정·전체 포화 중단, 명시적 실패 상태.
-- [ ] **저장·재개 구현체:** `CampaignStore` 구현. Profile·seed·signature·grid·결정
-  provenance 및 round/state의 일관된 저장, 중단 후 재개, 기존 결과와 혼합 방지.
-- [ ] **실행 진입점:** 새 CLI와 simulation/store/update-rule 연결. 기존
-  `validation/run_campaign.py`는 아직 교체하지 않는다.
-- [ ] **통합 검증과 문서 정합화:** 실제 backend의 최소 end-to-end 경로, 재현성,
-  중단·재개·seed 채택 검증을 단계별 승인 후 수행. 검증된 새 campaign만 전환 대상으로
-  삼고 기존 파일 아카이브는 별도 승인 후 진행한다.
-
-파일 수는 고정하지 않는다. 현재 선언 골격은 핵심 책임 분리이며, simulation·저장소
-구현체와 실행 진입점이 빠져 있다. 선언 파일 존재를 구현 완료로 간주하지 않는다.
+  구현 후 2026-10-05 사용자가 전체 93개 테스트 성공을 확인했다.
+- [x] **오일러 시그니처 갱신:** `euler.py`에 밀도→크기→방향 순환, 양수 feature의 로그 좌표
+  probe, 방향 `β` probe, paired-score 민감도, 주입식 bounded update-rule 검증, κ 보존 및
+  독립 seed 3개 중 2개 이상 채택 판정을 구현했다. 기본 rule은 활성 block의 민감도 벡터를
+  최댓값으로 정규화하여 양수 feature log 좌표의 최대 요청 이동을 `0.05`, orientation의
+  최대 이동을 `5°`로 제한한다. 같은 joint set의 복수 borehole 축 기준 방향 민감도는
+  `decision_required`로 반환해 한 축씩 처리한다. Core와의 재사용 비교 및 분리 근거는
+  [20261005.md](20261005.md)에 기록했다. 2026-10-05 사용자가 전체 109개 테스트 성공을
+  확인했다.
+- [x] **MLX profile 반복계산·전달 최적화:** 시추공 profile은
+  모든 완전 interval의 선 query를 수집하고, `line_intersections_many`가 query batch × joint
+  chunk로 한 번에 처리한다. 메모리는 batch/chunk 크기로 제한하며 full query × full DFN
+  행렬은 만들지 않는다. 각 순차 face에서는 최대 두 scanline query와 face-disk 판정을
+  `face_and_line_intersections`의 동일 joint chunk traversal에 결합한다. MLX에서 CPU로
+  돌아오는 hit 자료는 거리와 joint/set ID로 제한하고 Q′ 계산에 필요한 조건은 compact
+  `JointProfileEvidence`로 전달한다. CPU geometry 경로와 결과 profile 계약은 유지한다.
+  batch/single 결과 동등성, chunk 경계, face+scanline 단일 pass, compact evidence의 Q′
+  provenance 테스트를 추가했고 Pylance 구문·진단 검사를 통과했다. 2026-10-05 사용자가
+  전체 123개 테스트 성공을 확인했다.
+- [x] **Campaign project·revision·재개 계약:** DesignSpec 5.6.10에 멀티스타트 campaign project,
+  `campaign_id`를 유지하는 불변 append-only plan revision, saturation 후 signature extension,
+  라운드 예산 extension 및 `force-from-scratch`의 generation 분리를 명시했다. project 정의와
+  mutable execution ledger를 분리하고, 동일 revision의 불일치 재개를 거부한다. Ordered
+  `start_signatures`, ordered plan fingerprint, per-lineage state/cursor 및 round provenance,
+  CampaignProject YAML, revision/predecessor 검증 및 append-only 확장을 구현했다. 코드 정적
+  진단과 전체 146개 테스트 통과를 사용자가 2026-10-05에 확인했다.
+- [x] **Campaign project YAML 입출력:** `config.py`/`config.pyi`에 `CampaignProject`,
+  `load_campaign_project()` 및 `save_campaign_project()`를 추가했다. 버전 고정 strict schema로
+  Case/catalog 상대 경로, ordered starts, grid, bounds, seed schedule, update-rule ID, revision
+  lineage, round budget, 고정 stop/execution policy 및 output path template을 읽고 쓴다.
+  참조 Case/catalog와 계획의 geometry·joint-set identity·조건 일관성을 검증하며, Case YAML
+  계약과 분리했다. 로드·저장 왕복 및 잘못된 입력 회귀 테스트를 추가했다.
+- [x] **CampaignStore 영속·결과 재사용:** immutable plan revision과 predecessor, 모든 lineage state,
+  중간·완료 `SimulationResult`, round ledger와 append-only result pool을 저장한다. Idempotent
+  simulation 저장과 revision/state 원자 checkpoint를 제공한다. 일반 revision extension은 같은
+  campaign pool의 결과를 유지하지만, coverage는 active `run_generation_id` 기준으로 격리한다.
+  Exact-match `(campaign_id, simulation_fingerprint, signature_id, seed)`만 일반 재개에서
+  재사용하며, `force-from-scratch`에서는 이전 generation cache를 읽지 않는다. 결과·round에는
+  revision과 generation provenance를 보존한다. Legacy CSV/JSONL 및 다른 campaign 결과는 명시적
+  provenance import 없이 섞지 않는다. SQLite 저장소 round-trip 및 generation coverage 격리
+  테스트를 포함해 전체 146개 테스트 통과를 사용자가 2026-10-05에 확인했다.
+- [x] **Campaign orchestration 다중 시작점·extension refactor:** 순서대로 각 lineage를 탐색하고
+  한 lineage가 saturation되면 그 기록과 결과를 보존해 다음 lineage로 이동한다. 미완료 campaign의
+  planned round budget을 모두 사용했으나 진행 가능한 탐색이 있으면 `round_budget_exhausted`로
+  대기하고, 새 plan revision으로 예산을 추가하면 완료 round를 보존한 채 추가분만 실행한다.
+  모든 lineage가 saturation됐지만 gap이 남으면 `all_lineages_saturated`로 대기하고, 새 signature를
+  append하는 별도 extension만 허용한다. Saturation을 라운드 수 증가만으로 해제하지 않는다.
+  `force-from-scratch`는 기존 완료 표시 및 결과를 재사용하지 않고 새 `run_generation_id`에서
+  처음부터 수행하며 coverage를 해당 세대 안에서만 계산한다. 일반 재개는 완료된 결과로 round를
+  재구성하고 미완료 simulation만 실행한다. Global coverage 완료, decision-required, 실패와
+  extension 대기 상태를 서로 구분해 기록한다. Store orchestration 위임 경로와 lineage/budget
+  extension 회귀 테스트를 추가했고, 전체 146개 테스트 통과를 사용자가 2026-10-05에 확인했다.
+- [x] **실행 진입점:** repository root의 `run_euler_campaign.py`와
+  `src/euler_campaign/cli.py`를 추가해 CampaignProject YAML, MLX-only simulator,
+  SQLite store 및 normalized-gradient update rule을 연결했다. 기본 실행은 현재 revision의
+  generation을 재개하고, revision extension은 predecessor generation을 이어 간다.
+  `--force-from-scratch`는 새 generation을 생성하며 이전 결과를 재사용하지 않는다.
+  CLI는 simulation 시작/완료, signature·seed, backend/device, execution fingerprint,
+  실패 이유 및 output/database 위치를 로그·run summary에 기록한다. CLI argument와
+  generation 선택 회귀 테스트를 추가했으며, 이를 포함한 전체 146개 테스트 통과를 사용자가
+  2026-10-05에 확인했다. 기존
+  `validation/run_campaign.py`와 legacy 결과는 교체·변환하지 않는다.
+- [ ] **통합 검증과 문서 정합화:** 중단 위치별 resume, 라운드 예산 extension, saturation 후
+  signature extension 및 force-from-scratch를 실제 backend에서 검증한다. 일반 resume는 완료
+  simulation을 재호출하지 않고, 각 extension은 완료 상태와 이전 Q′ coverage를 보존하며, 강제
+  처음부터 실행은 저장된 완료 이력을 새 generation에서 시작점부터 정상 종료 조건까지 재수행하고
+  이전 데이터가 coverage에 섞이지 않아야 한다. 별도 담당자의 동일 revision 재현 실행에서
+  canonical serialized results와
+  결정 이력이 정확히 같은지 확인한다. 검증된 새 campaign만 전환 대상으로 삼고 기존 파일
+  아카이브는 별도 승인 후 진행한다.
+- [x] **이전 단일-start campaign orchestration prototype:** `campaign.py`의 Parent→probe→민감도→후보→
+  paired 검증→채택/비채택→다음 block 흐름을 연결하고, 이전 Core ledger는 상태 재개와
+  domain 중복 제거 계약이 달라 재사용하지 않는다. `CampaignStore` 경계에 계획 저장·검증,
+  round별 원자 checkpoint, 시뮬레이션 저장, domain ID 중복 제거 누적 coverage 조회를
+  명시했다. 재개 시 같은 계획 fingerprint의 저장 상태를 우선 사용하며 탐색 seed·검증 seed,
+  grid·bounds·parent·stable update-rule ID가 달라지면 거부한다. 각 completed round 뒤 누적
+  pool의 모든 grid bin 관측, 명시적 결정/실패, 또는 현재 parent에서 모든 bound feature를
+  더 시도할 수 없는 포화까지 계속하며 중단 시 남은 coverage bin을 reason에 기록한다. 한
+  round-robin 주기만으로는 중단하지 않는다. 포화는 전체 coverage 달성을 보장하지 않으므로
+  잔여 bin과 사유를 남긴다.
+  저장 구현체와 실제 backend 연결은 다음 단계다. 2026-10-05 사용자는 해당 시점의 전체
+  132개 테스트 통과를 확인했다.
+파일 수는 고정하지 않는다. Multi-start orchestration, 영속 resume/store 및 실행 진입점은
+구현됐고, 사용자는 관련 전체 146개 테스트 통과를 2026-10-05에 확인했다. 실제 MLX GPU
+end-to-end smoke/resume, 대표 Case의 scale pilot 및 독립 실행자 재현성은 아직 검증 전이다.
+이 통합 검증 관문을 통과하기 전까지 실제 simulator 실행 준비가 검증 완료됐다고 간주하지 않는다.
 Longitudinal cutoff 표본 단위·가중·반복 측정 정책은 별도 미결 방법론으로 남으며,
 오일러 갱신 구현에 암묵적으로 포함하지 않는다.
+
+### 21.5 2026-10-05 Core–Euler 코드 재사용 검토 규칙
+
+`src/core`에 이미 DFN 생성, line intersection, Deere 직접 RQD, Q′ 계산, Case YAML,
+signature/domain identity, Q′BH coverage audit 및 Euler-style 후보 갱신·기록 코드가 있다.
+따라서 미완료 작업은 기존 구현을 먼저 확인하고, 신규 코드를 바로 작성하지 않는다.
+
+- 상세 대조표와 기능별 차이는 [20261005.md](20261005.md)에 기록한다.
+- 재사용 여부를 직접 재사용, adapter, 공통 primitive, 분리 구현으로 분류하고 근거를 남긴다.
+- 재사용이 무조건적인 목표는 아니다. 구형 Core 계산·schema·fallback이 Euler의 고정
+  Barton 조건, geometry 기반 profile, coverage score 또는 seed identity와 다르면 기존
+  동작을 새 계약에 강제로 맞추지 말고 차이를 보존한다.
+- 특히 profile coverage는 Q′BH 값 구간 audit과, Euler updater는 Core의 기존
+  explicit-Euler-style 후보 함수와 각각 의미를 대조한다. 중복 기능을 그대로 복사하거나
+  동일한 것으로 가정하지 않는다.
+- 이 검토는 계획·설계 절차이며 코드 구현 승인이 아니다. 구현은 사용자의 명시적 요청
+  범위에서만 시작한다.

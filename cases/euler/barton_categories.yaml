@@ -1,0 +1,38 @@
+# Barton categories selected and approved by the user for the High-Q Euler
+# campaign inputs on 2026-10-05.
+categories:
+  - category_id: jr_rough_undulating
+    parameter: Jr
+    description: Rough or irregular, undulating joint surface
+    lower_value: 3.0
+    upper_value: 3.0
+
+  - category_id: ja_slight_alteration_nonsoftening
+    parameter: Ja
+    description: Slightly altered joint walls; non-softening coating or clay-free disintegration
+    lower_value: 2.0
+    upper_value: 2.0
+
+  - category_id: jr_rough_planar
+    parameter: Jr
+    description: Rough or irregular, planar joint surface
+    lower_value: 1.5
+    upper_value: 1.5
+
+  - category_id: ja_silty_sandy_clay
+    parameter: Ja
+    description: Silty or sandy clay coating; small clay fraction
+    lower_value: 3.0
+    upper_value: 3.0
+
+  - category_id: jr_smooth_undulating
+    parameter: Jr
+    description: Smooth, undulating joint surface
+    lower_value: 2.0
+    upper_value: 2.0
+
+  - category_id: ja_softening_low_friction_or_thin_clay
+    parameter: Ja
+    description: Softening or low-friction clay coating, or thin/discontinuous clay filling
+    lower_value: 4.0
+    upper_value: 4.0

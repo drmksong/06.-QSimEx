@@ -1,14 +1,25 @@
 """Length-supported observations, sampling contracts, and distribution comparison."""
 
 from dataclasses import dataclass
-from typing import Literal, Protocol
-from .models import BoreholeSpec, CaseSpec, DomainSpec, JointRealization, LineIntersection, TunnelSpec, Vector3
+from typing import Literal, Protocol, Union, runtime_checkable
+from .models import BoreholeSpec, CaseSpec, DomainSpec, JointProfileEvidence, JointRealization, LineIntersection, TunnelSpec, Vector3
 from .geometry import ClippedBorehole, FaceSupport, OverlapInterval, TunnelStation
 from .qprime import QPrimeResult
 
+ProfileJoint = Union[JointRealization, JointProfileEvidence]
+LineQuery = tuple[Vector3, Vector3, float]
+
 class JointGeometry(Protocol):
     def line_intersections(self, start: Vector3, direction: Vector3, length: float) -> tuple[LineIntersection, ...]: ...
-    def face_intersections(self, station: TunnelStation, radius: float, domain: DomainSpec) -> tuple[JointRealization, ...]: ...
+    def face_intersections(self, station: TunnelStation, radius: float, domain: DomainSpec) -> tuple[ProfileJoint, ...]: ...
+
+@runtime_checkable
+class BatchedLineGeometry(Protocol):
+    def line_intersections_many(self, queries: tuple[LineQuery, ...]) -> tuple[tuple[LineIntersection, ...], ...]: ...
+
+@runtime_checkable
+class BatchedFaceGeometry(Protocol):
+    def face_and_line_intersections(self, station: TunnelStation, radius: float, domain: DomainSpec, line_queries: tuple[LineQuery, ...]) -> tuple[tuple[tuple[LineIntersection, ...], ...], tuple[ProfileJoint, ...]]: ...
 
 @dataclass(frozen=True)
 class ProfileInterval:

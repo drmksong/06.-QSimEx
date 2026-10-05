@@ -12,6 +12,7 @@
 | 문서 | 역할 / 현재 사용 |
 |---|---|
 | [DesignSpec_20260922.md](DesignSpec_20260922.md) | 현재 QSimEx 설계 계약의 기준. 날짜별 후속 결정과 논문 평가 항목 포함 |
+| [20261005.md](20261005.md) | `src/core`와 새 Euler campaign의 중복 검토 기록 및 다음 구현 단계의 재사용 검토 절차 |
 | [CoverageAdaptiveExecutionPlan_20260925.md](CoverageAdaptiveExecutionPlan_20260925.md) | Adaptive campaign의 작업·실행 계획. 2026-10-04 현재 계약 요약 및 후속 실행 규칙 포함 |
 | [QPrimeCutoffSelectionMethod_20260924.md](QPrimeCutoffSelectionMethod_20260924.md) | Q′ cutoff 방법론 초안. Legacy row-level 방법과 새 longitudinal profile 연결 미결 사항을 구분 |
 | [ImplementationPlan_20260925.md](ImplementationPlan_20260925.md) | Phase 3 구현 및 Stage handoff 이력. 2026-10-04 후속 정합성 경계 포함 |

@@ -18,6 +18,9 @@ setup(
     extras_require={
         'gui': ['PyQt6>=6.4.0'],
         'cadquery': ['cadquery>=2.3.0'],
+        'mlx': [
+            'mlx>=0.31.1; sys_platform == "darwin" and platform_machine == "arm64"',
+        ],
     },
     entry_points={
         'console_scripts': [

@@ -1,8 +1,10 @@
 """Q-prime only: raw RQD is preserved; no Jw/SRF or rock-class policy."""
 
 from dataclasses import dataclass
-from typing import Literal
-from .models import BartonCategory, JointRealization
+from typing import Literal, Union
+from .models import BartonCategory, JointProfileEvidence, JointRealization
+
+ProfileJoint = Union[JointRealization, JointProfileEvidence]
 
 @dataclass(frozen=True)
 class QPrimeProvenance:
@@ -23,5 +25,5 @@ class QPrimeResult:
     provenance: QPrimeProvenance
 
 def category_midpoint(category: BartonCategory) -> float: ...
-def select_weakest_joint(joints: tuple[JointRealization, ...]) -> JointRealization | None: ...
-def calculate_qprime(raw_rqd: float, domain_jn: float, joints: tuple[JointRealization, ...]) -> QPrimeResult: ...
+def select_weakest_joint(joints: tuple[ProfileJoint, ...]) -> ProfileJoint | None: ...
+def calculate_qprime(raw_rqd: float, domain_jn: float, joints: tuple[ProfileJoint, ...]) -> QPrimeResult: ...

@@ -1,0 +1,162 @@
+# Versioned campaign with a new-bin requirement for verification acceptance.
+# The original v1 manifest and its persisted run history remain unchanged.
+# Shared geometry, boreholes, tunnel, density_type, and Jr/Ja conditions come
+# from highq_euler_d20000_case_draft.yaml.
+schema_version: 1
+campaign_id: highq-euler-multistart-gap-v2
+plan_revision: 1
+parent_revision: null
+parent_plan_fingerprint: null
+base_case: highq_euler_d20000_case_draft.yaml
+category_catalog: barton_categories.yaml
+starts:
+  # Start 1: explicit copy of the current High-Q Euler Case joint-set values.
+  - joint_sets:
+      - set_id: 1
+        density_value: 200.0
+        size_alpha: 2.5
+        size_r_min: 10.0
+        size_r_max: 100.0
+        mean_dip: 30.0
+        mean_dip_dir: 60.0
+        fisher_kappa: 8.0
+      - set_id: 2
+        density_value: 2000.0
+        size_alpha: 2.5
+        size_r_min: 5.0
+        size_r_max: 50.0
+        mean_dip: 60.0
+        mean_dip_dir: 45.0
+        fisher_kappa: 8.0
+      - set_id: 3
+        density_value: 1000.0
+        size_alpha: 2.5
+        size_r_min: 10.0
+        size_r_max: 100.0
+        mean_dip: 75.0
+        mean_dip_dir: 150.0
+        fisher_kappa: 8.0
+
+  # Start 2: set 1 P32 from
+  # ../highq_portfolio_v2/highq_v2_d10000_angle60_focused_large_base.yaml;
+  # all other joint-set values are retained from the current Euler draft.
+  - joint_sets:
+      - set_id: 1
+        density_value: 100.0
+        size_alpha: 2.5
+        size_r_min: 10.0
+        size_r_max: 100.0
+        mean_dip: 30.0
+        mean_dip_dir: 60.0
+        fisher_kappa: 8.0
+      - set_id: 2
+        density_value: 2000.0
+        size_alpha: 2.5
+        size_r_min: 5.0
+        size_r_max: 50.0
+        mean_dip: 60.0
+        mean_dip_dir: 45.0
+        fisher_kappa: 8.0
+      - set_id: 3
+        density_value: 1000.0
+        size_alpha: 2.5
+        size_r_min: 10.0
+        size_r_max: 100.0
+        mean_dip: 75.0
+        mean_dip_dir: 150.0
+        fisher_kappa: 8.0
+
+  # Start 3: set 1 P32 from
+  # ../highq_portfolio_v2/highq_v2_d5000_angle60_focused_large_base.yaml;
+  # all other joint-set values are retained from the current Euler draft.
+  - joint_sets:
+      - set_id: 1
+        density_value: 50.0
+        size_alpha: 2.5
+        size_r_min: 10.0
+        size_r_max: 100.0
+        mean_dip: 30.0
+        mean_dip_dir: 60.0
+        fisher_kappa: 8.0
+      - set_id: 2
+        density_value: 2000.0
+        size_alpha: 2.5
+        size_r_min: 5.0
+        size_r_max: 50.0
+        mean_dip: 60.0
+        mean_dip_dir: 45.0
+        fisher_kappa: 8.0
+      - set_id: 3
+        density_value: 1000.0
+        size_alpha: 2.5
+        size_r_min: 10.0
+        size_r_max: 100.0
+        mean_dip: 75.0
+        mean_dip_dir: 150.0
+        fisher_kappa: 8.0
+
+bounds:
+  - feature_id: joint_sets.1.density_value
+    lower: 50.0
+    upper: 5000.0
+  - feature_id: joint_sets.2.density_value
+    lower: 2000.0
+    upper: 10000.0
+  - feature_id: joint_sets.3.density_value
+    lower: 1000.0
+    upper: 20000.0
+  - feature_id: joint_sets.1.size_r_min
+    lower: 5.0
+    upper: 20.0
+  - feature_id: joint_sets.1.size_r_max
+    lower: 50.0
+    upper: 150.0
+  - feature_id: joint_sets.2.size_r_min
+    lower: 5.0
+    upper: 20.0
+  - feature_id: joint_sets.2.size_r_max
+    lower: 50.0
+    upper: 150.0
+  - feature_id: joint_sets.3.size_r_min
+    lower: 5.0
+    upper: 20.0
+  - feature_id: joint_sets.3.size_r_max
+    lower: 50.0
+    upper: 150.0
+  - feature_id: joint_sets.1.orientation_beta@bh-1
+    lower: 0.0
+    upper: 90.0
+  - feature_id: joint_sets.2.orientation_beta@bh-1
+    lower: 0.0
+    upper: 90.0
+  - feature_id: joint_sets.3.orientation_beta@bh-1
+    lower: 0.0
+    upper: 90.0
+
+coverage_grid:
+  id: primary_profile_10bin_v1
+  bins: 10
+  edge_definition: "geomspace(0.1, 400.0, 11), replacing the first edge with 0.0"
+
+seed_schedule:
+  exploration: [1001]
+  verification: [1002, 1003, 1004]
+
+update_rule_id: normalized-gradient-gap-v2
+round_budget: null # No fixed cap; run until coverage completion or all lineages saturate.
+
+stop_policy:
+  coverage: all_primary_bins_observed
+  when_lineage_saturates: try_next_start
+  when_all_lineages_saturate: await_explicit_start_extension_with_remaining_gaps
+
+execution:
+  backend: mlx
+  gpu_required: true
+  cpu_fallback: false
+  device_policy: apple_silicon_mlx_gpu
+  record_actual_device_and_runtime_fingerprint: true
+  output_path_template: results/euler_campaigns/{campaign_id}/runs/{run_generation_id}
+  result_role: coverage_exploration_only
+  include_in_calibration: false
+  include_in_validation: false

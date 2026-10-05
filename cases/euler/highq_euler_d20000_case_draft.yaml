@@ -1,0 +1,88 @@
+# Partial schema migration draft; current parameter values approved by the user
+# as inputs for the High-Q Euler campaign on 2026-10-05. The draft filename is
+# retained until the campaign schema and runner can consume it.
+# Source: ../next_highq/highq_euler_d20000_focused_large_base.yaml
+# Source status: proposed_review_before_execution.
+# Legacy values were copied only where semantics map explicitly; sets 2 and 3
+# were initialized from set 1 and then edited by the user.
+# Legacy density-update metadata and scalar Q' target are not the new profile
+# coverage grid or normalized-gradient campaign rule, so they are not applied.
+case_id: highq_euler_d20000_focused_large_base
+
+domain:
+  cell_counts: [60, 30, 30]
+  grid_spacing: [1.0, 1.0, 1.0]
+  # Jn is the number of joint sets, per DesignSpec 5.8.1.
+  jn: 3.0
+
+joint_sets:
+  - set_id: 1
+    name: sparse_large_favorable
+    density_type: P32
+    # P32 is the canonical density input. In this legacy case family the
+    # density_factor labels are 100 * P32 (50->5000, 100->10000, 200->20000).
+    density_value: 200.0
+    size_alpha: 2.5
+    size_r_min: 10.0
+    size_r_max: 100.0
+    # Geological orientation: dip angle and dip direction (degrees).
+    mean_dip: 30.0
+    mean_dip_dir: 60.0
+    fisher_kappa: 8.0
+    condition:
+      jr_category: jr_rough_undulating
+      ja_category: ja_slight_alteration_nonsoftening
+  # Sets 2 and 3 were initialized from set 1, then edited by the user.
+  - set_id: 2
+    name: dense_small_favorable
+    density_type: P32
+    density_value: 2000.0
+    size_alpha: 2.5
+    size_r_min: 5.0
+    size_r_max: 50.0
+    mean_dip: 60.0
+    mean_dip_dir: 45.0
+    fisher_kappa: 8.0
+    condition:
+      jr_category: jr_rough_planar
+      ja_category: ja_silty_sandy_clay
+  - set_id: 3
+    name: dense_large_favorable
+    density_type: P32
+    density_value: 1000.0
+    size_alpha: 2.5
+    size_r_min: 10.0
+    size_r_max: 100.0
+    mean_dip: 75.0
+    mean_dip_dir: 150.0
+    fisher_kappa: 8.0
+    condition:
+      jr_category: jr_smooth_undulating
+      ja_category: ja_softening_low_friction_or_thin_clay
+
+boreholes:
+  - borehole_id: bh-1
+    # Legacy dy=0 and dz=0 locate the line on the tunnel centerline. The new
+    # physical line follows the explicit straight tunnel segment below.
+    start: [0.0, 15.0, 15.0]
+    direction: [1.0, 0.0, 0.0]
+    requested_length: 60.0
+    # DesignSpec 5.8.2 default; legacy rqd.scan_length=5.0 is a different value.
+    interval_length: 1.0
+    purpose: face_comparison
+
+tunnel:
+  # Straight tunnel: first and last ordered vertices are start and end.
+  # Legacy code progresses along x; center_y=15, center_z=15; domain x extent=60.
+  vertices:
+    - [0.0, 15.0, 15.0]
+    - [60.0, 15.0, 15.0]
+  radius: 5.0
+
+# Not represented by CaseSpec and intentionally not copied into executable fields:
+# seed=333 (campaign seed, not case input), global Jw/SRF distributions,
+# set 2/set 3 were initialized from set 1 and user-edited; review remaining values.
+# mean_spacing=50.0, legacy Jr/Ja distributions, and legacy borehole offsets.
+# rqd.scan_length=5.0 is not copied as interval_length.
+# target_gap_qprime_bh is a legacy scalar target, not a CoverageGrid.
+# The source's approval_status remains proposed_review_before_execution.

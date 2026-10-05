@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import isfinite
-from typing import Literal
+from typing import Literal, Union
 
-from .models import BartonCategory, JointRealization
+from .models import BartonCategory, JointProfileEvidence, JointRealization
+
+QPRIME_CALCULATION_VERSION = "qsimex-qprime-v1"
+ProfileJoint = Union[JointRealization, JointProfileEvidence]
 
 
 @dataclass(frozen=True)
@@ -34,8 +37,8 @@ def category_midpoint(category: BartonCategory) -> float:
 
 
 def select_weakest_joint(
-    joints: tuple[JointRealization, ...],
-) -> JointRealization | None:
+    joints: tuple[ProfileJoint, ...],
+) -> ProfileJoint | None:
     """Return a minimum-ratio joint; equal ratios retain input order."""
     return min(
         joints,
@@ -50,7 +53,7 @@ def select_weakest_joint(
 def calculate_qprime(
     raw_rqd: float,
     domain_jn: float,
-    joints: tuple[JointRealization, ...],
+    joints: tuple[ProfileJoint, ...],
 ) -> QPrimeResult:
     """Preserve supplied RQD separately from the calculation convention.
 

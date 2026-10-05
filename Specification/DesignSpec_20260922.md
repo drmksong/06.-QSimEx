@@ -1,3 +1,74 @@
+---
+name: karpathy-guidelines
+description: Behavioral guidelines to reduce common LLM coding mistakes. Use when writing, reviewing, or refactoring code to avoid overcomplication, make surgical changes, surface assumptions, and define verifiable success criteria.
+license: MIT
+---
+
+# Karpathy Guidelines
+
+Behavioral guidelines to reduce common LLM coding mistakes, derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+
+
+
 Updated todo list
 
 6.  QSimEx를 기준으로 현재 코드 구조, 문서, 실행 진입점, 최근 Git 상태를 함께 확인해서 “어디까지 되었고 다음에 무엇을 하면 되는지” 중심으로 정리하겠습니다. 먼저 저장된 메모와 프로젝트의 핵심 파일 목록을 좁혀 보겠습니다.
@@ -896,6 +967,17 @@ gradient-ascent 후보를 생성한다. 양수 파라미터는 계산에만 로�
 `β=asin(|n·d|)` 좌표를 쓰고 probe는 ±5°, 한 번의 update는 최대 5°로 제한한다. 법선은
 최소 대원 회전으로 변환해 `dip`/`dip_dir` 후보를 얻는다.
 
+2026-10-05 사용자 결정으로 normalized update 방향을 명시한다. 활성 block의 유한하고 0이
+아닌 민감도 `g_i`를 모아 `m=max_i |g_i|`로 나누고, 양수 feature의 log 좌표에서는
+`Δx_i=0.05(g_i/m)`, orientation의 `β` 좌표에서는
+`Δβ_i=5°(g_i/m)`로 이동한다. 따라서 해당 block에서 가장 큰 민감도 좌표의 요청 이동량이
+각각 `0.05` 또는 `5°`이고, 나머지 좌표는 민감도 비율을 유지한다. 각 결과는 물리 bounds에
+투영한다. 민감도가 없거나 모두 0이면 후보를 만들지 않는다. 투영 후
+`size_r_max > size_r_min`을 만족하지 못하면 임의로 경계를 재조정하지 않고 해당 제안을
+bound-limited로 반환한다. 한 joint set에서 서로 다른 borehole 축 기준 orientation 민감도가
+동시에 들어오면 단일 법선 update로 임의 결합하지 않고 한 축씩 처리하도록 결정이 필요함을
+반환한다.
+
 **Seed 재현성 판정의 정밀화.** 5.6.8의 2026-10-03/04 기록은 목표 bin 거리 또는 새 bin을
 사용한 효과 판정을 설명한다. 2026-10-04의 후속 합의에서는 위 profile coverage score를
 paired 판정 기준으로 구체화한다. 최초 탐색 seed에서 효과를 찾은 뒤 서로 다른 추가 seed
@@ -916,6 +998,128 @@ score와 길이 가중 proximity가 다른 합리적 집계 방식에 비해 어
 민감도와 약 5% update가 seed 변동·bounds·parameter coupling 아래서 안정적인지, 3개 seed 중
 2개 기준이 재현성에 어떤 영향을 주는지이다. 결론은 실제 실험 결과로 뒷받침하며, 본 스펙의
 선택 자체를 검증 결과로 주장하지 않는다.
+
+#### 5.6.10 다중 시작 시그니처와 중단 후 재개 (2026-10-05)
+
+단일 시작 시그니처의 bounded update는 해당 시작점 주변의 국소 coverage 확장에 머물 수
+있다. 이를 보완하고 중단 전 계산 결과를 보존하기 위해 Euler campaign은 복수의 시작
+시그니처를 하나의 재현 가능한 계획으로 관리한다.
+
+1. **고정된 시작점 목록:** 계획은 순서가 명시된 고유 `signature_id` 목록을 저장한다.
+   목록 순서는 실행 우선순위이며 계획 fingerprint에 포함한다. 시작점은 동일한 고정
+   domain·tunnel·borehole·조건 및 공통 feature bounds를 사용해야 한다. 중복 시작점이나
+   bounds 밖의 시작점은 조용히 제거·보정하지 않고 거부한다.
+2. **시작점별 lineage:** 각 시작점은 별도의 parent signature, 다음 feature block, round 번호,
+   blocked features, 상태와 시도 이력을 갖는다. 한 lineage의 민감도·후보·paired 점수는
+   다른 lineage와 섞지 않는다. 한 lineage에서 갱신이 수락되면 그 lineage만 이어 가고,
+   해당 lineage가 현재 update rule에서 포화되면 결과를 보존한 채 목록의 다음 시작점으로
+   이동한다. 한 round-robin 주기만으로 lineage를 포화 처리하지 않는다.
+3. **공유 누적 결과 pool:** 모든 시작점에서 성공적으로 완료된 parent, probe 및 검증
+   simulation을 하나의 campaign pool에 append-only로 보존한다. 중복 simulation 실행은
+   campaign/execution fingerprint·signature·seed가 일치할 때 기존 결과를 재사용하고,
+   서로 다른 lineage의 provenance 참조는 각각 남긴다. Coverage는 해당 계획의 grid에서
+   서로 다른 `domain_id` 결과의 observed-bin 합집합으로 계산한다. paired update 판정은
+   계속 각 lineage의 parent와 candidate 사이에서 seed별로 수행한다.
+4. **중단 후 재개:** 저장 계획에는 시작점 순서, grid, bounds, exploration/verification
+   seed schedule, stable update-rule ID 및 simulator/profile 계산 버전을 포함한다. 저장 상태는
+   active lineage와 나머지 lineage의 진행 위치를 포함한다. 각 `SimulationResult`는 round
+   완료 전에도 저장하고 `(campaign_id, execution fingerprint, signature_id, seed)`로 조회할
+   수 있어야 한다. 재개 시 완료된 simulation은 다시 실행하지 않고, 저장된 결과로 현재
+   round의 순수 probe/score/update 단계를 재구성한 뒤 미완료 simulation부터 진행한다.
+   RoundRecord와 다음 상태는 함께 checkpoint한다. RoundRecord의 완료 표시는 해당 실행
+   기록에서 유지하고, 일반 재개가 완료된 라운드를 다시 실행하지 않도록 한다. 이전 coverage나
+   round를 초기화·덮어쓰지 않는다.
+5. **종료·실패 상태 구분:** 누적 pool이 primary grid의 모든 bin을 관측하면 campaign을
+   `coverage_complete`로 종료한다.
+   그렇지 않으면 local saturation lineage를 차례로 건너뛰어 다음 시작점을 시도한다.
+   계획에 명시된 라운드 예산을 모두 소진했지만 유효한 탐색이 더 가능하면
+   `round_budget_exhausted` 상태로 저장해 추가 라운드 확장을 기다린다. 모든 시작점이
+   saturation 등 terminal 상태에 도달하면 `all_lineages_saturated`로 저장해 새 시작점 확장을
+   기다린다. 두 상태를 서로 혼동하지 않고, 남은 gap과 각 lineage의 종료 사유·미시도 시작점을
+   기록한다.
+   `decision_required` 및 campaign-level 실행/저장 실패는 상태를 보존하고 임의로 우회하지
+   않는다. 시작점이 유한하므로 전체 coverage 달성을 보장한다고 주장하지 않는다.
+6. **기존 자료 보호:** legacy CSV/JSONL이나 다른 campaign 결과를 자동으로 새 pool에 섞지
+   않는다. 재사용이 필요하면 원래 seed/domain/signature/provenance와 coverage schema를
+   검증하는 명시적 import 경로로 보존한다. 기존 결과를 새 schema로 소급 변환하거나 삭제하지
+   않는다.
+
+7. **Signature saturation 이후 동일 campaign의 연속 확장:** 모든 계획 lineage가 local
+   saturation으로 종료됐지만 primary grid에 미관측 bin이 남아 있으면, 사용자가 새 시작
+   signature를 추가해 같은 campaign을 명시적으로 확장할 수 있어야 한다. 이는 기존 계획을
+   수정하거나 처음부터 다시 실행하는 동작이 아니다.
+   - `campaign_id`는 확장 전후에 유지한다. 각 불변 CampaignPlan은 단조 증가하는
+     `plan_revision`과 해당 revision의 `plan_fingerprint`를 갖고, 확장 revision은 직전
+     revision ID 및 fingerprint를 부모로 기록한다. 동일 revision을 다른 시작점 목록이나 실행
+     조건으로 재개하면 거부한다.
+   - 확장은 직전 revision의 모든 lineage가 saturation 등 명시적 terminal 상태이고 실행 중인
+     작업이 없을 때만 허용한다. 새 signature는 기존 시작점 목록의 끝에 순서대로 추가하며,
+     기존 signature의 값·순서, lineage 상태, round 기록, checkpoint를 변경하거나 삭제하지
+     않는다. 새 lineage만 해당 시작 signature를 parent로 하여 round 0에서 시작하고 active
+     cursor를 새 lineage로 이동한다. coverage 완료로 종료된 campaign은 이 saturation 확장
+     경로를 사용하지 않는다.
+   - 확장 revision은 Case의 domain/tunnel/borehole geometry와 joint 조건, primary coverage
+     grid, 공통 feature bounds, seed schedule, update-rule ID, 결과 보존 및 calibration/validation
+     split 정책을 직전 revision과 동일하게 유지한다. 추가 시작점은 기존 공통 bounds와 고정
+     Case 조건을 만족해야 하며 중복 signature는 거부한다. 이를 바꿔야 하는 요청은 같은
+     campaign의 saturation 확장이 아니라 새 campaign 또는 별도 승인된 migration으로 처리한다.
+   - simulation 결과 pool은 revision 경계와 무관하게 campaign 단위 append-only로 유지한다.
+     coverage는 같은 primary grid에서 모든 revision의 저장 결과를 domain ID 중복 제거 후
+     합산한다. 새 revision 생성 시 기존 결과를 초기화·재계산·재분류하지 않는다. 각 결과와
+     lineage 참조에는 출처 revision, `run_generation_id`, signature, seed, domain 및 simulation
+     실행 fingerprint를 보존한다. 같은 generation 안의 일반 revision extension은 누적 coverage를
+     유지하지만, 서로 다른 run generation의 결과는 coverage 산출에서 합치지 않는다.
+   - 계획 revision fingerprint와 개별 simulation 재사용 fingerprint를 구분한다. revision
+     fingerprint는 해당 revision의 전체 ordered starts와 계획 조건을 포함한다. simulation
+     재사용은 simulation에 실제 영향을 주는 signature, seed, backend/runtime 및
+     generator/profile/simulator 구현 버전이 모두 일치할 때만 허용하며, revision에 시작점을
+     추가했다는 이유만으로 기존 결과를 무효화하지 않는다. 재사용 key는
+     `(campaign_id, simulation_fingerprint, signature_id, seed)`를 기준으로 한다.
+   - 다른 담당자의 재현 실행에 필요한 immutable Case와 Barton catalog, revision별 ordered
+     start signatures, grid/bounds, seed schedule, update-rule ID, 코드·generator·profile·
+     simulator 버전, source revision, dependency lock, backend/device/runtime fingerprint,
+     결과와 checkpoint를 함께 보존한다. 재현성 기준은 동일한 실행 fingerprint에서 canonical
+     serialized `SimulationResult`, coverage, round 기록과 lineage decision이 정확히 일치하는
+     것이다. 동일 revision 재개 시 fingerprint가 맞지 않으면 같은 실행으로 가장하거나 조용히
+     fallback하지 않고 명시적으로 거부한다. 기기·runtime fingerprint가 다른 실행은 동등한
+     재현 실행으로 간주하지 않으며 별도 호환성 검증 없이는 결과를 같은 campaign revision에
+     추가하지 않는다.
+8. **Campaign project와 실행 상태:** 멀티스타트 campaign은 다른 담당자가 열어 재개할 수
+   있는 명시적 project artifact로 관리한다. project 정의는 `campaign_id`, 불변 CampaignPlan
+   revision 이력, ordered start signatures, 각 revision의 계획 라운드 예산 및 확장 이력,
+   입력 Case/catalog의 식별자, 실행 fingerprint에 필요한 설정을 담는다. mutable한 라운드 완료
+   표시, active cursor, checkpoint, 결과와 coverage는 project 정의와 분리된 durable execution
+   ledger/store에 저장하고 project revision과 연결한다. 구현 형식이 단일 파일이든 복수 파일이든
+   이 둘의 경계를 보존해야 한다. 사용자가 계획 파일을 직접 편집해 완료 표시를 지우는 것은
+   재실행 지시로 해석하지 않는다.
+9. **추가 라운드와 처음부터 실행:** `round_budget_exhausted`인 미완료 campaign에는 사용자가
+   명시적으로 라운드 예산을 추가할 수 있다. 예산 단위는 simulation 개수가 아니라 추가로 허용할
+   완료 `RoundRecord` 수다. 실행은 저장된 active cursor와 결정적인 lineage 순서를 따라 다음에
+   진행 가능한 lineage를 선택하고, 그 lineage의 독립적인 round 번호를 증가시킨다. 이는 동일
+   `campaign_id`의 새 plan revision으로 기록하고, 기존 revision을 부모로 연결한다. 이전 revision에서
+   완료된 round, 결과, checkpoint와 coverage는 그대로 두며 새로 허용된 작업만 이어서 수행한다.
+   추가 확장은 반복해서 적용할 수 있고 매번 직전 revision을 부모로 남긴다. 라운드 예산 추가는
+   `all_lineages_saturated`,
+   `decision_required`, 실행 실패 또는 `coverage_complete`를 자동으로 해제하지 않는다. 특히
+   saturation된 lineage에는 유효한 다음 update가 없을 수 있으므로 라운드 수만 늘려 재시도하지
+   않는다. saturation 이후에는 7번의 새 시작 signature 확장 규칙을 사용하고, `decision_required`
+   및 실패는 각각 명시적 결정·복구가 필요하다.
+   - `force-from-scratch`는 선택한 불변 계획 revision의 모든 시작점과 라운드를 처음부터
+     실행하는 명시적 동작이다. 기존 execution ledger의 완료 표시만 삭제하는 방식으로 구현하지
+     않는다. 새 `run_generation_id`를 만들고 이전 generation의 SimulationResult 재사용을
+     금지하며, round와 simulation의 상태·결과·provenance를 새 generation에 별도로 저장한다.
+     새 generation의 coverage는 그 generation에서 생성된 결과만으로 계산하고 이전 generation의
+     결과와 합치지 않는다. 과거 generation은 재현성과 감사 목적으로 보존한다. 지정된 계획의
+     정상적인 종료 조건은 유지하되, 완료 표시된 과거 round는 초기 상태부터 다시 수행하고 기존
+     상태에서 이어받지 않는다. 새 generation도 같은 campaign의 계획을 재현하기 위한 실행이며,
+     조건이나 계획을 바꾸는 경우에는 새 plan revision 또는 별도 campaign이 필요하다.
+
+따라서 동일 `campaign_id`의 연속성은 revision 이력과 append-only 결과 pool로 표현하고,
+계획 revision 자체는 항상 불변으로 유지한다. 일반 재개, 라운드 예산 확장, saturation 후
+시작점 확장, 처음부터 실행은 서로 다른 명시적 action이며 상호 대체하지 않는다. 모든 변경은
+원자 checkpoint와 plan revision 또는 run generation provenance를 남긴다.
+`Simulator.evaluate(signature, seed)` backend 계약은 유지하고, 주 변경 범위는 CampaignPlan
+revision, per-lineage CampaignState, CampaignStore 및 orchestration이다.
 
 ### 5.7 수행시간과 정보 효율
 
@@ -1018,6 +1222,33 @@ fallback은 무교차 관측만으로 거칠고 맞물린 무변질 절리벽 �
 제공된 Barton Q 등급 경계와 기존 코드의 `ROCK_CLASSES` 경계가 일치하는지도 구현 때
 대조하고, 불일치가 있으면 출처와 적용 정책을 명시한다.
 
+#### Case 및 Barton 범주 YAML 입력
+
+Barton 범주는 case별로 추정하지 않고 별도 YAML 카탈로그에서 명시적으로 제공한다.
+카탈로그의 최상위 `categories` 목록은 `category_id`, `parameter` (`Jr` 또는 `Ja`),
+`description`, `lower_value`, `upper_value`를 포함한다. case의 각 joint set은
+`condition.jr_category`와 `condition.ja_category`에 해당 ID를 참조한다. 카탈로그에 없는
+ID, 중복 ID, parameter가 맞지 않는 참조 및 누락된 조건은 입력 오류이며 기본 범주를
+추정하거나 자동 지정하지 않는다.
+
+새 case YAML은 `case_id`, `domain`, `joint_sets`, `boreholes`, `tunnel`을 최상위 필드로
+갖는다. Domain은 `cell_counts`, `grid_spacing`, `jn`; joint set은 `set_id`, `name`,
+`density_type`, `density_value`, size 분포 파라미터, `mean_dip`, `mean_dip_dir`, `fisher_kappa`,
+`condition`; borehole은 물리적 `start`, `direction`, 길이, 목적; tunnel은 ordered `vertices`와
+`radius`를 사용한다. 선언된 schema 외의 필드는 오류로 처리한다. 기존 `Jr_mean`,
+`Jr_std`, `Ja_mean`, `Ja_std` 입력은 변환하지 않고 거부한다. 저장 시에도 category 정의를
+case에 복제하지 않고 category ID 참조를 기록하며, 카탈로그 값이나 과거 case 설정을
+자동 생성·변환하지 않는다.
+
+2026-10-05 방향 입력 명확화: 이 YAML 계약에서 기존 `mean_normal` 표기를
+`mean_dip`/`mean_dip_dir`로 명시한다. 이전 `mean_normal`은 입력 형식이 아니라 내부에서
+파생되는 절리면 법선벡터로만 사용한다.
+
+절리군 방향 입력은 지질공학 관례에 따라 경사각 `mean_dip` (0°~90°)과 경사방향
+`mean_dip_dir` (북쪽 기준 시계방향 방위각, 0°~360°; 360°는 0°와 동일)으로 정의한다.
+`mean_normal`은 YAML 입력 필드가 아니며, 내부 기하 계산이 필요할 때만 이 두 각도에서
+법선벡터로 파생한다. 따라서 사용자는 법선벡터를 직접 지정하지 않는다.
+
 #### 5.8.2 시추공 geometry와 Q′BH profile
 
 일반 시추공은 터널 geometry와 독립적인 물리 좌표 `(x,y,z)`의 선형 geometry다. 입력은
@@ -1043,14 +1274,21 @@ Q′BH profile 간격 `dx′`는 기본 1m로 하고 설정 가능하게 한다.
 
 굴진면 `Q′Face`는 station마다 산출해 거리순 시퀀스로 보존한다. 전체 터널 구간의 평균 하나로
 축약하지 않는다. 이는 기존 station별 face 계산 모델의 longitudinal 결과 보존에 관한 결정이며,
-새 cell별 face Q′ 모델을 도입한다는 의미는 아니다. Face와 시추공 profile의 비교는 tunnel
-segment와 시추공의 실제 overlap 범위에서만 수행한다. overlap 밖의 Q′BH 값은 독립 profile에
-그대로 보존한다.
+새 cell별 face Q′ 모델을 도입한다는 의미는 아니다. 계획된 터널의 경로와 geometry는 시추공
+때문에 변경하지 않는다. 시추공과 tunnel segment의 실제 물리적 overlap으로 비교 범위를
+정하고, 그 범위 안에서 유효한 굴진면 profile 평가를 완료한 뒤 Q′BH와 Q′Face를 비교한다.
+domain 경계 등으로 유효한 굴진면 평가가 끝난 지점 이후는 비교 범위에 포함하지 않는다.
+overlap 밖의 Q′BH 값은 독립 profile에 그대로 보존한다.
 
-비교는 station별 일대일 차이가 아니라 비짝지음 profile 분포 비교로 한다. 원본 profile과
-station 표식을 유지하며 Wasserstein-1 거리 및 기술통계를 산출한다. 방향이 바뀌는 polyline
-vertex에서는 round를 직전 직선 segment 끝에서 종료하고 다음 segment에서 새 round를
-시작한다. vertex face 방향은 도달한 직전 segment 방향으로 평가한다.
+비교는 station별 일대일 대응이나 양 profile의 chainage별 공통 표본 support 비교가 아니라,
+실제 물리적 overlap에 속하는 각 profile의 유효 Q′ 값을 각각 사용한 비짝음 분포 비교로 한다.
+따라서 양쪽 profile 값이 overlap의 서로 다른 위치에 있더라도 각각 유효한 관측이면 각 분포에
+포함한다. overlap 안에서도 해당 profile 값이 없는 구간은 그 profile의 분포에서 제외하며,
+profile별 실제 비교 support 길이를 따로 보존·보고한다. 양쪽 모두에서 공통 위치의 값이
+존재하는지를 요구하지 않는다. 원본 profile과 station 표식을 유지하며 Wasserstein-1 거리 및
+길이 가중 기술통계를 산출한다. 방향이 바뀌는 polyline vertex에서는 round를 직전 직선
+segment 끝에서 종료하고 다음 segment에서 새 round를 시작한다. vertex face 방향은 도달한
+직전 segment 방향으로 평가한다.
 
 domain 경계에서 원형 face의 domain 안쪽 부분만 계산한다. in-domain face area가 전체 face
 area의 50% 미만이면 해당 station을 무효 처리하고 경계에서 tunnel 진행을 멈춘다. 마지막
@@ -1064,9 +1302,18 @@ length)이다. 자동 굴진장 선택에는 `Jw=SRF=1`로 취급한 Q′를 사
 정책에만 적용하는 convention이며 Q′ 또는 full Q 계산식을 바꾸지 않는다.
 
 현재 굴진면의 `Q′Face`는 다음 round 길이를 정한다. 시작 face는 첫 round 길이 결정에
-사용하지만, 미래 face 비교 profile에는 포함하지 않는다. 유한 길이 범위의 대표 굴진장은
-범위 중간값으로 정하고, `Q′>10`이면 4.0m, `Q′≤0.1`이면 0.75m로 둔다. Round가 직선
-polyline segment 끝을 넘으려 하면 segment 끝에서 잘라 round를 종료한다.
+사용하지만, 미래 face 비교 profile에는 포함하지 않는다. 다음 굴진장은 다음 표에 따라 정한다.
+구간형 굴진장 범위는 중간값을 사용한다.
+
+| 현재 굴진면의 Q′ | 다음 굴진장 |
+| --- | ---: |
+| `Q′ > 10` | 4.0m |
+| `4 < Q′ ≤ 10` | 2.5m (`2.0m~3.0m`의 중간값) |
+| `1 < Q′ ≤ 4` | 1.75m (`1.5m~2.0m`의 중간값) |
+| `0.1 < Q′ ≤ 1` | 1.1m (`1.0m~1.2m`의 중간값) |
+| `Q′ ≤ 0.1` | 0.75m |
+
+Round가 직선 polyline segment 끝을 넘으려 하면 segment 끝에서 잘라 round를 종료한다.
 
 이에 따라 face station의 chainage 간격은 불균등할 수 있다. 분포 통계에서는 실제 대표
 굴진장으로 가중한다. 각 미래 face 값은 그 face에 도달하기까지의 직전 실제 굴진장으로

@@ -481,3 +481,17 @@ signature update 실행에서 적용할 현재 규칙을 DesignSpec 5.6.9 및 5.
 
 이번 계약의 수치 및 방법은 구현 전 설계 선택이다. 관측된 실행 결과나 학술적 타당성
 주장으로 기록하지 않으며, 이후 성능·민감도 평가는 별도 evidence 기록으로 남긴다.
+
+## 18. 2026-10-05 새 구현 전 Core 재사용 검토
+
+새 Euler campaign 또는 coverage 기능을 구현할 때는 `src/core`에 있는 선행 기능을 먼저
+대조한다. 구체적인 중복 검토 결과와 기능별 재사용/분리 근거는
+[20261005.md](20261005.md)에 기록했다.
+
+- 구현 전에 기존 API와 계획된 API의 의미, 자료형, 관측 단위, 경계 조건, ID 및 seed
+  identity를 비교하고 직접 재사용·adapter·공통 primitive·분리 구현 중 하나를 선택한다.
+- Q′BH 값 bin coverage와 longitudinal profile support coverage를 같은 것으로 취급하지 않는다.
+- 기존 `signature_candidates`/`coverage_rounds`의 Euler-style updater가 있으므로 새 updater를
+  만들기 전에 알고리즘·정규화·검증 차이를 확인한다. 미결 정책은 임의로 채우지 않는다.
+- 재사용이 안전하지 않으면 분리 구현할 수 있지만, 중복 책임과 그 이유를 계획 및 작업
+  로그에 남긴다. 이 검토는 구현 승인이나 campaign 실행 승인이 아니다.

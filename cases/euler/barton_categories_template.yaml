@@ -1,0 +1,15 @@
+# Structural template for src.euler_campaign.config.load_barton_categories.
+# Replace all placeholders with an approved Barton category catalog.
+# Do not use this template as scientific category data.
+categories:
+  - category_id: REPLACE_WITH_UNIQUE_JR_CATEGORY_ID
+    parameter: Jr
+    description: REPLACE_WITH_APPROVED_DESCRIPTION
+    lower_value: null
+    upper_value: null
+
+  - category_id: REPLACE_WITH_UNIQUE_JA_CATEGORY_ID
+    parameter: Ja
+    description: REPLACE_WITH_APPROVED_DESCRIPTION
+    lower_value: null
+    upper_value: null

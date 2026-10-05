@@ -1,0 +1,38 @@
+# Structural template for src.euler_campaign.config.load_case.
+# Replace every placeholder before loading; no physical case values are assumed.
+# Jr/Ja IDs must exist in the separately supplied Barton category catalog.
+case_id: REPLACE_WITH_CASE_ID
+
+domain:
+  cell_counts: [null, null, null]
+  grid_spacing: [null, null, null]
+  jn: null
+
+joint_sets:
+  - set_id: null
+    name: REPLACE_WITH_JOINT_SET_NAME
+    density_type: REPLACE_WITH_P32_OR_spacing
+    density_value: null
+    size_alpha: null
+    size_r_min: null
+    size_r_max: null
+    mean_dip: null
+    mean_dip_dir: null
+    fisher_kappa: null
+    condition:
+      jr_category: REPLACE_WITH_JR_CATEGORY_ID
+      ja_category: REPLACE_WITH_JA_CATEGORY_ID
+
+boreholes:
+  - borehole_id: REPLACE_WITH_BOREHOLE_ID
+    start: [null, null, null]
+    direction: [null, null, null]
+    requested_length: null
+    interval_length: null
+    purpose: REPLACE_WITH_face_comparison_OR_independent
+
+tunnel:
+  vertices:
+    - [null, null, null]
+    - [null, null, null]
+  radius: null
