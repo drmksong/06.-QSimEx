@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, fields, replace
 from math import asin, cos, degrees, exp, isfinite, log, log1p, radians, sin, sqrt
 from numbers import Real
+from random import Random
 from typing import Literal, Protocol
 
 from .coverage import CoverageResult, PairedScore, parent_gaps
@@ -61,6 +62,20 @@ class Sensitivity:
 
 
 @dataclass(frozen=True)
+class OrientationSweepCursor:
+    feature_id: str
+    beta: float
+    direction: Literal[-1, 1]
+
+
+@dataclass(frozen=True)
+class DensitySweepCursor:
+    feature_id: str
+    direction: Literal[-1, 1]
+    exhausted: bool = False
+
+
+@dataclass(frozen=True)
 class UpdateProposal:
     parent: Signature
     candidate: Signature | None
@@ -69,6 +84,9 @@ class UpdateProposal:
     bound_limited_features: tuple[str, ...]
     status: Literal["candidate", "bound_limited", "no_direction", "decision_required"]
     reason: str
+    orientation_cursor_updates: tuple[OrientationSweepCursor, ...] = ()
+    randomized_feature_ids: tuple[str, ...] = ()
+    density_cursor_updates: tuple[DensitySweepCursor, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -110,7 +128,11 @@ class NormalizedGradientUpdateRule:
         block: FeatureBlock,
         sensitivities: tuple[Sensitivity, ...],
         bounds: tuple[FeatureBound, ...],
+        *,
+        step_scale: float = 1.0,
     ) -> UpdateProposal:
+        if not isfinite(step_scale) or step_scale <= 0.0:
+            raise ValueError("step_scale must be finite and positive")
         if block not in _FEATURE_BLOCKS:
             raise ValueError(f"unsupported feature block: {block}")
         _validate_signature(parent, "parent")
@@ -168,15 +190,57 @@ class NormalizedGradientUpdateRule:
                 "update one borehole-axis orientation probe per joint set at a time",
             )
 
-        max_sensitivity = max(abs(item[0].derivative) for item in active)
-        updates: dict[str, float] = {}
+        feasible: list[
+            tuple[
+                Sensitivity,
+                FeatureBound,
+                tuple[int, str, str | None, FeatureBlock],
+                float,
+            ]
+        ] = []
         bound_limited: list[str] = []
-        for sensitivity, bound, descriptor, coordinate in active:
+        for item in active:
+            sensitivity, bound, descriptor, coordinate = item
+            lower = (
+                bound.lower
+                if descriptor[1] == "orientation_beta"
+                else log(bound.lower)
+            )
+            upper = (
+                bound.upper
+                if descriptor[1] == "orientation_beta"
+                else log(bound.upper)
+            )
+            if (
+                coordinate <= lower + _VECTOR_EPSILON
+                and sensitivity.derivative < 0.0
+            ) or (
+                coordinate >= upper - _VECTOR_EPSILON
+                and sensitivity.derivative > 0.0
+            ):
+                bound_limited.append(sensitivity.feature_id)
+            else:
+                feasible.append(item)
+
+        if not feasible:
+            return UpdateProposal(
+                parent,
+                None,
+                block,
+                sensitivities,
+                tuple(sorted(bound_limited)),
+                "bound_limited",
+                "all non-zero sensitivities point out of their feasible bounds",
+            )
+
+        max_sensitivity = max(abs(item[0].derivative) for item in feasible)
+        updates: dict[str, float] = {}
+        for sensitivity, bound, descriptor, coordinate in feasible:
             cap = (
                 self._ORIENTATION_STEP_CAP
                 if descriptor[1] == "orientation_beta"
                 else self._LOG_COORDINATE_STEP_CAP
-            )
+            ) * step_scale
             requested = coordinate + cap * sensitivity.derivative / max_sensitivity
             if descriptor[1] == "orientation_beta":
                 bounded = min(max(requested, bound.lower), bound.upper)
@@ -255,10 +319,229 @@ class GapSeekingNormalizedGradientUpdateRule(NormalizedGradientUpdateRule):
         return "normalized-gradient-gap-v2"
 
 
+class DensityExplorationUpdateRule(GapSeekingNormalizedGradientUpdateRule):
+    """Gap-seeking update with persisted density-step escalation on rejection."""
+
+    @property
+    def rule_id(self) -> str:
+        return "normalized-gradient-density-exploration-v3"
+
+    def propose(
+        self,
+        parent: Signature,
+        block: FeatureBlock,
+        sensitivities: tuple[Sensitivity, ...],
+        bounds: tuple[FeatureBound, ...],
+        *,
+        step_scale: float = 1.0,
+        orientation_cursors: tuple[OrientationSweepCursor, ...] = (),
+        density_cursors: tuple[DensitySweepCursor, ...] = (),
+    ) -> UpdateProposal:
+        if block == "density":
+            _validate_signature(parent, "parent")
+            if not isfinite(step_scale) or step_scale <= 0.0:
+                raise ValueError("step_scale must be finite and positive")
+            bound_map = _bound_map(bounds)
+            cursor_map = _density_cursor_map(density_cursors, bound_map)
+            if not isinstance(sensitivities, tuple):
+                raise TypeError("sensitivities must be a tuple")
+            for item in sensitivities:
+                if (
+                    not isinstance(item, Sensitivity)
+                    or item.block != "density"
+                    or item.feature_id not in bound_map
+                ):
+                    raise ValueError(
+                        "density sweep sensitivities must refer to bounded density features"
+                    )
+                if item.derivative is not None and not isfinite(item.derivative):
+                    raise ValueError("sensitivity derivatives must be finite")
+            feature_id = next_density_feature_id(bounds, density_cursors)
+            if feature_id is None:
+                return UpdateProposal(
+                    parent, None, block, sensitivities, (), "no_direction",
+                    "all density sweep features are exhausted",
+                )
+            bound, descriptor = bound_map[feature_id]
+            sensitivity_map = {item.feature_id: item for item in sensitivities}
+            sensitivity = sensitivity_map.get(feature_id)
+            cursor = cursor_map.get(feature_id)
+            if cursor is None:
+                direction: Literal[-1, 1] = (
+                    -1 if sensitivity is not None
+                    and sensitivity.derivative is not None
+                    and sensitivity.derivative < 0.0 else 1
+                )
+            else:
+                direction = cursor.direction
+
+            current = _feature_coordinate(parent, descriptor)
+            lower, upper = log(bound.lower), log(bound.upper)
+            if not lower <= current <= upper:
+                raise ValueError(f"parent feature is outside bounds: {feature_id}")
+            if (
+                direction < 0 and current <= lower + _VECTOR_EPSILON
+            ) or (
+                direction > 0 and current >= upper - _VECTOR_EPSILON
+            ):
+                cursor_update = DensitySweepCursor(feature_id, direction, True)
+                return UpdateProposal(
+                    parent,
+                    None,
+                    block,
+                    sensitivities,
+                    (feature_id,),
+                    "bound_limited",
+                    "density sweep reached its selected bound",
+                    density_cursor_updates=(cursor_update,),
+                )
+
+            target = min(
+                max(
+                    current + direction * self._LOG_COORDINATE_STEP_CAP * step_scale,
+                    lower,
+                ),
+                upper,
+            )
+            target_feature = exp(target)
+            reached_bound = (
+                target <= lower + _VECTOR_EPSILON
+                if direction < 0
+                else target >= upper - _VECTOR_EPSILON
+            )
+            cursor_update = DensitySweepCursor(
+                feature_id, direction, reached_bound,
+            )
+            candidate = _signature_with_updates(
+                parent, {feature_id: target_feature}, bound_map,
+            )
+            return UpdateProposal(
+                parent,
+                candidate,
+                block,
+                sensitivities,
+                (),
+                "candidate",
+                "density sweep toward "
+                + ("lower" if direction < 0 else "upper")
+                + " bound",
+                density_cursor_updates=(cursor_update,),
+            )
+
+        if block != "orientation":
+            return super().propose(
+                parent, block, sensitivities, bounds, step_scale=step_scale,
+            )
+
+        _validate_signature(parent, "parent")
+        bound_map = _bound_map(bounds)
+        if not isinstance(orientation_cursors, tuple) or any(
+            not isinstance(cursor, OrientationSweepCursor)
+            for cursor in orientation_cursors
+        ):
+            raise TypeError(
+                "orientation_cursors must contain OrientationSweepCursor values"
+            )
+        cursor_map = {cursor.feature_id: cursor for cursor in orientation_cursors}
+        if len(cursor_map) != len(orientation_cursors):
+            raise ValueError("orientation cursors must have unique feature IDs")
+        updates: dict[str, float] = {}
+        cursor_updates: list[OrientationSweepCursor] = []
+        bound_limited: list[str] = []
+        features_by_set: dict[int, set[str]] = {}
+
+        for sensitivity in sensitivities:
+            if sensitivity.block != "orientation":
+                raise ValueError("orientation sweep received a non-orientation sensitivity")
+            bound, descriptor = bound_map[sensitivity.feature_id]
+            set_id, name, _, _ = descriptor
+            if name != "orientation_beta":
+                raise ValueError("orientation sweep requires orientation_beta features")
+            features_by_set.setdefault(set_id, set()).add(sensitivity.feature_id)
+            if sensitivity.derivative is not None and not isfinite(sensitivity.derivative):
+                raise ValueError("sensitivity derivatives must be finite")
+
+            current_beta = _feature_coordinate(parent, descriptor)
+            cursor = cursor_map.get(sensitivity.feature_id)
+            beta = current_beta if cursor is None else cursor.beta
+            if not isfinite(beta) or not bound.lower <= beta <= bound.upper:
+                raise ValueError(
+                    f"orientation cursor is outside feature bounds: {sensitivity.feature_id}"
+                )
+            if cursor is not None and (
+                isinstance(cursor.direction, bool) or cursor.direction not in (-1, 1)
+            ):
+                raise ValueError("orientation cursor direction must be -1 or 1")
+            if cursor is None:
+                direction: Literal[-1, 1] = (
+                    -1 if sensitivity.derivative is not None
+                    and sensitivity.derivative < 0.0 else 1
+                )
+            else:
+                direction = cursor.direction
+
+            target = beta + direction * self._ORIENTATION_STEP_CAP
+            next_direction = direction
+            if target > bound.upper:
+                target, next_direction = bound.upper, -1
+            elif target < bound.lower:
+                target, next_direction = bound.lower, 1
+            if abs(target - beta) <= _VECTOR_EPSILON:
+                next_direction = -direction
+                target = min(
+                    max(beta + next_direction * self._ORIENTATION_STEP_CAP, bound.lower),
+                    bound.upper,
+                )
+
+            cursor_updates.append(
+                OrientationSweepCursor(
+                    sensitivity.feature_id, target, next_direction,
+                )
+            )
+            if abs(target - current_beta) <= _VECTOR_EPSILON:
+                bound_limited.append(sensitivity.feature_id)
+                continue
+            updates[sensitivity.feature_id] = target
+
+        if any(len(features) > 1 for features in features_by_set.values()):
+            return UpdateProposal(
+                parent, None, block, sensitivities, (), "decision_required",
+                "update one borehole-axis orientation probe per joint set at a time",
+            )
+
+        if not updates:
+            return UpdateProposal(
+                parent, None, block, sensitivities,
+                tuple(sorted(bound_limited)),
+                "bound_limited" if bound_limited else "no_direction",
+                "orientation sweep has no feasible next point",
+                tuple(cursor_updates),
+            )
+
+        try:
+            candidate = _signature_with_updates(parent, updates, bound_map)
+        except ValueError:
+            return UpdateProposal(
+                parent, None, block, sensitivities,
+                tuple(sorted(set(bound_limited) | set(updates))),
+                "bound_limited",
+                "orientation sweep point is physically invalid",
+                tuple(cursor_updates),
+            )
+        return UpdateProposal(
+            parent, candidate, block, sensitivities,
+            tuple(sorted(bound_limited)), "candidate",
+            "10-degree orientation sweep",
+            tuple(cursor_updates),
+        )
+
+
 _FEATURE_BLOCKS: tuple[FeatureBlock, ...] = ("density", "size", "orientation")
 _LOG_PROBE_STEP = log1p(0.1)
 _ANGLE_PROBE_STEP = 5.0
 _VECTOR_EPSILON = 1e-12
+_SIZE_RADIUS_LOWER = 0.05
+_SIZE_RADIUS_UPPER = 100.0
 
 
 def _feature_descriptor(feature_id: str) -> tuple[int, str, str | None, FeatureBlock]:
@@ -316,6 +599,55 @@ def _bound_map(
             raise ValueError(f"duplicate feature bound: {bound.feature_id}")
         result[bound.feature_id] = (bound, descriptor)
     return result
+
+
+def _density_cursor_map(
+    cursors: tuple[DensitySweepCursor, ...],
+    bound_map: dict[
+        str, tuple[FeatureBound, tuple[int, str, str | None, FeatureBlock]]
+    ],
+) -> dict[str, DensitySweepCursor]:
+    if not isinstance(cursors, tuple) or any(
+        not isinstance(cursor, DensitySweepCursor) for cursor in cursors
+    ):
+        raise TypeError("density_cursors must contain DensitySweepCursor values")
+    result = {cursor.feature_id: cursor for cursor in cursors}
+    if len(result) != len(cursors):
+        raise ValueError("density cursor feature IDs must be unique")
+    for cursor in cursors:
+        if (
+            cursor.feature_id not in bound_map
+            or bound_map[cursor.feature_id][1][3] != "density"
+            or isinstance(cursor.direction, bool)
+            or cursor.direction not in (-1, 1)
+            or not isinstance(cursor.exhausted, bool)
+        ):
+            raise ValueError("density sweep cursor is invalid")
+    return result
+
+
+def next_density_feature_id(
+    bounds: tuple[FeatureBound, ...],
+    cursors: tuple[DensitySweepCursor, ...] = (),
+) -> str | None:
+    bound_map = _bound_map(bounds)
+    cursor_map = _density_cursor_map(cursors, bound_map)
+    density_features = sorted(
+        (
+            (descriptor[0], feature_id)
+            for feature_id, (_, descriptor) in bound_map.items()
+            if descriptor[3] == "density"
+        ),
+        key=lambda item: item[0],
+    )
+    return next(
+        (
+            feature_id
+            for _, feature_id in density_features
+            if feature_id not in cursor_map or not cursor_map[feature_id].exhausted
+        ),
+        None,
+    )
 
 
 def _joint_set(signature: Signature, set_id: int) -> JointSetSpec:
@@ -491,6 +823,131 @@ def _signature_with_updates(
             changes["mean_dip_dir"] = mean_dip_dir
         joint_sets.append(replace(original, **changes))
     return identify_signature(replace(parent.case, joint_sets=tuple(joint_sets)))
+
+
+def _size_sampling_ranges(
+    parent: Signature,
+    bounds: tuple[FeatureBound, ...],
+) -> dict[int, tuple[tuple[float, float], tuple[float, float]]]:
+    bound_map = _bound_map(bounds)
+    result: dict[int, tuple[tuple[float, float], tuple[float, float]]] = {}
+    for joint_set in parent.case.joint_sets:
+        ranges: dict[str, tuple[float, float]] = {}
+        for name in ("size_r_min", "size_r_max"):
+            feature_id = f"joint_sets.{joint_set.set_id}.{name}"
+            if feature_id not in bound_map:
+                raise ValueError(
+                    f"size exploration requires bounds for {feature_id}"
+                )
+            bound = bound_map[feature_id][0]
+            lower = max(bound.lower, _SIZE_RADIUS_LOWER)
+            upper = min(bound.upper, _SIZE_RADIUS_UPPER)
+            if lower > upper:
+                raise ValueError(
+                    f"size bounds do not overlap the supported radius range: {feature_id}"
+                )
+            ranges[name] = (lower, upper)
+        minimum_range = ranges["size_r_min"]
+        maximum_range = ranges["size_r_max"]
+        if minimum_range[0] >= maximum_range[1]:
+            raise ValueError(
+                f"size bounds cannot produce size_r_min < size_r_max "
+                f"for joint set {joint_set.set_id}"
+            )
+        result[joint_set.set_id] = (minimum_range, maximum_range)
+    return result
+
+
+def validate_size_sampling_bounds(
+    parent: Signature,
+    bounds: tuple[FeatureBound, ...],
+) -> None:
+    _validate_signature(parent, "parent")
+    _size_sampling_ranges(parent, bounds)
+
+
+def resample_out_of_bounds_start_sizes(
+    parent: Signature,
+    bounds: tuple[FeatureBound, ...],
+    seed: int,
+) -> Signature:
+    _validate_signature(parent, "parent")
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError("size sampling seed must be a non-negative integer")
+    bound_map = _bound_map(bounds)
+    ranges = _size_sampling_ranges(parent, bounds)
+    generator = Random(seed)
+    updates: dict[str, float] = {}
+    for joint_set in sorted(parent.case.joint_sets, key=lambda item: item.set_id):
+        minimum_range, maximum_range = ranges[joint_set.set_id]
+        if (
+            minimum_range[0] <= joint_set.size_r_min <= minimum_range[1]
+            and maximum_range[0] <= joint_set.size_r_max <= maximum_range[1]
+            and joint_set.size_r_min < joint_set.size_r_max
+        ):
+            continue
+        while True:
+            sampled_minimum = _sample_log_uniform(generator, minimum_range)
+            sampled_maximum = _sample_log_uniform(generator, maximum_range)
+            if sampled_minimum < sampled_maximum:
+                break
+        updates[f"joint_sets.{joint_set.set_id}.size_r_min"] = sampled_minimum
+        updates[f"joint_sets.{joint_set.set_id}.size_r_max"] = sampled_maximum
+    if not updates:
+        return parent
+    return _signature_with_updates(parent, updates, bound_map)
+
+
+def _sample_log_uniform(
+    generator: Random,
+    interval: tuple[float, float],
+) -> float:
+    lower, upper = interval
+    if lower == upper:
+        return lower
+    sampled = exp(generator.uniform(log(lower), log(upper)))
+    return min(max(sampled, lower), upper)
+
+
+def _sample_size_proposal(
+    parent: Signature,
+    bounds: tuple[FeatureBound, ...],
+    seed: int,
+) -> UpdateProposal:
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError("size sampling seed must be a non-negative integer")
+    bound_map = _bound_map(bounds)
+    ranges = _size_sampling_ranges(parent, bounds)
+    generator = Random(seed)
+    updates: dict[str, float] = {}
+    randomized_feature_ids: list[str] = []
+    for set_id in sorted(ranges):
+        minimum_range, maximum_range = ranges[set_id]
+        while True:
+            sampled_minimum = _sample_log_uniform(generator, minimum_range)
+            sampled_maximum = _sample_log_uniform(generator, maximum_range)
+            if sampled_minimum < sampled_maximum:
+                break
+        minimum_id = f"joint_sets.{set_id}.size_r_min"
+        maximum_id = f"joint_sets.{set_id}.size_r_max"
+        updates[minimum_id] = sampled_minimum
+        updates[maximum_id] = sampled_maximum
+        randomized_feature_ids.extend((minimum_id, maximum_id))
+
+    candidate = _signature_with_updates(parent, updates, bound_map)
+    feature_ids = tuple(sorted(randomized_feature_ids))
+    if candidate == parent:
+        return UpdateProposal(
+            parent, None, "size", (), (), "no_direction",
+            "the sampled size pairs match the current parent",
+            randomized_feature_ids=feature_ids,
+        )
+    _validate_candidate(parent, candidate, "size", bound_map, frozenset(feature_ids))
+    return UpdateProposal(
+        parent, candidate, "size", (), (), "candidate",
+        "seeded log-uniform size-pair sampling",
+        randomized_feature_ids=feature_ids,
+    )
 
 
 def _candidate_at_probe_coordinate(
@@ -823,6 +1280,11 @@ def propose_update(
     sensitivities: tuple[Sensitivity, ...],
     bounds: tuple[FeatureBound, ...],
     rule: UpdateRule | None = None,
+    *,
+    step_scale: float = 1.0,
+    orientation_cursors: tuple[OrientationSweepCursor, ...] = (),
+    density_cursors: tuple[DensitySweepCursor, ...] = (),
+    size_seed: int | None = None,
 ) -> UpdateProposal:
     if block not in _FEATURE_BLOCKS:
         raise ValueError(f"unsupported feature block: {block}")
@@ -846,7 +1308,44 @@ def propose_update(
     selected_rule = rule if rule is not None else NormalizedGradientUpdateRule()
     if not callable(getattr(selected_rule, "propose", None)):
         raise TypeError("rule must provide a callable propose method")
-    proposal = selected_rule.propose(parent, block, sensitivities, bounds)
+    if not isfinite(step_scale) or step_scale <= 0.0:
+        raise ValueError("step_scale must be finite and positive")
+    if not isinstance(density_cursors, tuple):
+        raise TypeError("density_cursors must be a tuple")
+    if density_cursors and (
+        not isinstance(selected_rule, DensityExplorationUpdateRule)
+        or block != "density"
+    ):
+        raise ValueError("density cursors require the v3 density block")
+    if size_seed is not None:
+        if (
+            not isinstance(selected_rule, DensityExplorationUpdateRule)
+            or block != "size"
+            or sensitivities
+        ):
+            raise ValueError(
+                "seeded size sampling requires the v3 rule, size block, "
+                "and no sensitivities"
+            )
+        proposal = _sample_size_proposal(parent, bounds, size_seed)
+    elif isinstance(selected_rule, DensityExplorationUpdateRule):
+        proposal = selected_rule.propose(
+            parent,
+            block,
+            sensitivities,
+            bounds,
+            step_scale=step_scale,
+            orientation_cursors=orientation_cursors,
+            density_cursors=density_cursors,
+        )
+    elif isinstance(selected_rule, NormalizedGradientUpdateRule):
+        proposal = selected_rule.propose(
+            parent, block, sensitivities, bounds, step_scale=step_scale,
+        )
+    elif step_scale == 1.0:
+        proposal = selected_rule.propose(parent, block, sensitivities, bounds)
+    else:
+        raise TypeError("custom update rules do not support scaled step proposals")
     if not isinstance(proposal, UpdateProposal):
         raise TypeError("UpdateRule.propose must return an UpdateProposal")
     if proposal.parent != parent or proposal.block != block:
@@ -864,12 +1363,61 @@ def propose_update(
     for feature_id in proposal.bound_limited_features:
         if feature_id not in bound_map or bound_map[feature_id][1][3] != block:
             raise ValueError("bound-limited features must have bounds in the active block")
+    cursor_feature_ids: set[str] = set()
+    for cursor in proposal.orientation_cursor_updates:
+        if not isinstance(cursor, OrientationSweepCursor):
+            raise TypeError("orientation cursor updates must contain cursor values")
+        if cursor.feature_id in cursor_feature_ids:
+            raise ValueError("orientation cursor updates must have unique feature IDs")
+        cursor_feature_ids.add(cursor.feature_id)
+        if (
+            cursor.feature_id not in bound_map
+            or bound_map[cursor.feature_id][1][3] != "orientation"
+            or not isfinite(cursor.beta)
+            or not bound_map[cursor.feature_id][0].lower
+            <= cursor.beta
+            <= bound_map[cursor.feature_id][0].upper
+            or isinstance(cursor.direction, bool)
+            or cursor.direction not in (-1, 1)
+        ):
+            raise ValueError("orientation cursor update is invalid")
+    density_cursor_feature_ids: set[str] = set()
+    for cursor in proposal.density_cursor_updates:
+        if not isinstance(cursor, DensitySweepCursor):
+            raise TypeError("density cursor updates must contain cursor values")
+        if cursor.feature_id in density_cursor_feature_ids:
+            raise ValueError("density cursor updates must have unique feature IDs")
+        density_cursor_feature_ids.add(cursor.feature_id)
+        if (
+            cursor.feature_id not in bound_map
+            or bound_map[cursor.feature_id][1][3] != "density"
+            or block != "density"
+            or isinstance(cursor.direction, bool)
+            or cursor.direction not in (-1, 1)
+            or not isinstance(cursor.exhausted, bool)
+        ):
+            raise ValueError("density cursor update is invalid")
+    if (
+        not isinstance(proposal.randomized_feature_ids, tuple)
+        or len(set(proposal.randomized_feature_ids))
+        != len(proposal.randomized_feature_ids)
+    ):
+        raise ValueError("randomized feature IDs must be a unique tuple")
+    for feature_id in proposal.randomized_feature_ids:
+        if (
+            feature_id not in bound_map
+            or bound_map[feature_id][1][3] != block
+            or block != "size"
+        ):
+            raise ValueError("randomized feature IDs must be bounded size features")
     if proposal.status in ("candidate", "bound_limited") and proposal.candidate is not None:
         update_feature_ids = frozenset(
             sensitivity.feature_id
             for sensitivity in sensitivities
             if sensitivity.derivative is not None and sensitivity.derivative != 0.0
-        )
+        ) | frozenset(cursor_feature_ids) | frozenset(
+            proposal.randomized_feature_ids
+        ) | frozenset(density_cursor_feature_ids)
         _validate_candidate(
             parent,
             proposal.candidate,
@@ -879,6 +1427,10 @@ def propose_update(
         )
     elif proposal.candidate is not None:
         raise ValueError(f"{proposal.status} proposals must not contain a candidate")
+    elif proposal.randomized_feature_ids and proposal.status != "no_direction":
+        raise ValueError(
+            "randomized feature IDs without a candidate require no_direction status"
+        )
     if proposal.status == "candidate" and proposal.candidate is None:
         raise ValueError("candidate status requires a candidate signature")
     return proposal

@@ -23,6 +23,7 @@ import yaml
 from .campaign import (
     CampaignPlan,
     CampaignState,
+    _density_exhaustion_requires_new_starts,
     _plan_fingerprint,
     _validate_state,
     validate_plan,
@@ -540,12 +541,16 @@ def _validate_campaign_revision(project: CampaignProject) -> None:
         or not isinstance(project.parent_revision, int)
     ):
         raise ValueError("parent_revision must be an integer or null")
-    if project.plan_revision == 1:
-        if project.parent_revision is not None or project.parent_plan_fingerprint is not None:
-            raise ValueError("initial plan revision cannot have a predecessor")
+    if project.parent_revision is None:
+        if project.parent_plan_fingerprint is not None:
+            raise ValueError("a root plan revision cannot have a parent fingerprint")
     else:
-        if project.parent_revision != project.plan_revision - 1:
-            raise ValueError("parent_revision must be the immediately preceding revision")
+        if (
+            isinstance(project.parent_revision, bool)
+            or not isinstance(project.parent_revision, int)
+            or not 1 <= project.parent_revision < project.plan_revision
+        ):
+            raise ValueError("parent_revision must be an earlier positive revision")
         fingerprint = project.parent_plan_fingerprint
         if not isinstance(fingerprint, str) or not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
             raise ValueError("parent_plan_fingerprint must be a lowercase SHA-256 fingerprint")
@@ -859,7 +864,7 @@ def extend_campaign_project(
     new_start_signatures: tuple[Signature, ...] = (),
     additional_rounds: int | None = None,
 ) -> CampaignProject:
-    """Create an append-only revision for saturation or exhausted-budget extension."""
+    """Create an append-only revision for start or exhausted-budget extension."""
     if not isinstance(project, CampaignProject):
         raise TypeError("project must be a CampaignProject")
     if not isinstance(new_start_signatures, tuple):
@@ -873,8 +878,13 @@ def extend_campaign_project(
         raise ValueError("choose exactly one of new starts or additional rounds")
 
     if adds_starts:
-        if state.status != "all_lineages_saturated":
-            raise ValueError("new starts can only extend a saturated campaign")
+        if (
+            state.status != "all_lineages_saturated"
+            and not _density_exhaustion_requires_new_starts(project.plan, state)
+        ):
+            raise ValueError(
+                "new starts can only extend a saturated campaign or a density-exhausted campaign"
+            )
         plan = replace(
             project.plan,
             start_signatures=project.plan.start_signatures + new_start_signatures,

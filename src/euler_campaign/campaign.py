@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from hashlib import sha256
 import json
+from math import isfinite
 from typing import TYPE_CHECKING, Literal, Protocol
 from uuid import uuid4
 
@@ -17,8 +18,11 @@ from .coverage import (
     validate_grid,
 )
 from .euler import (
+    DensitySweepCursor,
+    DensityExplorationUpdateRule,
     FeatureBound,
     GapSeekingNormalizedGradientUpdateRule,
+    OrientationSweepCursor,
     ProbeEvidence,
     RepeatabilityResult,
     UpdateProposal,
@@ -27,7 +31,10 @@ from .euler import (
     build_probes,
     estimate_sensitivity,
     next_feature_block,
+    next_density_feature_id,
     propose_update,
+    resample_out_of_bounds_start_sizes,
+    validate_size_sampling_bounds,
 )
 from .models import FeatureBlock, Signature, identify_signature
 from .ports import Simulator
@@ -47,8 +54,6 @@ _CAMPAIGN_TERMINAL_STATUSES = frozenset(
         "failed",
     )
 )
-
-
 def _feature_block(feature_id: str) -> FeatureBlock:
     if not isinstance(feature_id, str):
         raise ValueError("feature_id must be a string")
@@ -105,6 +110,10 @@ class LineageState:
     blocked_features: tuple[str, ...]
     status: Literal["ready", "running", "stopped", "decision_required", "failed"]
     reason: str | None
+    density_step_scale: float = 1.0
+    orientation_cursors: tuple[OrientationSweepCursor, ...] = ()
+    size_sample_count: int = 0
+    density_cursors: tuple[DensitySweepCursor, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -383,29 +392,60 @@ def validate_plan(plan: CampaignPlan) -> None:
         raise ValueError("all bounds must refer to supported feature blocks")
     for block in _FEATURE_BLOCKS:
         if any(_feature_block(bound.feature_id) == block for bound in plan.bounds):
+            if (
+                block == "size"
+                and plan.update_rule_id == DensityExplorationUpdateRule().rule_id
+            ):
+                continue
             for signature in plan.start_signatures:
                 build_probes(signature, block, plan.bounds)
+    if plan.update_rule_id == DensityExplorationUpdateRule().rule_id:
+        density_features = {
+            bound.feature_id for bound in plan.bounds
+            if _feature_block(bound.feature_id) == "density"
+        }
+        expected_density_features = {
+            f"joint_sets.{set_id}.density_value" for set_id in initial_sets
+        }
+        if density_features != expected_density_features:
+            raise ValueError(
+                "v3 density exploration requires one density bound per joint set"
+            )
+        for signature in plan.start_signatures:
+            validate_size_sampling_bounds(signature, plan.bounds)
     _plan_fingerprint(plan)
 
 
 def initialize_campaign(plan: CampaignPlan) -> CampaignState:
     validate_plan(plan)
-    return CampaignState(
-        campaign_id=plan.campaign_id,
-        plan_fingerprint=_plan_fingerprint(plan),
-        active_lineage_index=0,
-        lineages=tuple(
+    lineages = []
+    for signature in plan.start_signatures:
+        parent = signature
+        if plan.update_rule_id == DensityExplorationUpdateRule().rule_id:
+            seed_material = (
+                f"{plan.exploration_seed}:{signature.signature_id}:"
+                "initial-size-resampling"
+            ).encode("utf-8")
+            size_seed = int.from_bytes(sha256(seed_material).digest()[:8], "big")
+            parent = resample_out_of_bounds_start_sizes(
+                signature, plan.bounds, size_seed,
+            )
+        lineages.append(
             LineageState(
                 start_signature_id=signature.signature_id,
-                parent=signature,
+                parent=parent,
                 next_block="density",
                 next_round_index=0,
                 blocked_features=(),
                 status="ready",
                 reason=None,
             )
-            for signature in plan.start_signatures
-        ),
+        )
+    return CampaignState(
+        campaign_id=plan.campaign_id,
+        plan_fingerprint=_plan_fingerprint(plan),
+        active_lineage_index=0,
+        lineages=tuple(lineages),
         status="ready",
         reason=None,
     )
@@ -486,6 +526,62 @@ def _validate_state(plan: CampaignPlan, state: CampaignState) -> None:
             or not set(lineage.blocked_features) <= bound_ids
         ):
             raise ValueError("blocked_features must be unique planned feature IDs")
+        if (
+            isinstance(lineage.density_step_scale, bool)
+            or not isinstance(lineage.density_step_scale, (int, float))
+            or not isfinite(lineage.density_step_scale)
+            or lineage.density_step_scale < 1.0
+        ):
+            raise ValueError("density_step_scale must be finite and at least 1")
+        if (
+            isinstance(lineage.size_sample_count, bool)
+            or not isinstance(lineage.size_sample_count, int)
+            or lineage.size_sample_count < 0
+        ):
+            raise ValueError("size_sample_count must be a non-negative integer")
+        if not isinstance(lineage.orientation_cursors, tuple):
+            raise TypeError("orientation_cursors must be a tuple")
+        cursor_ids: set[str] = set()
+        for cursor in lineage.orientation_cursors:
+            if not isinstance(cursor, OrientationSweepCursor):
+                raise TypeError(
+                    "orientation_cursors must contain OrientationSweepCursor values"
+                )
+            if cursor.feature_id in cursor_ids:
+                raise ValueError("orientation cursor feature IDs must be unique")
+            cursor_ids.add(cursor.feature_id)
+            if (
+                cursor.feature_id not in bound_ids
+                or not any(
+                    bound.feature_id == cursor.feature_id
+                    and _feature_block(bound.feature_id) == "orientation"
+                    and bound.lower <= cursor.beta <= bound.upper
+                    for bound in plan.bounds
+                )
+                or not isfinite(cursor.beta)
+                or isinstance(cursor.direction, bool)
+                or cursor.direction not in (-1, 1)
+            ):
+                raise ValueError("orientation cursor is outside planned bounds")
+        if not isinstance(lineage.density_cursors, tuple):
+            raise TypeError("density_cursors must be a tuple")
+        density_cursor_ids: set[str] = set()
+        for cursor in lineage.density_cursors:
+            if not isinstance(cursor, DensitySweepCursor):
+                raise TypeError(
+                    "density_cursors must contain DensitySweepCursor values"
+                )
+            if cursor.feature_id in density_cursor_ids:
+                raise ValueError("density cursor feature IDs must be unique")
+            density_cursor_ids.add(cursor.feature_id)
+            if (
+                cursor.feature_id not in bound_ids
+                or _feature_block(cursor.feature_id) != "density"
+                or isinstance(cursor.direction, bool)
+                or cursor.direction not in (-1, 1)
+                or not isinstance(cursor.exhausted, bool)
+            ):
+                raise ValueError("density cursor is outside planned bounds")
         for block in _FEATURE_BLOCKS:
             if any(_feature_block(bound.feature_id) == block for bound in plan.bounds):
                 build_probes(lineage.parent, block, plan.bounds)
@@ -529,6 +625,40 @@ def _replace_active_lineage(
         lineages=tuple(lineages),
         status=updated.status,
         reason=updated.reason,
+    )
+
+
+def _lineage_density_sweep_complete(
+    plan: CampaignPlan,
+    lineage: LineageState,
+) -> bool:
+    density_feature_ids = {
+        bound.feature_id for bound in plan.bounds
+        if _feature_block(bound.feature_id) == "density"
+    }
+    cursor_map = {
+        cursor.feature_id: cursor for cursor in lineage.density_cursors
+    }
+    return bool(density_feature_ids) and all(
+        feature_id in cursor_map and cursor_map[feature_id].exhausted
+        for feature_id in density_feature_ids
+    )
+
+
+def _density_exhaustion_requires_new_starts(
+    plan: CampaignPlan,
+    state: CampaignState,
+) -> bool:
+    return (
+        plan.update_rule_id == DensityExplorationUpdateRule().rule_id
+        and state.status == "decision_required"
+        and bool(state.lineages)
+        and all(
+            lineage.status == "stopped"
+            and isinstance(lineage.reason, str)
+            and lineage.reason.startswith("density range exhausted")
+            for lineage in state.lineages
+        )
     )
 
 
@@ -626,15 +756,47 @@ def run_round(
             proposal, None, state.active_lineage.start_signature_id,
         )
 
-    active_bounds = tuple(
-        bound for bound in plan.bounds
-        if bound.feature_id not in state.blocked_features
+    random_size_sampling = (
+        isinstance(update_rule, DensityExplorationUpdateRule)
+        and state.next_block == "size"
     )
-    block_bounds = tuple(
-        bound for bound in active_bounds
-        if _feature_block(bound.feature_id) == state.next_block
+    density_sweep = (
+        isinstance(update_rule, DensityExplorationUpdateRule)
+        and state.next_block == "density"
     )
-    if not block_bounds:
+    if density_sweep:
+        block_bounds = tuple(
+            bound for bound in plan.bounds
+            if _feature_block(bound.feature_id) == "density"
+        )
+        selected_density_id = next_density_feature_id(
+            block_bounds, state.active_lineage.density_cursors,
+        )
+        if selected_density_id is None:
+            proposal = UpdateProposal(
+                state.parent, None, state.next_block, (), (), "no_direction",
+                "all density sweep features are exhausted",
+            )
+            return RoundRecord(
+                state.next_round_index, state.next_block, parent_coverage, (),
+                proposal, None, state.active_lineage.start_signature_id,
+            )
+        probe_bounds = tuple(
+            bound for bound in block_bounds
+            if bound.feature_id == selected_density_id
+        )
+    else:
+        active_bounds = tuple(
+            bound for bound in plan.bounds
+            if bound.feature_id not in state.blocked_features
+        )
+        block_bounds = tuple(
+            bound for bound in active_bounds
+            if _feature_block(bound.feature_id) == state.next_block
+        )
+        probe_bounds = block_bounds
+
+    if not block_bounds and not random_size_sampling:
         previously_blocked = tuple(
             sorted(
                 bound.feature_id for bound in plan.bounds
@@ -658,33 +820,72 @@ def run_round(
             proposal, None, state.active_lineage.start_signature_id,
         )
 
-    probes = build_probes(state.parent, state.next_block, block_bounds)
-    gaps = parent_gaps(parent_coverage)
-    evidence: list[ProbeEvidence] = []
-    for probe in probes:
-        minus_score = None
-        plus_score = None
-        if probe.minus is not None:
-            minus_coverage = _evaluate(
-                plan, probe.minus, plan.exploration_seed, simulator, store, cache,
-            )
-            minus_score = score_pair(parent_coverage, minus_coverage, gaps)
-        if probe.plus is not None:
-            plus_coverage = _evaluate(
-                plan, probe.plus, plan.exploration_seed, simulator, store, cache,
-            )
-            plus_score = score_pair(parent_coverage, plus_coverage, gaps)
-        evidence.append(
-            ProbeEvidence(
-                probe, plan.exploration_seed, parent_coverage,
-                minus_score, plus_score,
-            )
+    if random_size_sampling:
+        sample_index = state.active_lineage.size_sample_count
+        seed_material = (
+            f"{plan.exploration_seed}:{state.active_lineage.start_signature_id}:"
+            f"{sample_index}"
+        ).encode("utf-8")
+        size_seed = int.from_bytes(sha256(seed_material).digest()[:8], "big")
+        evidence: list[ProbeEvidence] = []
+        proposal = propose_update(
+            state.parent,
+            state.next_block,
+            (),
+            tuple(
+                bound for bound in plan.bounds
+                if _feature_block(bound.feature_id) == "size"
+            ),
+            update_rule,
+            size_seed=size_seed,
         )
+    else:
+        probes = build_probes(state.parent, state.next_block, probe_bounds)
+        gaps = parent_gaps(parent_coverage)
+        evidence = []
+        for probe in probes:
+            minus_score = None
+            plus_score = None
+            if probe.minus is not None:
+                minus_coverage = _evaluate(
+                    plan, probe.minus, plan.exploration_seed, simulator, store, cache,
+                )
+                minus_score = score_pair(parent_coverage, minus_coverage, gaps)
+            if probe.plus is not None:
+                plus_coverage = _evaluate(
+                    plan, probe.plus, plan.exploration_seed, simulator, store, cache,
+                )
+                plus_score = score_pair(parent_coverage, plus_coverage, gaps)
+            evidence.append(
+                ProbeEvidence(
+                    probe, plan.exploration_seed, parent_coverage,
+                    minus_score, plus_score,
+                )
+            )
 
-    sensitivities = tuple(estimate_sensitivity(item) for item in evidence)
-    proposal = propose_update(
-        state.parent, state.next_block, sensitivities, block_bounds, update_rule,
-    )
+        sensitivities = tuple(estimate_sensitivity(item) for item in evidence)
+        proposal = propose_update(
+            state.parent,
+            state.next_block,
+            sensitivities,
+            block_bounds,
+            update_rule,
+            step_scale=(
+                state.active_lineage.density_step_scale
+                if state.next_block == "density"
+                else 1.0
+            ),
+            orientation_cursors=(
+                state.active_lineage.orientation_cursors
+                if isinstance(update_rule, DensityExplorationUpdateRule)
+                else ()
+            ),
+            density_cursors=(
+                state.active_lineage.density_cursors
+                if density_sweep
+                else ()
+            ),
+        )
     verification = None
     if proposal.status == "candidate":
         candidate = proposal.candidate
@@ -718,9 +919,16 @@ def run_round(
     )
 
 
-def advance_state(state: CampaignState, record: RoundRecord) -> CampaignState:
+def advance_state(
+    state: CampaignState,
+    record: RoundRecord,
+    *,
+    escalate_density_on_rejection: bool = False,
+) -> CampaignState:
     if not isinstance(state, CampaignState) or not isinstance(record, RoundRecord):
         raise TypeError("state and record must be campaign values")
+    if not isinstance(escalate_density_on_rejection, bool):
+        raise TypeError("escalate_density_on_rejection must be a boolean")
     if state.status not in ("ready", "running"):
         raise ValueError("only ready/running campaigns can advance")
     lineage = state.active_lineage
@@ -738,6 +946,32 @@ def advance_state(state: CampaignState, record: RoundRecord) -> CampaignState:
 
     parent = state.parent
     blocked = set(state.blocked_features)
+    density_step_scale = lineage.density_step_scale
+    orientation_cursors = {
+        cursor.feature_id: cursor for cursor in lineage.orientation_cursors
+    }
+    orientation_feature_ids = {
+        cursor.feature_id for cursor in proposal.orientation_cursor_updates
+    }
+    orientation_cursors.update(
+        (cursor.feature_id, cursor)
+        for cursor in proposal.orientation_cursor_updates
+    )
+    density_cursors = {
+        cursor.feature_id: cursor for cursor in lineage.density_cursors
+    }
+    density_cursor_feature_ids = {
+        cursor.feature_id for cursor in proposal.density_cursor_updates
+    }
+    density_cursors.update(
+        (cursor.feature_id, cursor)
+        for cursor in proposal.density_cursor_updates
+    )
+    size_sample_count = lineage.size_sample_count
+    if proposal.randomized_feature_ids:
+        if proposal.block != "size":
+            raise ValueError("randomized feature proposals must use the size block")
+        size_sample_count += 1
     status: Literal["ready", "running", "stopped", "decision_required", "failed"] = "running"
     reason = None
     if len(record.parent_coverage.observed_bins) == len(record.parent_coverage.bins):
@@ -755,13 +989,39 @@ def advance_state(state: CampaignState, record: RoundRecord) -> CampaignState:
             parent = proposal.candidate
             blocked = set()
         else:
-            blocked.update(item.feature_id for item in proposal.sensitivities)
-            blocked.update(proposal.bound_limited_features)
+            if escalate_density_on_rejection and proposal.block == "density":
+                blocked.update(
+                    feature_id for feature_id in proposal.bound_limited_features
+                    if feature_id not in density_cursor_feature_ids
+                )
+                density_step_scale *= 2.0
+                if not isfinite(density_step_scale):
+                    raise OverflowError("density step scale exceeded finite range")
+            else:
+                blocked.update(
+                    item.feature_id for item in proposal.sensitivities
+                    if item.feature_id not in orientation_feature_ids
+                    and item.feature_id not in density_cursor_feature_ids
+                )
+                blocked.update(
+                    feature_id for feature_id in proposal.bound_limited_features
+                    if feature_id not in orientation_feature_ids
+                    and feature_id not in density_cursor_feature_ids
+                )
     else:
         if record.verification is not None:
             raise ValueError("non-candidate proposals must not have verification results")
-        blocked.update(proposal.bound_limited_features)
-        blocked.update(item.feature_id for item in proposal.sensitivities)
+        blocked.update(
+            feature_id for feature_id in proposal.bound_limited_features
+            if feature_id not in orientation_feature_ids
+            and feature_id not in density_cursor_feature_ids
+        )
+        blocked.update(
+            item.feature_id for item in proposal.sensitivities
+            if item.feature_id not in orientation_feature_ids
+            and item.feature_id not in density_cursor_feature_ids
+        )
+    blocked.difference_update(density_cursor_feature_ids)
 
     return _replace_active_lineage(
         state,
@@ -769,6 +1029,16 @@ def advance_state(state: CampaignState, record: RoundRecord) -> CampaignState:
         next_block=next_feature_block(state.next_block),
         next_round_index=state.next_round_index + 1,
         blocked_features=tuple(sorted(blocked)),
+        density_step_scale=density_step_scale,
+        size_sample_count=size_sample_count,
+        orientation_cursors=tuple(
+            orientation_cursors[feature_id]
+            for feature_id in sorted(orientation_cursors)
+        ),
+        density_cursors=tuple(
+            density_cursors[feature_id]
+            for feature_id in sorted(density_cursors)
+        ),
         status=status,
         reason=reason,
     )
@@ -823,6 +1093,14 @@ def _advance_saturated_lineage(
                 state, active_lineage_index=index, status="running", reason=None,
             )
     if all(lineage.status == "stopped" for lineage in state.lineages):
+        if plan.update_rule_id == DensityExplorationUpdateRule().rule_id:
+            return _campaign_status(
+                state,
+                "decision_required",
+                "all planned density ranges exhausted; "
+                + _remaining_bins_reason(store, plan)
+                + "; provide an additional start signature",
+            )
         return _campaign_status(
             state,
             "all_lineages_saturated",
@@ -888,6 +1166,7 @@ def run_campaign(
         store.save_state(plan.campaign_id, current)
     completed_rounds: list[RoundRecord] = []
     all_feature_ids = {bound.feature_id for bound in plan.bounds}
+    density_exploration = isinstance(update_rule, DensityExplorationUpdateRule)
     total_rounds = rounds_already_completed
 
     while current.status in ("ready", "running"):
@@ -903,7 +1182,21 @@ def run_campaign(
             )
             store.save_state(plan.campaign_id, current)
             break
-        if all_feature_ids <= set(current.blocked_features):
+        if density_exploration and _lineage_density_sweep_complete(
+            plan, current.active_lineage,
+        ):
+            current = _replace_active_lineage(
+                current,
+                status="stopped",
+                reason=(
+                    "density range exhausted; "
+                    + _remaining_bins_reason(store, plan)
+                ),
+            )
+            current = _advance_saturated_lineage(current, store, plan)
+            store.save_state(plan.campaign_id, current)
+            continue
+        if not density_exploration and all_feature_ids <= set(current.blocked_features):
             current = _replace_active_lineage(
                 current, status="stopped",
                 reason=(
@@ -943,15 +1236,37 @@ def run_campaign(
             store.save_state(plan.campaign_id, current)
             break
 
-        next_state = advance_state(current, record)
+        next_state = advance_state(
+            current,
+            record,
+            escalate_density_on_rejection=isinstance(
+                update_rule, DensityExplorationUpdateRule,
+            ),
+        )
         if (
-            next_state.status == "running"
+            not density_exploration
+            and next_state.status == "running"
             and all_feature_ids <= set(next_state.blocked_features)
         ):
             next_state = _replace_active_lineage(
                 next_state, status="stopped",
                 reason=(
                     "no untried feature remains under the update rule at the current parent; "
+                    + _remaining_bins_reason(store, plan)
+                ),
+            )
+        elif (
+            density_exploration
+            and next_state.status == "running"
+            and _lineage_density_sweep_complete(
+                plan, next_state.active_lineage,
+            )
+        ):
+            next_state = _replace_active_lineage(
+                next_state,
+                status="stopped",
+                reason=(
+                    "density range exhausted; "
                     + _remaining_bins_reason(store, plan)
                 ),
             )
@@ -1058,8 +1373,15 @@ def _state_for_project_revision(
         == old_plan.start_signatures
     )
     if starts_appended:
-        if previous_state.status != "all_lineages_saturated":
-            raise ValueError("new starts require a saturated predecessor campaign")
+        if (
+            previous_state.status != "all_lineages_saturated"
+            and not _density_exhaustion_requires_new_starts(
+                old_plan, previous_state,
+            )
+        ):
+            raise ValueError(
+                "new starts require a saturated or density-exhausted predecessor"
+            )
         additions = tuple(
             LineageState(
                 signature.signature_id, signature, "density", 0, (),
@@ -1115,8 +1437,9 @@ def run_campaign_project(
 
     campaign_id = project.plan.campaign_id
     previous_project = None
-    if project.plan_revision > 1:
-        previous_project = store.load_revision(campaign_id, project.plan_revision - 1)
+    if project.parent_revision is not None:
+        parent_revision = project.parent_revision
+        previous_project = store.load_revision(campaign_id, parent_revision)
         if previous_project is None:
             raise ValueError("campaign predecessor revision is not stored")
         if source_generation_id is None:
@@ -1128,17 +1451,25 @@ def run_campaign_project(
                 source_generation_id = run_generation_id
             else:
                 source_generation_id = store.latest_generation(
-                    campaign_id, project.plan_revision - 1,
+                    campaign_id, parent_revision,
                 )
         if source_generation_id is None:
             raise ValueError("revision extension requires its source run generation")
+    update_rule_changed = (
+        previous_project is not None
+        and previous_project.plan.update_rule_id != project.plan.update_rule_id
+    )
+    start_new_generation = force_from_scratch or (
+        update_rule_changed
+        and store.latest_generation(campaign_id, project.plan_revision) is None
+    )
+    if start_new_generation and run_generation_id is not None and store.generation_exists(
+        campaign_id, run_generation_id,
+    ):
+        raise ValueError("a new campaign generation requires a fresh run_generation_id")
     store.save_revision(project, source_generation_id)
 
-    if force_from_scratch:
-        if run_generation_id is not None and store.generation_exists(
-            campaign_id, run_generation_id,
-        ):
-            raise ValueError("force-from-scratch requires a new run_generation_id")
+    if start_new_generation:
         generation = run_generation_id or uuid4().hex
     elif run_generation_id is not None:
         generation = run_generation_id
@@ -1165,7 +1496,7 @@ def run_campaign_project(
     if current is None:
         if (
             previous_project is not None
-            and not force_from_scratch
+            and not start_new_generation
             and generation == source_generation_id
         ):
             previous_state = store.load_generation_state(

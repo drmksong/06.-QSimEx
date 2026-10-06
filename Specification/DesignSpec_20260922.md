@@ -1098,21 +1098,21 @@ score와 길이 가중 proximity가 다른 합리적 집계 방식에 비해 어
    진행 가능한 lineage를 선택하고, 그 lineage의 독립적인 round 번호를 증가시킨다. 이는 동일
    `campaign_id`의 새 plan revision으로 기록하고, 기존 revision을 부모로 연결한다. 이전 revision에서
    완료된 round, 결과, checkpoint와 coverage는 그대로 두며 새로 허용된 작업만 이어서 수행한다.
-   추가 확장은 반복해서 적용할 수 있고 매번 직전 revision을 부모로 남긴다. 라운드 예산 추가는
+   추가 확장은 반복해서 적용할 수 있고 매번 직전 저장 revision을 부모로 남긴다. revision 번호는
+   중간 값을 건너뛸 수 있지만 `parent_revision`은 실제 직전 저장 revision을 가리킨다.
+   라운드 예산 추가는
    `all_lineages_saturated`,
    `decision_required`, 실행 실패 또는 `coverage_complete`를 자동으로 해제하지 않는다. 특히
    saturation된 lineage에는 유효한 다음 update가 없을 수 있으므로 라운드 수만 늘려 재시도하지
    않는다. saturation 이후에는 7번의 새 시작 signature 확장 규칙을 사용하고, `decision_required`
    및 실패는 각각 명시적 결정·복구가 필요하다.
-   - `force-from-scratch`는 선택한 불변 계획 revision의 모든 시작점과 라운드를 처음부터
-     실행하는 명시적 동작이다. 기존 execution ledger의 완료 표시만 삭제하는 방식으로 구현하지
-     않는다. 새 `run_generation_id`를 만들고 이전 generation의 SimulationResult 재사용을
-     금지하며, round와 simulation의 상태·결과·provenance를 새 generation에 별도로 저장한다.
-     새 generation의 coverage는 그 generation에서 생성된 결과만으로 계산하고 이전 generation의
-     결과와 합치지 않는다. 과거 generation은 재현성과 감사 목적으로 보존한다. 지정된 계획의
-     정상적인 종료 조건은 유지하되, 완료 표시된 과거 round는 초기 상태부터 다시 수행하고 기존
-     상태에서 이어받지 않는다. 새 generation도 같은 campaign의 계획을 재현하기 위한 실행이며,
-     조건이나 계획을 바꾸는 경우에는 새 plan revision 또는 별도 campaign이 필요하다.
+   - `force-from-scratch`는 사용자가 명시한 destructive reset이다. 해당 campaign ID의 모든 plan
+     revision 기록, generation/checkpoint, simulation·round 결과와 각 generation의 run output folder를
+     삭제한 뒤 현재 project YAML을 parent가 없는 root plan으로 저장하고 실행한다. 다른 campaign의
+     데이터, project/source YAML 및 공용 설정은 삭제하지 않는다. `run_generation_id`는 자동으로
+     새 값을 발급한다. 이 동작은 이전 campaign 이력을 감사 목적으로 보존하지 않으므로 일반 resume나
+     새 plan revision 적용과 구분해 사용한다. update rule 변경은 현재 입력 plan에서 적용되고 이전
+     updater checkpoint나 simulation 결과를 재사용하지 않는다.
 
 따라서 동일 `campaign_id`의 연속성은 revision 이력과 append-only 결과 pool로 표현하고,
 계획 revision 자체는 항상 불변으로 유지한다. 일반 재개, 라운드 예산 확장, saturation 후
@@ -1120,6 +1120,65 @@ score와 길이 가중 proximity가 다른 합리적 집계 방식에 비해 어
 원자 checkpoint와 plan revision 또는 run generation provenance를 남긴다.
 `Simulator.evaluate(signature, seed)` backend 계약은 유지하고, 주 변경 범위는 CampaignPlan
 revision, per-lineage CampaignState, CampaignStore 및 orchestration이다.
+
+#### 5.6.11 탐색 거부 후 재시도와 파라미터-space 진행 (2026-10-06 결정; 구현 1–5단계 완료)
+
+2026-10-05 Euler saturation incident에서 후보가 검증에 실패하면 해당 feature를 `blocked_features`에
+영구 추가하고, 모든 feature가 막히면 lineage를 `all_lineages_saturated`로 끝내는 동작이
+설정된 파라미터 탐색 범위의 소진을 뜻하지 않는 문제가 확인되었다. 다음 원칙은 이 동작을
+대체하기 위한 사용자의 결정이다. 이 절의 미결 항목은 합의 전까지 구현 계약으로 추정하지 않는다.
+
+1. **거부는 feature 영구 차단이 아님:** 제안 후보가 반복성/coverage 검증에서 수락되지 않아도
+   parent signature는 유지하되 해당 feature 탐색을 영구 차단하지 않는다. 탐색 cursor를 다음
+   제안으로 진행하고, 후보·거부 근거·시도 상태를 저장해 재개 시 같은 후보를 무한 반복하지
+   않도록 한다. 현 `blocked_features` 기반 종료를 파라미터-space 완료 판정으로 사용하지 않는다.
+2. **밀도를 주 탐색 축으로 사용:** density는 설정 범위가 넓은 주 축이다. 거부 후 density
+   update step cap은 2배로 확대하고 성공 후에도 확대된 cap을 유지한다. 각 density feature는
+   첫 non-zero sensitivity 방향을 고정하며 sensitivity가 없거나 0이면 상한(+)으로 시작한다.
+   해당 방향의 bound에 도달하면 그 feature를 완료 처리하고 되돌아 탐색하지 않는다.
+   밀도 범위가 소진되면 기존 결과를 보존한 채 초기 signature를 바꾸어 새 탐색을 시작한다.
+   여러 joint set density는 한 후보에서 하나만 변경하고 `set_id` 오름차순으로 순환한다.
+   밀도와 크기는 한 후보에서 동시에 변경하지 않고 번갈아 제안해 영향의 해석 가능성을
+   유지한다. signature-space 탐색은 density를 중심으로 하며 size 등 다른 feature에는 물리적
+   제약을 지키는 범위에서 일정한 무작위성을 허용한다. 현재 계획에 포함된 모든 시작점의
+   density 범위가 소진되고 coverage가 미완료이면 자동 signature 생성이나
+   `all_lineages_saturated` 대신 `decision_required`로 멈춰 사용자가 새 start signature를
+   제공하도록 한다.
+3. **방향 탐색:** `orientation_beta`는 0°–90° 구간에서 10° 간격으로 이동한다. 0° 또는
+   90°에 도달하면 진행 방향을 반전한다. 첫 이동은 현재 signed sensitivity 방향으로 하며,
+   sensitivity가 없거나 0이면 +10°로 시작한다. 시작각에서 10° 간격으로 진행하므로 고정된
+   0°, 10°, …, 90° 격자에 강제로 맞추지 않는다. orientation에는 별도 완료·소진 조건을 두지
+   않고 lineage가 활성 상태인 동안 양 경계 사이를 계속 왕복한다. 종료는 campaign의 기존
+   종료 조건이 결정한다. 거부된 후보도 시도된 orientation 위치로 처리해 cursor를 진행한다.
+4. **크기 탐색:** 지원 절리 크기 반경은 `size_r_min`, `size_r_max` 각각 0.05–100m이며,
+   직경으로는 0.1–200m에 해당한다. 후보는 `size_r_min < size_r_max`를 만족해야 한다. 각 크기
+   좌표는 계획 bound와 0.05–100m의 교집합에서 독립 로그 균등
+   추출하고, 모든 joint set의 pair를 한 후보에서 함께 변경한다. size 범위는 소진 처리하거나
+   후보 횟수로 제한하지 않으며, lineage가 활성인 동안 무작위 size 후보를 계속 생성한다.
+   중복 pair도 별도 후보로 처리하고 중복 제거·판정은 하지 않는다. 난수 seed는 exploration seed,
+   lineage 시작 signature, draw count로부터 재현하고 count를 checkpoint에 저장한다. 이 연속
+   영역의 난수 표본을 “전 영역 탐색 완료”로 표시하지 않는다.
+   v3 시작 signature의 size pair가 지원 범위 또는 계획 bound 밖이면 해당 joint set의 pair만
+   같은 허용 교집합에서 seeded log-uniform 방식으로 재생성한다. 다른 파라미터와 다른 joint set의
+   값은 유지한다. 원본 start signature ID는 lineage 식별자로 보존하고, 재생성된 크기를 포함한
+   signature를 초기 parent로 사용한다.
+5. **종료 상태와 후보 예산:** 기존 primary grid의 모든 bin 관측은 계속 `coverage_complete`를
+   뜻한다. 미관측 bin이 남은 채 연속/난수 후보를 더 이상 만들지 않는 상태를 `all_lineages_saturated`
+   또는 전체 파라미터 범위 완료로 가장하지 않는다. size에는 소진 조건이나 후보 quota를 두지
+   않고 density/orientation 탐색과 함께 계속 제안한다. 계획의 모든
+   시작점이 density 범위를 소진하고 coverage가 미완료이면 `decision_required`로 추가 시작점을
+   요청하며 자동 생성하지 않는다. 예산 종료는 전 영역 탐색 완료가 아니다.
+6. **밀도–크기 관계:** 본 campaign의 density type이 P32이면 P32 설정값은 고정한다. 크기
+   분포 변경으로 expected joint count가 바뀌는 것은 generator의 기존 계약이며, count를
+   탐색변수·중요도·합격 기준 또는 별도 score 지표로 두지 않는다. 절리망 재현성은 밀도·크기·방향
+   입력으로 확보한다는 전제를 사용하며, 생성된 절리 개수는 이 입력과 generator의 확률적 구현에
+   따른 부수 결과로 취급한다. P32는 생성 목표의 설정값이며 Poisson 생성된 유한 DFN에서
+   실현되는 값은 달라질 수 있다. density/size feature는 후보에서 교대로 제안한다.
+7. **기존 결과 보호와 재현성:** 기존 generation의 DB와 산출물을 수정하거나 덮어쓰지 않는다.
+   탐색 상태를 바꾸는 구현은 명시적 새 plan revision 또는 분리된 run generation에 기록하고,
+   density step, orientation cursor/direction, size draw count 및 seed의 재현 정보, 시도한
+   signature와 lineage별 후보 예산 진행을 checkpoint에 보존한다. 테스트 및 GPU 실행은 사용자가
+   수행한다.
 
 ### 5.7 수행시간과 정보 효율
 

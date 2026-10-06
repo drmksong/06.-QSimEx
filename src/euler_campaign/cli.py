@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 from datetime import datetime, timezone
 from hashlib import sha256
 import json
 import logging
+from math import fsum
 import os
 from pathlib import Path
 import re
+import shutil
 from typing import Any
 from uuid import uuid4
 
@@ -18,11 +21,12 @@ from .campaign_store import SQLiteCampaignStore
 from .config import CampaignProject, load_campaign_project
 from .coverage import CoverageGrid, CoverageResult
 from .euler import (
+    DensityExplorationUpdateRule,
     GapSeekingNormalizedGradientUpdateRule,
     NormalizedGradientUpdateRule,
 )
 from .models import Signature
-from .profiles import SimulationResult
+from .profiles import ProfileInterval, SimulationResult
 from .simulator import EulerSimulator
 
 _GENERATION_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
@@ -86,13 +90,39 @@ class _ProgressSimulator:
         )
         result = self._simulator.evaluate(signature, seed)
         _LOGGER.info(
-            "simulation #%d completed signature_id=%s seed=%d domain_id=%s",
+            "simulation #%d completed signature_id=%s seed=%d domain_id=%s Q-prime %s",
             self._simulation_count,
             f"{result.signature_id[:12]}...",
             result.seed,
             f"{result.domain_id[:12]}...",
+            _format_qprime_summary(result),
         )
         return result
+
+
+def _format_qprime_group(intervals: tuple[ProfileInterval, ...]) -> str:
+    samples = tuple(
+        (interval.qprime.value, interval.end - interval.start)
+        for interval in intervals
+    )
+    if not samples:
+        return "no_data"
+    total_length = fsum(length for _, length in samples)
+    weighted_mean = fsum(value * length for value, length in samples) / total_length
+    return (
+        f"n={len(samples)},min={min(value for value, _ in samples):.6g},"
+        f"mean={weighted_mean:.6g},max={max(value for value, _ in samples):.6g}"
+    )
+
+
+def _format_qprime_summary(result: SimulationResult) -> str:
+    boreholes = ";".join(
+        f"{profile.borehole.borehole_id}:"
+        f"{_format_qprime_group(profile.intervals)}"
+        for profile in result.boreholes
+    )
+    face = _format_qprime_group(result.tunnel.intervals)
+    return f"boreholes[{boreholes or 'no_data'}] face[{face}]"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -103,8 +133,9 @@ def build_parser() -> argparse.ArgumentParser:
         ),
         epilog=(
             "Normal invocations resume the latest run generation automatically. "
-            "Use --force-from-scratch to start a new generation without reusing "
-            "previous results.\n\n"
+            "--force-from-scratch deletes all stored revisions, generations, "
+            "simulation results, checkpoints, and run output folders for this "
+            "campaign, then starts the selected plan as a new root generation.\n\n"
             "Examples:\n"
             "  python run_euler_campaign.py --project "
             "cases/euler/highq_euler_multistart_campaign_draft.yaml\n"
@@ -171,6 +202,20 @@ def _resolve_run_ids(
         )
 
     if revision > 1 and source_generation_id is None:
+        parent_revision = project.parent_revision
+        if current_revision_generation is not None and requested_generation_id is None:
+            return current_revision_generation, current_revision_generation
+        if parent_revision is None:
+            generation_id = requested_generation_id or uuid4().hex
+            return _validate_generation_id(generation_id, "run_generation_id"), None
+        predecessor = store.load_revision(campaign_id, parent_revision)
+        if predecessor is None:
+            raise ValueError(
+                f"campaign parent revision {parent_revision} is not stored"
+            )
+        update_rule_changed = (
+            predecessor.plan.update_rule_id != project.plan.update_rule_id
+        )
         if (
             requested_generation_id is not None
             and store.generation_exists(campaign_id, requested_generation_id)
@@ -179,11 +224,16 @@ def _resolve_run_ids(
         elif current_revision_generation is not None:
             source_generation_id = current_revision_generation
         else:
-            source_generation_id = store.latest_generation(campaign_id, revision - 1)
+            source_generation_id = store.latest_generation(
+                campaign_id, parent_revision,
+            )
         if source_generation_id is None:
             raise ValueError(
-                f"revision {revision} requires a stored predecessor generation"
+                f"revision {revision} requires a stored generation for parent "
+                f"revision {parent_revision}"
             )
+        if update_rule_changed and requested_generation_id is None:
+            return uuid4().hex, source_generation_id
 
     if force_from_scratch:
         generation_id = requested_generation_id or uuid4().hex
@@ -227,6 +277,85 @@ def _project_relative_path(project_file: Path, relative_path: str) -> Path:
     except ValueError as error:
         raise ValueError("campaign output path resolves outside the project folder") from error
     return path
+
+
+def _clear_campaign_artifacts(
+    project_file: Path,
+    campaign_id: str,
+    database_path: Path,
+    output_path_template: str,
+    generation_ids: tuple[str, ...],
+) -> None:
+    output_targets: list[Path] = []
+    generation_marker = "{run_generation_id}"
+    if output_path_template.endswith(generation_marker):
+        output_root_template = output_path_template[:-len(generation_marker)].rstrip("/")
+    else:
+        output_root_template = ""
+    if output_root_template:
+        relative_output_root = output_root_template.format(
+            campaign_id=campaign_id,
+        )
+        _reject_symlink_components(project_file, relative_output_root)
+        output_root = _project_relative_path(project_file, relative_output_root)
+        if output_root.exists():
+            if not output_root.is_dir():
+                raise ValueError(
+                    f"campaign output root is not a directory: {output_root}"
+                )
+            output_targets.append(output_root)
+    else:
+        for generation_id in generation_ids:
+            relative_output_path = output_path_template.format(
+                campaign_id=campaign_id,
+                run_generation_id=generation_id,
+            )
+            _reject_symlink_components(project_file, relative_output_path)
+            output_path = _project_relative_path(
+                project_file,
+                relative_output_path,
+            )
+            if output_path.exists():
+                if not output_path.is_dir():
+                    raise ValueError(
+                        f"campaign output path is not a directory: {output_path}"
+                    )
+                output_targets.append(output_path)
+
+    relative_database_path = (
+        f"results/euler_campaigns/{campaign_id}/campaign.sqlite3"
+    )
+    _reject_symlink_components(project_file, relative_database_path)
+    database_targets = (
+        database_path,
+        Path(f"{database_path}-wal"),
+        Path(f"{database_path}-shm"),
+    )
+    for path in database_targets:
+        if path.is_symlink():
+            raise ValueError(f"refusing to clear symlinked campaign storage: {path}")
+        if path.exists() and not path.is_file():
+            raise ValueError(f"campaign storage path is not a file: {path}")
+
+    for output_path in output_targets:
+        shutil.rmtree(output_path)
+    for path in database_targets:
+        if path.exists():
+            path.unlink()
+
+
+def _reject_symlink_components(project_file: Path, relative_path: str) -> None:
+    project_root = project_file.parent.resolve()
+    candidate = project_root / relative_path
+    try:
+        candidate.relative_to(project_root)
+    except ValueError as error:
+        raise ValueError("campaign cleanup path escapes the project folder") from error
+    current = project_root
+    for part in Path(relative_path).parts:
+        current = current / part
+        if current.is_symlink():
+            raise ValueError(f"refusing to clear a symlinked campaign path: {current}")
 
 
 def _write_summary(path: Path, summary: dict[str, Any]) -> None:
@@ -308,6 +437,24 @@ def _result_summary(
                 "status": lineage.status,
                 "next_round_index": lineage.next_round_index,
                 "blocked_features": list(lineage.blocked_features),
+                "density_step_scale": lineage.density_step_scale,
+                "size_sample_count": lineage.size_sample_count,
+                "density_cursors": [
+                    {
+                        "feature_id": cursor.feature_id,
+                        "direction": cursor.direction,
+                        "exhausted": cursor.exhausted,
+                    }
+                    for cursor in lineage.density_cursors
+                ],
+                "orientation_cursors": [
+                    {
+                        "feature_id": cursor.feature_id,
+                        "beta": cursor.beta,
+                        "direction": cursor.direction,
+                    }
+                    for cursor in lineage.orientation_cursors
+                ],
                 "reason": lineage.reason,
             }
             for lineage in result.state.lineages
@@ -335,10 +482,13 @@ def main(argv: list[str] | None = None) -> int:
         project = load_campaign_project(project_file)
         normalized_rule = NormalizedGradientUpdateRule()
         gap_seeking_rule = GapSeekingNormalizedGradientUpdateRule()
+        density_exploration_rule = DensityExplorationUpdateRule()
         if project.plan.update_rule_id == normalized_rule.rule_id:
             update_rule = normalized_rule
         elif project.plan.update_rule_id == gap_seeking_rule.rule_id:
             update_rule = gap_seeking_rule
+        elif project.plan.update_rule_id == density_exploration_rule.rule_id:
+            update_rule = density_exploration_rule
         else:
             raise ValueError(
                 f"unsupported update rule: {project.plan.update_rule_id}"
@@ -357,6 +507,33 @@ def main(argv: list[str] | None = None) -> int:
         )
         database_path = campaign_directory / "campaign.sqlite3"
         store = SQLiteCampaignStore(database_path)
+        if args.force_from_scratch:
+            generation_ids = store.campaign_generation_ids(
+                project.plan.campaign_id,
+            )
+            _LOGGER.warning(
+                "--force-from-scratch clearing all stored campaign history and "
+                "run outputs campaign_id=%s revisions_and_generations_db=%s "
+                "registered_generations=%d",
+                project.plan.campaign_id,
+                database_path,
+                len(generation_ids),
+            )
+            store.close()
+            store = None
+            _clear_campaign_artifacts(
+                project_file,
+                project.plan.campaign_id,
+                database_path,
+                project.output_path_template,
+                generation_ids,
+            )
+            project = replace(
+                project,
+                parent_revision=None,
+                parent_plan_fingerprint=None,
+            )
+            store = SQLiteCampaignStore(database_path)
         run_generation_id, source_generation_id = _resolve_run_ids(
             store,
             project,

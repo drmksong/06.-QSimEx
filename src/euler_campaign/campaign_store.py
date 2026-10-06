@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import fields, is_dataclass
+from dataclasses import MISSING, fields, is_dataclass
 import json
 from math import isfinite
 from pathlib import Path
@@ -101,8 +101,16 @@ def _decode(value: Any) -> Any:
         raw_fields = value["fields"]
         if not isinstance(raw_fields, dict):
             raise ValueError("persisted dataclass fields must be a mapping")
-        expected = {field.name for field in fields(cls)}
-        if raw_fields.keys() != expected:
+        dataclass_fields = fields(cls)
+        expected = {field.name for field in dataclass_fields}
+        missing_required = {
+            field.name
+            for field in dataclass_fields
+            if field.name not in raw_fields
+            and field.default is MISSING
+            and field.default_factory is MISSING
+        }
+        if not raw_fields.keys() <= expected or missing_required:
             raise ValueError(f"persisted fields do not match {type_name}")
         return cls(**{name: _decode(item) for name, item in raw_fields.items()})
     if set(value) == {"$tuple"} and isinstance(value["$tuple"], list):
@@ -481,10 +489,13 @@ class SQLiteCampaignStore:
                 (campaign_id,),
             ).fetchone()
             if latest is None:
-                if project.plan_revision != 1:
-                    raise ValueError("the first stored campaign revision must be revision 1")
-                if source_generation_id is not None:
-                    raise ValueError("initial revision must not name a source generation")
+                if project.parent_revision is None:
+                    if source_generation_id is not None:
+                        raise ValueError("a root revision must not name a source generation")
+                else:
+                    raise ValueError(
+                        "the first stored campaign revision must be a root plan revision"
+                    )
                 connection.execute(
                     """INSERT INTO campaign_revisions VALUES (?, ?, ?, ?, ?, ?)""",
                     (
@@ -500,7 +511,7 @@ class SQLiteCampaignStore:
                     raise ValueError("campaign plan revision is immutable")
                 return
             if (
-                project.plan_revision != latest_revision + 1
+                project.plan_revision <= latest_revision
                 or project.parent_revision != latest_revision
                 or project.parent_plan_fingerprint != latest["plan_fingerprint"]
             ):
@@ -538,7 +549,6 @@ class SQLiteCampaignStore:
             or old_plan.bounds != new_plan.bounds
             or old_plan.exploration_seed != new_plan.exploration_seed
             or old_plan.verification_seeds != new_plan.verification_seeds
-            or old_plan.update_rule_id != new_plan.update_rule_id
         ):
             raise ValueError("campaign revision changed immutable execution inputs")
         if old_plan.campaign_id != new_plan.campaign_id:
@@ -574,6 +584,13 @@ class SQLiteCampaignStore:
             and project.round_budget is not None
             and project.round_budget > previous.round_budget
         )
+        update_rule_changed = old_plan.update_rule_id != new_plan.update_rule_id
+        if (
+            update_rule_changed
+            and starts_unchanged
+            and project.round_budget == previous.round_budget
+        ):
+            return
         if starts_appended and project.round_budget == previous.round_budget:
             if previous_state.status != "all_lineages_saturated":
                 raise ValueError("signature extension requires all lineages saturated")
@@ -583,7 +600,8 @@ class SQLiteCampaignStore:
                 raise ValueError("round-budget extension requires an exhausted budget")
             return
         raise ValueError(
-            "revision must append starts after saturation or increase an exhausted round budget"
+            "revision must change the update rule, append starts after saturation, "
+            "or increase an exhausted round budget"
         )
 
     def latest_generation(
@@ -597,6 +615,15 @@ class SQLiteCampaignStore:
                 (campaign_id, plan_revision),
             ).fetchone()
         return None if row is None else row["run_generation_id"]
+
+    def campaign_generation_ids(self, campaign_id: str) -> tuple[str, ...]:
+        with self._lock:
+            rows = self._connection.execute(
+                """SELECT run_generation_id FROM campaign_generations
+                   WHERE campaign_id = ? ORDER BY created_order""",
+                (campaign_id,),
+            ).fetchall()
+        return tuple(row["run_generation_id"] for row in rows)
 
     def generation_exists(self, campaign_id: str, run_generation_id: str) -> bool:
         with self._lock:

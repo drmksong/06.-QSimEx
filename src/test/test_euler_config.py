@@ -319,6 +319,43 @@ class TestCampaignProjectConfig(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "parent_plan_fingerprint"):
                 load_campaign_project(project_path)
 
+    def test_campaign_project_allows_skipped_revision_number_with_valid_parent(self) -> None:
+        mapping = yaml.safe_load(self.campaign_path.read_text(encoding="utf-8"))
+        mapping["plan_revision"] = 3
+        mapping["parent_revision"] = 1
+        mapping["parent_plan_fingerprint"] = "a" * 64
+        mapping["update_rule_id"] = "normalized-gradient-density-exploration-v3"
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            project_path = self._prepare_project_dir(
+                Path(temporary_directory),
+                mapping,
+            )
+            project = load_campaign_project(project_path)
+
+        self.assertEqual(project.plan_revision, 3)
+        self.assertEqual(project.parent_revision, 1)
+        self.assertEqual(
+            project.plan.update_rule_id,
+            "normalized-gradient-density-exploration-v3",
+        )
+
+    def test_campaign_project_allows_detached_root_at_revision_three(self) -> None:
+        mapping = yaml.safe_load(self.campaign_path.read_text(encoding="utf-8"))
+        mapping["plan_revision"] = 3
+        mapping["parent_revision"] = None
+        mapping["parent_plan_fingerprint"] = None
+        mapping["update_rule_id"] = "normalized-gradient-density-exploration-v3"
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            project_path = self._prepare_project_dir(
+                Path(temporary_directory),
+                mapping,
+            )
+            project = load_campaign_project(project_path)
+
+        self.assertEqual(project.plan_revision, 3)
+        self.assertIsNone(project.parent_revision)
+        self.assertIsNone(project.parent_plan_fingerprint)
+
 
 if __name__ == "__main__":
     unittest.main()

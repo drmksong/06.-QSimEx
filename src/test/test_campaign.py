@@ -1,4 +1,5 @@
 from dataclasses import replace
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -11,13 +12,20 @@ from src.euler_campaign.campaign import (
     run_campaign,
     run_campaign_project,
     run_round,
+    _plan_fingerprint,
     validate_plan,
     RoundRecord,
 )
-from src.euler_campaign.campaign_store import SQLiteCampaignStore
+from src.euler_campaign.campaign_store import SQLiteCampaignStore, _dump, _load
 from src.euler_campaign.coverage import CoverageGrid, audit_simulation
 from src.euler_campaign.config import CampaignProject, extend_campaign_project
-from src.euler_campaign.euler import FeatureBound, NormalizedGradientUpdateRule
+from src.euler_campaign.euler import (
+    DensityExplorationUpdateRule,
+    DensitySweepCursor,
+    FeatureBound,
+    NormalizedGradientUpdateRule,
+    OrientationSweepCursor,
+)
 from src.euler_campaign.models import (
     BartonCategory,
     BoreholeSpec,
@@ -209,6 +217,218 @@ class TestCampaignOrchestration(unittest.TestCase):
         self.assertEqual(record.lineage_start_signature_id, first.signature_id)
         self.assertEqual(advanced.lineages[1], original_second_lineage)
         self.assertEqual(advanced.lineages[0].next_round_index, 1)
+
+    def test_rejected_density_candidate_scales_up_without_blocking_features(self) -> None:
+        rule = DensityExplorationUpdateRule()
+        plan = replace(_plan(), update_rule_id=rule.rule_id)
+        state = initialize_campaign(plan)
+        record = run_round(
+            plan, state, _DensitySimulator(), rule, _MemoryStore(),
+        )
+        self.assertEqual(record.proposal.status, "candidate")
+        if record.verification is None:
+            self.fail("candidate proposal must have verification evidence")
+        rejected = replace(
+            record,
+            verification=replace(
+                record.verification, accepted=False, reason="rejected for test",
+            ),
+        )
+
+        advanced = advance_state(
+            state, rejected, escalate_density_on_rejection=True,
+        )
+
+        self.assertEqual(advanced.parent, state.parent)
+        self.assertEqual(advanced.blocked_features, ())
+        self.assertEqual(advanced.active_lineage.density_step_scale, 2.0)
+        self.assertEqual(advanced.active_lineage.status, "running")
+        self.assertEqual(
+            advanced.active_lineage.density_cursors,
+            record.proposal.density_cursor_updates,
+        )
+
+    def test_rejected_orientation_candidate_advances_persisted_sweep_cursor(self) -> None:
+        rule = DensityExplorationUpdateRule()
+        plan = replace(_plan(), update_rule_id=rule.rule_id)
+        state = _checkpoint(initialize_campaign(plan), next_block="orientation")
+        record = run_round(plan, state, _FlatSimulator(), rule, _MemoryStore())
+
+        self.assertEqual(record.proposal.status, "candidate")
+        self.assertEqual(
+            record.proposal.orientation_cursor_updates,
+            (OrientationSweepCursor(
+                "joint_sets.1.orientation_beta@bh-1", 10.0, 1,
+            ),),
+        )
+        if record.verification is None:
+            self.fail("candidate proposal must have verification evidence")
+        rejected = replace(
+            record,
+            verification=replace(
+                record.verification, accepted=False, reason="rejected for test",
+            ),
+        )
+
+        advanced = advance_state(
+            state, rejected, escalate_density_on_rejection=True,
+        )
+
+        self.assertEqual(advanced.parent, state.parent)
+        self.assertEqual(advanced.blocked_features, ())
+        self.assertEqual(
+            advanced.active_lineage.orientation_cursors,
+            record.proposal.orientation_cursor_updates,
+        )
+
+    def test_v3_size_candidate_is_seeded_and_checkpointed_per_lineage(self) -> None:
+        rule = DensityExplorationUpdateRule()
+        plan = replace(_plan(), update_rule_id=rule.rule_id)
+        state = _checkpoint(initialize_campaign(plan), next_block="size")
+        simulator = _FlatSimulator()
+        store = _MemoryStore()
+
+        first = run_round(plan, state, simulator, rule, store)
+        repeated = run_round(plan, state, simulator, rule, store)
+
+        self.assertEqual(first.proposal, repeated.proposal)
+        self.assertEqual(first.probes, ())
+        self.assertEqual(first.proposal.status, "candidate")
+        self.assertEqual(len(first.proposal.randomized_feature_ids), 2)
+        if first.proposal.candidate is None:
+            self.fail("v3 size sampling must propose a candidate")
+        joint_set = first.proposal.candidate.case.joint_sets[0]
+        self.assertLess(joint_set.size_r_min, joint_set.size_r_max)
+        advanced = advance_state(state, first)
+        self.assertEqual(advanced.active_lineage.size_sample_count, 1)
+
+        encoded = json.loads(_dump(advanced))
+        restored = _load(json.dumps(encoded))
+        self.assertEqual(restored, advanced)
+
+    def test_v3_size_sampling_continues_past_former_quota(self) -> None:
+        rule = DensityExplorationUpdateRule()
+        plan = replace(_plan(), update_rule_id=rule.rule_id)
+        state = _checkpoint(
+            initialize_campaign(plan),
+            next_block="size",
+            size_sample_count=100,
+        )
+
+        record = run_round(plan, state, _FlatSimulator(), rule, _MemoryStore())
+        advanced = advance_state(state, record)
+
+        self.assertEqual(record.proposal.status, "candidate")
+        self.assertEqual(len(record.proposal.randomized_feature_ids), 2)
+        self.assertEqual(advanced.next_block, "orientation")
+        self.assertEqual(advanced.active_lineage.size_sample_count, 101)
+
+    def test_v3_resamples_only_out_of_bounds_start_size_pair(self) -> None:
+        rule = DensityExplorationUpdateRule()
+        original = _signature()
+        original_set = replace(
+            original.case.joint_sets[0],
+            size_r_min=0.01,
+            size_r_max=120.0,
+        )
+        start = identify_signature(replace(
+            original.case,
+            joint_sets=(original_set,),
+        ))
+        plan = replace(
+            _plan(),
+            start_signatures=(start,),
+            update_rule_id=rule.rule_id,
+        )
+
+        first = initialize_campaign(plan)
+        repeated = initialize_campaign(plan)
+
+        self.assertEqual(first, repeated)
+        lineage = first.active_lineage
+        self.assertEqual(lineage.start_signature_id, start.signature_id)
+        sampled_set = lineage.parent.case.joint_sets[0]
+        self.assertGreaterEqual(sampled_set.size_r_min, 0.1)
+        self.assertLessEqual(sampled_set.size_r_min, 1.0)
+        self.assertGreaterEqual(sampled_set.size_r_max, 1.0)
+        self.assertLessEqual(sampled_set.size_r_max, 10.0)
+        self.assertLess(sampled_set.size_r_min, sampled_set.size_r_max)
+        self.assertEqual(
+            replace(
+                sampled_set,
+                size_r_min=original_set.size_r_min,
+                size_r_max=original_set.size_r_max,
+            ),
+            original_set,
+        )
+
+    def test_v3_density_exhaustion_requests_new_start_after_planned_lineages(self) -> None:
+        rule = DensityExplorationUpdateRule()
+        first = _signature()
+        second = _signature_with_density(2.0)
+        plan = replace(
+            _plan(),
+            start_signatures=(first, second),
+            update_rule_id=rule.rule_id,
+        )
+        initial = initialize_campaign(plan)
+        density_cursor = DensitySweepCursor(
+            "joint_sets.1.density_value", 1, True,
+        )
+        lineages = (
+            replace(
+                initial.lineages[0],
+                status="running",
+                density_cursors=(density_cursor,),
+            ),
+            replace(
+                initial.lineages[1],
+                density_cursors=(density_cursor,),
+            ),
+        )
+        checkpoint = replace(
+            initial,
+            lineages=lineages,
+            status="running",
+        )
+        project = CampaignProject(
+            plan, "case.yaml", "catalog.yaml", 1, None, None, None,
+            "results/euler_campaigns/{campaign_id}/runs/{run_generation_id}",
+        )
+
+        result = run_campaign(
+            plan, checkpoint, _FlatSimulator(), rule, _MemoryStore(),
+        )
+
+        self.assertEqual(result.rounds, ())
+        self.assertEqual(result.state.status, "decision_required")
+        self.assertIn("all planned density ranges exhausted", result.state.reason or "")
+        self.assertTrue(all(
+            lineage.status == "stopped" for lineage in result.state.lineages
+        ))
+        extended = extend_campaign_project(
+            project,
+            result.state,
+            new_start_signatures=(_signature_with_density(3.0),),
+        )
+        self.assertEqual(len(extended.plan.start_signatures), 3)
+        from src.euler_campaign.campaign import _state_for_project_revision
+
+        resumed = _state_for_project_revision(project, extended, result.state)
+        self.assertEqual(resumed.status, "ready")
+        self.assertEqual(resumed.active_lineage_index, 2)
+
+    def test_legacy_campaign_state_payload_uses_default_density_step_scale(self) -> None:
+        state = initialize_campaign(_plan())
+        encoded = json.loads(_dump(state))
+        for lineage in encoded["fields"]["lineages"]["$tuple"]:
+            lineage["fields"].pop("density_step_scale")
+            lineage["fields"].pop("size_sample_count")
+            lineage["fields"].pop("density_cursors")
+
+        restored = _load(json.dumps(encoded))
+
+        self.assertEqual(restored, state)
 
     def test_run_campaign_saturates_each_start_lineage_in_order(self) -> None:
         first = _signature()
@@ -554,6 +774,88 @@ class TestCampaignOrchestration(unittest.TestCase):
                 ),
                 frozenset({1}),
             )
+            store.close()
+
+    def test_rule_change_revision_skips_number_and_starts_fresh_generation(self) -> None:
+        plan = _plan()
+        project = CampaignProject(
+            plan, "case.yaml", "catalog.yaml", 1, None, None, 1,
+            "results/euler_campaigns/{campaign_id}/runs/{run_generation_id}",
+        )
+        simulator = _FingerprintFlatSimulator()
+
+        with TemporaryDirectory() as directory:
+            store = SQLiteCampaignStore(Path(directory) / "campaign.sqlite")
+            previous = run_campaign_project(
+                project, simulator, NormalizedGradientUpdateRule(), store,
+            )
+            previous_generation = previous.run_generation_id
+            self.assertIsNotNone(previous_generation)
+
+            v3_plan = replace(
+                plan,
+                update_rule_id=DensityExplorationUpdateRule().rule_id,
+            )
+            v3_project = replace(
+                project,
+                plan=v3_plan,
+                plan_revision=3,
+                parent_revision=1,
+                parent_plan_fingerprint=_plan_fingerprint(plan),
+            )
+            revised = run_campaign_project(
+                v3_project,
+                simulator,
+                DensityExplorationUpdateRule(),
+                store,
+            )
+
+            self.assertEqual(revised.run_generation_id, store.latest_generation(
+                plan.campaign_id, 3,
+            ))
+            self.assertNotEqual(revised.run_generation_id, previous_generation)
+            self.assertEqual(revised.state.status, "round_budget_exhausted")
+            self.assertEqual(store.load_revision(plan.campaign_id, 2), None)
+            self.assertEqual(store.load_revision(plan.campaign_id, 3), v3_project)
+            self.assertEqual(
+                store.generation_round_count(plan.campaign_id, previous_generation),
+                1,
+            )
+
+            resumed = run_campaign_project(
+                v3_project,
+                simulator,
+                DensityExplorationUpdateRule(),
+                store,
+            )
+            self.assertEqual(resumed.run_generation_id, revised.run_generation_id)
+            self.assertEqual(resumed.rounds, ())
+            store.close()
+
+    def test_detached_revision_three_can_be_saved_as_a_fresh_campaign_root(self) -> None:
+        plan = _plan()
+        plan = replace(
+            plan,
+            update_rule_id=DensityExplorationUpdateRule().rule_id,
+        )
+        project = CampaignProject(
+            plan, "case.yaml", "catalog.yaml", 3, None, None, 1,
+            "results/euler_campaigns/{campaign_id}/runs/{run_generation_id}",
+        )
+
+        with TemporaryDirectory() as directory:
+            store = SQLiteCampaignStore(Path(directory) / "campaign.sqlite")
+            result = run_campaign_project(
+                project,
+                _FingerprintFlatSimulator(),
+                DensityExplorationUpdateRule(),
+                store,
+                run_generation_id="fresh-root-generation",
+            )
+
+            self.assertEqual(result.run_generation_id, "fresh-root-generation")
+            self.assertEqual(store.load_revision(plan.campaign_id, 3), project)
+            self.assertIsNone(store.load_revision(plan.campaign_id, 1))
             store.close()
 
 
