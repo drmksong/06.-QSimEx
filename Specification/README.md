@@ -11,6 +11,7 @@
 
 | 문서 | 역할 / 현재 사용 |
 |---|---|
+| [RQDExplorationStrategy_20261026/plan.md](RQDExplorationStrategy_20261026/plan.md) | **v4** 전략·구현 계획. 1.2–1.3절에 v3와의 차이·재사용/수정 범위·준비 상태 정리. 상세 정책 검토 대기이며 기존 Euler를 자동 대체하지 않음 |
 | [DesignSpec_20260922.md](DesignSpec_20260922.md) | 현재 QSimEx 설계 계약의 기준. 날짜별 후속 결정과 논문 평가 항목 포함 |
 | [20261006.md](20261006.md) | Euler campaign 파라미터 탐색 후속 결정과 구현 전 미결 사항 |
 | [20261005.md](20261005.md) | `src/core`와 새 Euler campaign의 중복 검토 기록 및 다음 구현 단계의 재사용 검토 절차 |
@@ -24,6 +25,11 @@
 Cutoff method의 미결 선택(새 longitudinal profile의 표본 단위, 길이 가중, 반복측정
 의존성 등)은 합의 전까지 자동 추정·구현하지 않는다. Signature coverage score는 Q′
 cutoff selector와 별개의 운영 지표다.
+
+v4의 최신 측정 우선순위는 [DesignSpec 5.9.12](DesignSpec_20260922.md)와
+[계획 4.13](RQDExplorationStrategy_20261026/plan.md)에 따른다. 굴착 전 수평 BH Q′를
+탐색의 우선 기준으로 삼고 굴진면은 대응 분포·불일치 분석 대상으로 보존한다.
+최초의 BH·face 공동 목표 선택은 대체되었으며 단일 parent 교체를 강제하지 않는다.
 
 ## 규칙
 
