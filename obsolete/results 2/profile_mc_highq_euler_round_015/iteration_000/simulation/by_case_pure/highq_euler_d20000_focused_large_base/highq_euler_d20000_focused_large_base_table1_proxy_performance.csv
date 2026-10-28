@@ -1,0 +1,2 @@
+Scenario,Corr,Bias,RMSE,RQD dependency
+highq_euler_d20000_focused_large_base,-0.3891893095980615,-0.14801014010388794,0.16784711894125445,Normal

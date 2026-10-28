@@ -1,0 +1,44 @@
+[
+  {
+    "candidate_id": "r006-d_matched_1set-s303",
+    "target_region": "D_joint_set_structure",
+    "generation_signature_hash": "40a1a3811c583a5c6a647f6e43c09e35afe515aa8ebfe22c7a4e1baabb521e76",
+    "domain_id": "1f807e576a15952487bc0ab32bd1a4738c50274614361eea3f89f4aec71bc27d",
+    "expected_effect": "D_structure_repeatability"
+  },
+  {
+    "candidate_id": "r006-d_matched_1set-s304",
+    "target_region": "D_joint_set_structure",
+    "generation_signature_hash": "40a1a3811c583a5c6a647f6e43c09e35afe515aa8ebfe22c7a4e1baabb521e76",
+    "domain_id": "217065214cf0c927458bf1236b0ba91a2cbdcfc671631aba8d9bfd402f78f92d",
+    "expected_effect": "D_structure_repeatability"
+  },
+  {
+    "candidate_id": "r006-d_matched_2set-s303",
+    "target_region": "D_joint_set_structure",
+    "generation_signature_hash": "68df658b0baa2d08f63dc44b8609892ce98950b74ff41b74ab6cfffc5411b5fe",
+    "domain_id": "4d7bcce5ce44d880528ee238b64a33d69c346c92d34878b087a2645f39733959",
+    "expected_effect": "D_structure_repeatability"
+  },
+  {
+    "candidate_id": "r006-d_matched_2set-s304",
+    "target_region": "D_joint_set_structure",
+    "generation_signature_hash": "68df658b0baa2d08f63dc44b8609892ce98950b74ff41b74ab6cfffc5411b5fe",
+    "domain_id": "cd3b77c1f65d335c2fbfecb731cefeef2c78f5c5b727a5b644688ad7b412d1ce",
+    "expected_effect": "D_structure_repeatability"
+  },
+  {
+    "candidate_id": "r006-d_matched_3set-s303",
+    "target_region": "D_joint_set_structure",
+    "generation_signature_hash": "42f56edeb81efa27dbc4a5b7d8a34404e3b2c43de92489835d280ff6f302fbac",
+    "domain_id": "4c6521f377d066395c8ffc8051c17a78835ebdfbe81301fcb97099e2968c3f9d",
+    "expected_effect": "D_structure_repeatability"
+  },
+  {
+    "candidate_id": "r006-d_matched_3set-s304",
+    "target_region": "D_joint_set_structure",
+    "generation_signature_hash": "42f56edeb81efa27dbc4a5b7d8a34404e3b2c43de92489835d280ff6f302fbac",
+    "domain_id": "b32c9963224bf654ae98e04cfa1ba927575c760758ff1a72b1212953dd2cfbe0",
+    "expected_effect": "D_structure_repeatability"
+  }
+]

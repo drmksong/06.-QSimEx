@@ -1,0 +1,83 @@
+name: scenario_13_coverage_low_q_refined__r002-orientation_spread-2-ab34262dcb92
+description: Refined low-Q coverage pilot with stronger joint roughness degradation
+seed: 300
+tags:
+  quality_regime: coverage_low_q_refined
+  density_regime: high
+  orientation_regime: multi_set
+  coverage_target: low_q_gap
+  pilot_parent: scenario_11_coverage_low_q
+  coverage_round: 2
+  parent_case: scenario_13_coverage_low_q_refined
+  candidate_id: r002-orientation_spread-2-ab34262dcb92
+  generation_signature_hash: ab34262dcb92210d54bd7976abacfbf0a4ad44797f3146d6f36cd627ae42e7e6
+domain:
+  nx: 60
+  ny: 30
+  nz: 30
+  dx: 1.0
+  dy: 1.0
+  dz: 1.0
+tunnel:
+  center_y: 15.0
+  center_z: 15.0
+  radius: 5.0
+boreholes:
+- dy: 0.0
+  dz: 0.0
+rqd:
+  scan_length: 5.0
+global_params:
+  Jw_mean: 0.8
+  Jw_std: 0.1
+  SRF_mean: 1.0
+  SRF_std: 0.3
+joint_sets:
+- set_id: 1
+  name: dense_shallow
+  mean_dip: 15
+  mean_dip_dir: 0
+  fisher_kappa: 15.0
+  size_alpha: 3.2
+  size_r_min: 0.2
+  size_r_max: 12.0
+  density_type: P32
+  P32: 8.0
+  mean_spacing: 0.125
+  Jr_mean: 0.7
+  Jr_std: 0.1
+  Ja_mean: 4.0
+  Ja_std: 0.2
+- set_id: 2
+  name: dense_orthogonal
+  mean_dip: 70
+  mean_dip_dir: 90
+  fisher_kappa: 12.5
+  size_alpha: 3.0
+  size_r_min: 0.2
+  size_r_max: 10.0
+  density_type: P32
+  P32: 2.0
+  mean_spacing: 0.5
+  Jr_mean: 0.7
+  Jr_std: 0.1
+  Ja_mean: 4.0
+  Ja_std: 0.2
+- set_id: 3
+  name: dense_cross
+  mean_dip: 45
+  mean_dip_dir: 210
+  fisher_kappa: 10.0
+  size_alpha: 3.0
+  size_r_min: 0.2
+  size_r_max: 8.0
+  density_type: P32
+  P32: 0.5
+  mean_spacing: 2.0
+  Jr_mean: 0.7
+  Jr_std: 0.1
+  Ja_mean: 4.0
+  Ja_std: 0.2
+cost:
+  cost_fp: 1
+  cost_fn: 5

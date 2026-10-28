@@ -1,0 +1,22 @@
+{
+  "target_interval": [
+    76.14615754863519,
+    174.5235314204193
+  ],
+  "iterations_requested": 3,
+  "iterations_completed": 1,
+  "history": [
+    {
+      "n_rows": 3,
+      "qprime_mean": 156.77686042365772,
+      "qprime_min": 135.3799199302392,
+      "qprime_max": 171.35761615505177,
+      "rqd_mean": 62.91604357107238,
+      "in_target": true,
+      "iteration": 0,
+      "case_path": "results/profile_mc_highq_euler_round_015/iteration_000/highq_euler_d20000_focused_large_base.yaml",
+      "total_p32": 200.0
+    }
+  ],
+  "update_method": "bounded_explicit_euler_style_log_density"
+}

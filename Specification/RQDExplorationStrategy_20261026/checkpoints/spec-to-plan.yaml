@@ -1,8 +1,9 @@
 metadata:
-  generated: "2026-10-26"
+  generated: "2026-10-28"
   source_spec: "plan.md#2"
   source_basis: "User-confirmed conversation and existing DesignSpec; requirements consolidated in plan section 2."
-  target_plan: "plan.md"
+  target_plan: "../ImplementationPlan_v4.md"
+  task_trace: "plan-to-tasks.yaml"
 summary:
   total_requirements: 13
   covered_requirements: 13
@@ -32,9 +33,11 @@ requirements:
   - req_id: REQ-011
     plan_items: ["2.1", "5.2", "6.1"]
   - req_id: REQ-012
-    plan_items: ["5.2", "6.1"]
+    plan_items: ["5.2"]
+    status: deferred
   - req_id: REQ-013
-    plan_items: ["5.2", "6.1"]
+    plan_items: ["5.2"]
+    status: deferred
 missing_requirements: []
 orphan_plan_items: []
 validation:
@@ -42,6 +45,7 @@ validation:
   scope: "Requirement mapping only; not implementation approval or runtime validation."
   errors: []
   warnings:
-    - "G0 plan/detail-contract review pending."
-    - "G1/G2 experiment parameters require approval before simulation."
+    - "Pilot G0 simplified contract and initial parameters are approved; integrated DDL/snapshot confirmation remains in T002."
+    - "Actual pilot simulation still requires user review of configuration, manifest and explicit budget."
+    - "REQ-012 and REQ-013 map only to deferred T011, not pilot handoff completion."
     - "Adaptive candidate, allocation, progress and transition policies require approval."

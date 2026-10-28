@@ -1,0 +1,126 @@
+{
+  "analysis": "angle_sensitivity_observed_and_pchip_extrapolation",
+  "angle_definition": "borehole_plane_angle_mean_deg; 0 parallel, 90 perpendicular",
+  "observed_angle_range_deg": [
+    13.235269015173378,
+    59.31103949184894
+  ],
+  "points": [
+    {
+      "case_name": "c_angle_dir_000_4x_3set",
+      "seed_count": 4,
+      "angle_mean_deg": 13.235269015173378,
+      "angle_sd_deg": 0.8313457212102162,
+      "qprime_mean": 3.3325684901082386,
+      "rqd_mean": 86.98687279910793
+    },
+    {
+      "case_name": "c_angle_dir_005_4x_3set",
+      "seed_count": 4,
+      "angle_mean_deg": 14.155105699651456,
+      "angle_sd_deg": 1.1697864516214374,
+      "qprime_mean": 3.2082414878810432,
+      "rqd_mean": 84.67713541307498
+    },
+    {
+      "case_name": "c_angle_dir_015_4x_3set",
+      "seed_count": 4,
+      "angle_mean_deg": 19.885908139016585,
+      "angle_sd_deg": 1.4546133376976254,
+      "qprime_mean": 2.6851935482375433,
+      "rqd_mean": 71.47579335581257
+    },
+    {
+      "case_name": "c_angle_dir_030_4x_3set",
+      "seed_count": 4,
+      "angle_mean_deg": 29.10245968853503,
+      "angle_sd_deg": 0.9871593878415392,
+      "qprime_mean": 1.7879230078034014,
+      "rqd_mean": 47.53850029873116
+    },
+    {
+      "case_name": "c_angle_dir_060_4x_3set",
+      "seed_count": 4,
+      "angle_mean_deg": 49.3226734080889,
+      "angle_sd_deg": 0.6166985612887427,
+      "qprime_mean": 0.7466569984179352,
+      "rqd_mean": 20.265652989300694
+    },
+    {
+      "case_name": "c_angle_dir_090_4x_3set",
+      "seed_count": 4,
+      "angle_mean_deg": 59.31103949184894,
+      "angle_sd_deg": 0.6937520154172259,
+      "qprime_mean": 0.5382407659384773,
+      "rqd_mean": 14.496788943079988
+    }
+  ],
+  "segment_slopes": [
+    {
+      "angle_range_deg": [
+        13.235269015173378,
+        14.155105699651456
+      ],
+      "dqprime_dangle": -0.13516203944153352,
+      "drqd_dangle": -2.5110298654195464
+    },
+    {
+      "angle_range_deg": [
+        14.155105699651456,
+        19.885908139016585
+      ],
+      "dqprime_dangle": -0.09126958138543759,
+      "drqd_dangle": -2.3035765404477773
+    },
+    {
+      "angle_range_deg": [
+        19.885908139016585,
+        29.10245968853503
+      ],
+      "dqprime_dangle": -0.09735425832680589,
+      "drqd_dangle": -2.5972070929644078
+    },
+    {
+      "angle_range_deg": [
+        29.10245968853503,
+        49.3226734080889
+      ],
+      "dqprime_dangle": -0.051496290980273585,
+      "drqd_dangle": -1.3487912485839046
+    },
+    {
+      "angle_range_deg": [
+        49.3226734080889,
+        59.31103949184894
+      ],
+      "dqprime_dangle": -0.02086589845944067,
+      "drqd_dangle": -0.5775583311468964
+    }
+  ],
+  "nonlinear_model": "PCHIP",
+  "extrapolation": {
+    "angles_deg": [
+      60.0,
+      90.0
+    ],
+    "qprime_values_raw": [
+      0.5314585807191952,
+      2.181263298432552
+    ],
+    "rqd_values_raw": [
+      14.289665792309838,
+      51.20325952820252
+    ],
+    "qprime_values_bounded": [
+      0.5314585807191952,
+      2.181263298432552
+    ],
+    "rqd_values_bounded": [
+      14.289665792309838,
+      51.20325952820252
+    ],
+    "status": "uncertain_outside_observed_range",
+    "use_for_cutoff": false,
+    "warning": "Raw PCHIP extrapolation may violate physical bounds; bounded values are descriptive only."
+  }
+}

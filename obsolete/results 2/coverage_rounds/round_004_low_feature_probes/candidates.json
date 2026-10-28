@@ -1,0 +1,16 @@
+[
+  {
+    "candidate_id": "r004-jr",
+    "target_region": "low_q_gap",
+    "generation_signature_hash": "42293840aab7cff935e0f32276717df71498e9e0ef2a66d70c8fa686d8617d8e",
+    "domain_id": "aa34b22821701e7a95d87c30ea2b0eb945880e2e6a7208761096b186c6c8daae",
+    "expected_effect": "isolate_Jr_mean_or_Ja_mean_low_q_effect"
+  },
+  {
+    "candidate_id": "r004-ja",
+    "target_region": "low_q_gap",
+    "generation_signature_hash": "961dcf4b4784bfd550cc9649b4098e8c7141f02a9bd7cb6d9f8150655a47ed75",
+    "domain_id": "77cec856e6cffabe026adf2f95a68314a2c3e9a0411dcc2e2332fe704bb3b683",
+    "expected_effect": "isolate_Jr_mean_or_Ja_mean_low_q_effect"
+  }
+]

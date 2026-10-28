@@ -1,0 +1,5 @@
+Scenario,Corr,Bias,RMSE,RQD dependency
+highq_d10_interp_base_base,,-0.024603945212091194,0.025042010189509842,Normal
+highq_d10_interp_base_base,,0.008338331451013925,0.013242739699334807,Normal
+highq_d10_interp_base_base,,-0.008864224505028032,0.02632794810553815,Normal
+highq_d10_interp_base_base,,-0.006009356597092896,0.0393818647154784,Normal

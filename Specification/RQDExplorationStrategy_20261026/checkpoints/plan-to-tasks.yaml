@@ -1,7 +1,8 @@
 metadata:
-  generated: "2026-10-26"
-  source_plan: "plan.md"
-  target_tasks: "plan.md#6"
+  generated: '2026-10-28'
+  source_plan: ../ImplementationPlan_v4.md
+  target_tasks: ../ImplementationPlan_v4.md#51
+  strategy_plan: plan.md
 summary:
   total_plan_items: 7
   covered_plan_items: 7
@@ -9,67 +10,369 @@ summary:
   coverage_percentage: 100.0
   total_tasks_generated: 11
   orphan_tasks: 0
+  execution_phases: 7
+  execution_steps: 36
+  deferred_steps: 3
 phases:
-  - phase_id: Phase-1
-    phase_name: Contract
-    items:
-      - item_id: "1.1"
-        tasks: [T001, T002]
-  - phase_id: Phase-2
-    phase_name: Bin-conditional allocation and LHS
-    items:
-      - item_id: "2.1"
-        tasks: [T003]
-  - phase_id: Phase-3
-    phase_name: RQD measurement
-    items:
-      - item_id: "3.1"
-        tasks: [T004, T005]
-  - phase_id: Phase-4
-    phase_name: Persistence and CLI
-    items:
-      - item_id: "4.1"
-        tasks: [T006, T007]
-  - phase_id: Phase-5
-    phase_name: Scenario analysis
-    items:
-      - item_id: "5.1"
-        tasks: [T008, T009]
-      - item_id: "5.2"
-        tasks: [T011]
-  - phase_id: Phase-6
-    phase_name: User validation and handoff
-    items:
-      - item_id: "6.1"
-        tasks: [T010]
+- phase_id: Phase-1
+  phase_name: Contract
+  items:
+  - item_id: '1.1'
+    tasks:
+    - T001
+    - T002
+- phase_id: Phase-2
+  phase_name: Bin-conditional allocation and LHS
+  items:
+  - item_id: '2.1'
+    tasks:
+    - T003
+- phase_id: Phase-3
+  phase_name: RQD measurement
+  items:
+  - item_id: '3.1'
+    tasks:
+    - T004
+    - T005
+- phase_id: Phase-4
+  phase_name: Persistence and CLI
+  items:
+  - item_id: '4.1'
+    tasks:
+    - T006
+    - T007
+- phase_id: Phase-5
+  phase_name: Scenario analysis
+  items:
+  - item_id: '5.1'
+    tasks:
+    - T008
+    - T009
+  - item_id: '5.2'
+    tasks:
+    - T011
+- phase_id: Phase-6
+  phase_name: User validation and handoff
+  items:
+  - item_id: '6.1'
+    tasks:
+    - T010
 missing_plan_items: []
 orphan_tasks: []
 upstream_trace:
-  - plan_item: "1.1"
-    source_requirements: [REQ-001, REQ-002, REQ-008, REQ-010]
-    tasks: [T001, T002]
-  - plan_item: "2.1"
-    source_requirements: [REQ-001, REQ-002, REQ-007, REQ-009, REQ-011]
-    tasks: [T003]
-  - plan_item: "3.1"
-    source_requirements: [REQ-003, REQ-004, REQ-008]
-    tasks: [T004, T005]
-  - plan_item: "4.1"
-    source_requirements: [REQ-007, REQ-008, REQ-009, REQ-010]
-    tasks: [T006, T007]
-  - plan_item: "5.1"
-    source_requirements: [REQ-005, REQ-006, REQ-009]
-    tasks: [T008, T009]
-  - plan_item: "5.2"
-    source_requirements: [REQ-007, REQ-009, REQ-011, REQ-012, REQ-013]
-    tasks: [T011]
-  - plan_item: "6.1"
-    source_requirements: [REQ-003, REQ-004, REQ-005, REQ-006, REQ-007, REQ-008, REQ-009, REQ-010, REQ-011, REQ-012, REQ-013]
-    tasks: [T010]
+- plan_item: '1.1'
+  source_requirements:
+  - REQ-001
+  - REQ-002
+  - REQ-008
+  - REQ-010
+  tasks:
+  - T001
+  - T002
+- plan_item: '2.1'
+  source_requirements:
+  - REQ-001
+  - REQ-002
+  - REQ-007
+  - REQ-009
+  - REQ-011
+  tasks:
+  - T003
+- plan_item: '3.1'
+  source_requirements:
+  - REQ-003
+  - REQ-004
+  - REQ-008
+  tasks:
+  - T004
+  - T005
+- plan_item: '4.1'
+  source_requirements:
+  - REQ-007
+  - REQ-008
+  - REQ-009
+  - REQ-010
+  tasks:
+  - T006
+  - T007
+- plan_item: '5.1'
+  source_requirements:
+  - REQ-005
+  - REQ-006
+  - REQ-009
+  tasks:
+  - T008
+  - T009
+- plan_item: '5.2'
+  source_requirements:
+  - REQ-007
+  - REQ-009
+  - REQ-011
+  - REQ-012
+  - REQ-013
+  tasks:
+  - T011
+- plan_item: '6.1'
+  source_requirements:
+  - REQ-003
+  - REQ-004
+  - REQ-005
+  - REQ-006
+  - REQ-007
+  - REQ-008
+  - REQ-009
+  - REQ-010
+  - REQ-011
+  tasks:
+  - T010
+execution_breakdown:
+- step_id: P1.01
+  phase: 1
+  plan_item: '1.1'
+  tasks: &id001
+  - T001
+  prerequisites: []
+- step_id: P1.02
+  phase: 1
+  plan_item: '1.1'
+  tasks: *id001
+  prerequisites:
+  - P1.01
+- step_id: P1.03
+  phase: 1
+  plan_item: '1.1'
+  tasks: &id002
+  - T002
+  prerequisites:
+  - P1.02
+- step_id: P1.04
+  phase: 1
+  plan_item: '1.1'
+  tasks: *id002
+  prerequisites:
+  - P1.03
+- step_id: P1.05
+  phase: 1
+  plan_item: '1.1'
+  tasks: *id002
+  prerequisites:
+  - P1.04
+- step_id: P1.06
+  phase: 1
+  plan_item: '1.1'
+  tasks: &id003
+  - T002
+  prerequisites:
+  - P1.05
+- step_id: P1.07
+  phase: 1
+  plan_item: '1.1'
+  tasks: *id003
+  prerequisites:
+  - P1.06
+- step_id: P1.08
+  phase: 1
+  plan_item: '1.1'
+  tasks: *id003
+  prerequisites:
+  - P1.07
+- step_id: P2.01
+  phase: 2
+  plan_item: '2.1'
+  tasks: &id004
+  - T003
+  prerequisites:
+  - P1.08
+- step_id: P2.02
+  phase: 2
+  plan_item: '2.1'
+  tasks: *id004
+  prerequisites:
+  - P2.01
+- step_id: P2.03
+  phase: 2
+  plan_item: '2.1'
+  tasks: &id005
+  - T003
+  prerequisites:
+  - P2.02
+- step_id: P2.04
+  phase: 2
+  plan_item: '2.1'
+  tasks: *id005
+  prerequisites:
+  - P2.03
+- step_id: P3.01
+  phase: 3
+  plan_item: '3.1'
+  tasks: &id006
+  - T004
+  prerequisites:
+  - P1.05
+- step_id: P3.02
+  phase: 3
+  plan_item: '3.1'
+  tasks: *id006
+  prerequisites:
+  - P3.01
+- step_id: P3.03
+  phase: 3
+  plan_item: '3.1'
+  tasks: &id007
+  - T005
+  prerequisites:
+  - P3.02
+  - P1.05
+- step_id: P3.04
+  phase: 3
+  plan_item: '3.1'
+  tasks: *id007
+  prerequisites:
+  - P3.03
+- step_id: P3.05
+  phase: 3
+  plan_item: '3.1'
+  tasks: *id007
+  prerequisites:
+  - P3.04
+- step_id: P4.01
+  phase: 4
+  plan_item: '4.1'
+  tasks: &id008
+  - T006
+  prerequisites:
+  - P1.05
+- step_id: P4.02
+  phase: 4
+  plan_item: '4.1'
+  tasks: *id008
+  prerequisites:
+  - P4.01
+- step_id: P4.03
+  phase: 4
+  plan_item: '4.1'
+  tasks: *id008
+  prerequisites:
+  - P4.02
+- step_id: P4.04
+  phase: 4
+  plan_item: '4.1'
+  tasks: &id009
+  - T007
+  prerequisites:
+  - P2.04
+  - P3.05
+  - P4.03
+- step_id: P4.05
+  phase: 4
+  plan_item: '4.1'
+  tasks: *id009
+  prerequisites:
+  - P4.04
+- step_id: P4.06
+  phase: 4
+  plan_item: '4.1'
+  tasks: &id010
+  - T007
+  prerequisites:
+  - P4.05
+- step_id: P4.07
+  phase: 4
+  plan_item: '4.1'
+  tasks: *id010
+  prerequisites:
+  - P4.06
+- step_id: P5.01
+  phase: 5
+  plan_item: '5.1'
+  tasks: &id011
+  - T008
+  prerequisites:
+  - P1.08
+  - P3.05
+- step_id: P5.02
+  phase: 5
+  plan_item: '5.1'
+  tasks: *id011
+  prerequisites:
+  - P5.01
+- step_id: P5.03
+  phase: 5
+  plan_item: '5.1'
+  tasks: &id012
+  - T009
+  prerequisites:
+  - P5.02
+  - P4.03
+- step_id: P5.04
+  phase: 5
+  plan_item: '5.1'
+  tasks: *id012
+  prerequisites:
+  - P5.03
+- step_id: P5.05
+  phase: 5
+  plan_item: '5.1'
+  tasks: *id012
+  prerequisites:
+  - P5.04
+  - P4.07
+- step_id: P6.01
+  phase: 6
+  plan_item: '6.1'
+  tasks: &id013
+  - T010
+  prerequisites:
+  - P4.07
+  - P5.05
+- step_id: P6.02
+  phase: 6
+  plan_item: '6.1'
+  tasks: *id013
+  prerequisites:
+  - P6.01
+- step_id: P6.03
+  phase: 6
+  plan_item: '6.1'
+  tasks: &id014
+  - T010
+  prerequisites:
+  - P6.02
+  external_gate: User confirms configuration, DB manifest and explicit simulation budget, then runs pilot.
+- step_id: P6.04
+  phase: 6
+  plan_item: '6.1'
+  tasks: *id014
+  prerequisites:
+  - P6.03
+- step_id: P7.01
+  phase: 7
+  plan_item: '5.2'
+  tasks: &id015
+  - T011
+  prerequisites:
+  - P6.04
+  external_gate: Post-pilot policies and separate implementation approval.
+  status: deferred
+- step_id: P7.02
+  phase: 7
+  plan_item: '5.2'
+  tasks: *id015
+  prerequisites:
+  - P7.01
+  status: deferred
+- step_id: P7.03
+  phase: 7
+  plan_item: '5.2'
+  tasks: *id015
+  prerequisites:
+  - P7.02
+  status: deferred
 validation:
   passed: true
-  scope: "Plan-to-task coverage only; tasks remain unimplemented."
+  scope: Document traceability only; 36 steps remain unimplemented and runtime gates are not passed.
   errors: []
   warnings:
-    - "Detailed schemas and APIs require T002 review before implementation."
-    - "T011 requires approved adaptive allocation, candidate and transition policies."
+  - Pilot G0 simplified contract is approved; remaining integrated DDL and snapshot fields require T002 confirmation.
+  - Open decisions D002-D005 block only affected steps; D006 and T011 remain deferred.
+  - T011 requires approved adaptive allocation, candidate and transition policies.

@@ -1,0 +1,4898 @@
+[
+  {
+    "candidate_id": "r002-density_scale-1.25-4010667db7bf",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "density_scale",
+    "factor": 1.25,
+    "generation_signature_hash": "4010667db7bf26668023d6f9317936ce0b9148de08316d681fae723d41a7bda1",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-density_scale-1.25-4010667db7bf",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-density_scale-1.25-4010667db7bf",
+        "generation_signature_hash": "4010667db7bf26668023d6f9317936ce0b9148de08316d681fae723d41a7bda1"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 10.0,
+          "mean_spacing": 0.1,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 2.5,
+          "mean_spacing": 0.4,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 0.625,
+          "mean_spacing": 1.6,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.25-4010667db7bf.yaml"
+  },
+  {
+    "candidate_id": "r002-density_scale-1.5-846a908af5b5",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "density_scale",
+    "factor": 1.5,
+    "generation_signature_hash": "846a908af5b5ff06d72ad9aa3bda4d0e5d12d2ee4f088e2f6176da88e732157a",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-density_scale-1.5-846a908af5b5",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-density_scale-1.5-846a908af5b5",
+        "generation_signature_hash": "846a908af5b5ff06d72ad9aa3bda4d0e5d12d2ee4f088e2f6176da88e732157a"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 12.0,
+          "mean_spacing": 0.08333333333333333,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 3.0,
+          "mean_spacing": 0.3333333333333333,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 0.75,
+          "mean_spacing": 1.3333333333333333,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.5-846a908af5b5.yaml"
+  },
+  {
+    "candidate_id": "r002-density_scale-2-fede4725ce6f",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "density_scale",
+    "factor": 2.0,
+    "generation_signature_hash": "fede4725ce6f9802228780e2c2758b1c7219f949067dbb7dd62d8dc73a5aa670",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-density_scale-2-fede4725ce6f",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-density_scale-2-fede4725ce6f",
+        "generation_signature_hash": "fede4725ce6f9802228780e2c2758b1c7219f949067dbb7dd62d8dc73a5aa670"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 16.0,
+          "mean_spacing": 0.0625,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 4.0,
+          "mean_spacing": 0.25,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2-fede4725ce6f.yaml"
+  },
+  {
+    "candidate_id": "r002-density_scale-2.5-e81aadba2540",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "density_scale",
+    "factor": 2.5,
+    "generation_signature_hash": "e81aadba25401f26979fdf4d4600b0e10d63ee1a0fc1ae8f376c8fa1d0b85395",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-density_scale-2.5-e81aadba2540",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-density_scale-2.5-e81aadba2540",
+        "generation_signature_hash": "e81aadba25401f26979fdf4d4600b0e10d63ee1a0fc1ae8f376c8fa1d0b85395"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 20.0,
+          "mean_spacing": 0.05,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.2,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 1.25,
+          "mean_spacing": 0.8,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2.5-e81aadba2540.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-1.25-a4f890beb580",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "roughness_scale",
+    "factor": 1.25,
+    "generation_signature_hash": "a4f890beb580574f1d1ec2510d228ef85527904bbbbb5cd2d6d2ff83fd5eeb6a",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-roughness_scale-1.25-a4f890beb580",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-roughness_scale-1.25-a4f890beb580",
+        "generation_signature_hash": "a4f890beb580574f1d1ec2510d228ef85527904bbbbb5cd2d6d2ff83fd5eeb6a"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.5599999999999999,
+          "Jr_std": 0.1,
+          "Ja_mean": 5.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.5599999999999999,
+          "Jr_std": 0.1,
+          "Ja_mean": 5.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.5599999999999999,
+          "Jr_std": 0.1,
+          "Ja_mean": 5.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.25-a4f890beb580.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-1.5-0f0cb81ecfc6",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "roughness_scale",
+    "factor": 1.5,
+    "generation_signature_hash": "0f0cb81ecfc6754bb87259f6bc901a779f704fd6e24e7cba522b68b5dfceca71",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-roughness_scale-1.5-0f0cb81ecfc6",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-roughness_scale-1.5-0f0cb81ecfc6",
+        "generation_signature_hash": "0f0cb81ecfc6754bb87259f6bc901a779f704fd6e24e7cba522b68b5dfceca71"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.4666666666666666,
+          "Jr_std": 0.1,
+          "Ja_mean": 6.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.4666666666666666,
+          "Jr_std": 0.1,
+          "Ja_mean": 6.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.4666666666666666,
+          "Jr_std": 0.1,
+          "Ja_mean": 6.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.5-0f0cb81ecfc6.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-2-43839a5ad060",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "roughness_scale",
+    "factor": 2.0,
+    "generation_signature_hash": "43839a5ad060dfefde4bc9c7281ebbf18f61558ffb0a4c600ea4a0f67238fc1a",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-roughness_scale-2-43839a5ad060",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-roughness_scale-2-43839a5ad060",
+        "generation_signature_hash": "43839a5ad060dfefde4bc9c7281ebbf18f61558ffb0a4c600ea4a0f67238fc1a"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.35,
+          "Jr_std": 0.1,
+          "Ja_mean": 8.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.35,
+          "Jr_std": 0.1,
+          "Ja_mean": 8.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.35,
+          "Jr_std": 0.1,
+          "Ja_mean": 8.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2-43839a5ad060.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-2.5-7d698903bffc",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "roughness_scale",
+    "factor": 2.5,
+    "generation_signature_hash": "7d698903bffca49d0f56262a35c5faf272ce0a90eefadd508738d663f1f90814",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-roughness_scale-2.5-7d698903bffc",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-roughness_scale-2.5-7d698903bffc",
+        "generation_signature_hash": "7d698903bffca49d0f56262a35c5faf272ce0a90eefadd508738d663f1f90814"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.27999999999999997,
+          "Jr_std": 0.1,
+          "Ja_mean": 10.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.27999999999999997,
+          "Jr_std": 0.1,
+          "Ja_mean": 10.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.27999999999999997,
+          "Jr_std": 0.1,
+          "Ja_mean": 10.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2.5-7d698903bffc.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-1.25-0c15c00dbd21",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "orientation_spread",
+    "factor": 1.25,
+    "generation_signature_hash": "0c15c00dbd215cef8676ed574677fe2e39308c1d34016f668463ffeb3c45bb1b",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-orientation_spread-1.25-0c15c00dbd21",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-orientation_spread-1.25-0c15c00dbd21",
+        "generation_signature_hash": "0c15c00dbd215cef8676ed574677fe2e39308c1d34016f668463ffeb3c45bb1b"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 24.0,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 20.0,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 16.0,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.25-0c15c00dbd21.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-1.5-a0ac4b9c9258",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "orientation_spread",
+    "factor": 1.5,
+    "generation_signature_hash": "a0ac4b9c92587f9bb7dfab9f3f82aff7d5f03db328671f501f5873311aef6515",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-orientation_spread-1.5-a0ac4b9c9258",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-orientation_spread-1.5-a0ac4b9c9258",
+        "generation_signature_hash": "a0ac4b9c92587f9bb7dfab9f3f82aff7d5f03db328671f501f5873311aef6515"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20.0,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 16.666666666666668,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 13.333333333333334,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.5-a0ac4b9c9258.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-2-ab34262dcb92",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "orientation_spread",
+    "factor": 2.0,
+    "generation_signature_hash": "ab34262dcb92210d54bd7976abacfbf0a4ad44797f3146d6f36cd627ae42e7e6",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-orientation_spread-2-ab34262dcb92",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-orientation_spread-2-ab34262dcb92",
+        "generation_signature_hash": "ab34262dcb92210d54bd7976abacfbf0a4ad44797f3146d6f36cd627ae42e7e6"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 15.0,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 12.5,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 10.0,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2-ab34262dcb92.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-2.5-86e7bb640848",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "orientation_spread",
+    "factor": 2.5,
+    "generation_signature_hash": "86e7bb640848b120a8f72820579e75c7bb480214de25efd9d75a79d1439d9753",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-orientation_spread-2.5-86e7bb640848",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-orientation_spread-2.5-86e7bb640848",
+        "generation_signature_hash": "86e7bb640848b120a8f72820579e75c7bb480214de25efd9d75a79d1439d9753"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 12.0,
+          "size_alpha": 3.2,
+          "size_r_min": 0.2,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 10.0,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 8.0,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 8.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2.5-86e7bb640848.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-1.25-5451c4e78154",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "size_envelope",
+    "factor": 1.25,
+    "generation_signature_hash": "5451c4e781547e90bc640a96761eb89b3938b20933b03be937e3d7369e1776d2",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-size_envelope-1.25-5451c4e78154",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-size_envelope-1.25-5451c4e78154",
+        "generation_signature_hash": "5451c4e781547e90bc640a96761eb89b3938b20933b03be937e3d7369e1776d2"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.16,
+          "size_r_max": 15.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.16,
+          "size_r_max": 12.5,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.16,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.25-5451c4e78154.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-1.5-be69c17a77c5",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "size_envelope",
+    "factor": 1.5,
+    "generation_signature_hash": "be69c17a77c50d0dad162271f19bf18fc9d863411ea93345b5b4e872a104ab84",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-size_envelope-1.5-be69c17a77c5",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-size_envelope-1.5-be69c17a77c5",
+        "generation_signature_hash": "be69c17a77c50d0dad162271f19bf18fc9d863411ea93345b5b4e872a104ab84"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.13333333333333333,
+          "size_r_max": 18.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.13333333333333333,
+          "size_r_max": 15.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.13333333333333333,
+          "size_r_max": 12.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.5-be69c17a77c5.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-2-af9cf237227b",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "size_envelope",
+    "factor": 2.0,
+    "generation_signature_hash": "af9cf237227baff9efde286e1a133ceb4ea1a7775f7e9e94c1034a4cf446884a",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-size_envelope-2-af9cf237227b",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-size_envelope-2-af9cf237227b",
+        "generation_signature_hash": "af9cf237227baff9efde286e1a133ceb4ea1a7775f7e9e94c1034a4cf446884a"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.1,
+          "size_r_max": 24.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.1,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.1,
+          "size_r_max": 16.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2-af9cf237227b.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-2.5-6542c4a81670",
+    "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+    "parent_case_name": "scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "recipe": "size_envelope",
+    "factor": 2.5,
+    "generation_signature_hash": "6542c4a81670a444673dee9efca7f1025bbe34e9f944b751a21aca6ae20d6608",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_13_coverage_low_q_refined__r002-size_envelope-2.5-6542c4a81670",
+      "description": "Refined low-Q coverage pilot with stronger joint roughness degradation",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_low_q_refined",
+        "density_regime": "high",
+        "orientation_regime": "multi_set",
+        "coverage_target": "low_q_gap",
+        "pilot_parent": "scenario_11_coverage_low_q",
+        "coverage_round": 2,
+        "parent_case": "scenario_13_coverage_low_q_refined",
+        "candidate_id": "r002-size_envelope-2.5-6542c4a81670",
+        "generation_signature_hash": "6542c4a81670a444673dee9efca7f1025bbe34e9f944b751a21aca6ae20d6608"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "dense_shallow",
+          "mean_dip": 15,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 30,
+          "size_alpha": 3.2,
+          "size_r_min": 0.08,
+          "size_r_max": 30.0,
+          "density_type": "P32",
+          "P32": 8.0,
+          "mean_spacing": 0.125,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 2,
+          "name": "dense_orthogonal",
+          "mean_dip": 70,
+          "mean_dip_dir": 90,
+          "fisher_kappa": 25,
+          "size_alpha": 3.0,
+          "size_r_min": 0.08,
+          "size_r_max": 25.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        },
+        {
+          "set_id": 3,
+          "name": "dense_cross",
+          "mean_dip": 45,
+          "mean_dip_dir": 210,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.08,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 0.7,
+          "Jr_std": 0.1,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.2
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2.5-6542c4a81670.yaml"
+  },
+  {
+    "candidate_id": "r002-density_scale-1.25-13d0aec96c8f",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "density_scale",
+    "factor": 1.25,
+    "generation_signature_hash": "13d0aec96c8f1f16253ac336b2af53742d37731e707a1f1efe3f72de7327a912",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-density_scale-1.25-13d0aec96c8f",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-density_scale-1.25-13d0aec96c8f",
+        "generation_signature_hash": "13d0aec96c8f1f16253ac336b2af53742d37731e707a1f1efe3f72de7327a912"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.0125,
+          "mean_spacing": 40.0,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.25-13d0aec96c8f.yaml"
+  },
+  {
+    "candidate_id": "r002-density_scale-1.5-293e68a8b498",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "density_scale",
+    "factor": 1.5,
+    "generation_signature_hash": "293e68a8b498f8fbb11717c833da734c43361475567cf86e400073799ade5cd4",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-density_scale-1.5-293e68a8b498",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-density_scale-1.5-293e68a8b498",
+        "generation_signature_hash": "293e68a8b498f8fbb11717c833da734c43361475567cf86e400073799ade5cd4"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.015,
+          "mean_spacing": 33.333333333333336,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.5-293e68a8b498.yaml"
+  },
+  {
+    "candidate_id": "r002-density_scale-2-e780526a1a81",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "density_scale",
+    "factor": 2.0,
+    "generation_signature_hash": "e780526a1a813489e6af7f28255bfbc3e162c040dcbc73539dd18f97e2d8c39a",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-density_scale-2-e780526a1a81",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-density_scale-2-e780526a1a81",
+        "generation_signature_hash": "e780526a1a813489e6af7f28255bfbc3e162c040dcbc73539dd18f97e2d8c39a"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.02,
+          "mean_spacing": 25.0,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2-e780526a1a81.yaml"
+  },
+  {
+    "candidate_id": "r002-density_scale-2.5-9abed83f060e",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "density_scale",
+    "factor": 2.5,
+    "generation_signature_hash": "9abed83f060ed46e9a207b29dabfbdb00eaee30aafb18056b1ec679badc5c023",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-density_scale-2.5-9abed83f060e",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-density_scale-2.5-9abed83f060e",
+        "generation_signature_hash": "9abed83f060ed46e9a207b29dabfbdb00eaee30aafb18056b1ec679badc5c023"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.025,
+          "mean_spacing": 20.0,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2.5-9abed83f060e.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-1.25-b64ee417f1b0",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "roughness_scale",
+    "factor": 1.25,
+    "generation_signature_hash": "b64ee417f1b0cbac9e1177afc39ce20db974167caefaa4a741f6359a761c4c64",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-roughness_scale-1.25-b64ee417f1b0",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-roughness_scale-1.25-b64ee417f1b0",
+        "generation_signature_hash": "b64ee417f1b0cbac9e1177afc39ce20db974167caefaa4a741f6359a761c4c64"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 3.2,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.9375,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.25-b64ee417f1b0.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-1.5-bbf700625f42",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "roughness_scale",
+    "factor": 1.5,
+    "generation_signature_hash": "bbf700625f424a215ed78f74251253fd5e7e50893960043c49408d5aa64f8a55",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-roughness_scale-1.5-bbf700625f42",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-roughness_scale-1.5-bbf700625f42",
+        "generation_signature_hash": "bbf700625f424a215ed78f74251253fd5e7e50893960043c49408d5aa64f8a55"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 2.6666666666666665,
+          "Jr_std": 0.1,
+          "Ja_mean": 1.125,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.5-bbf700625f42.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-2-537f803cc7d1",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "roughness_scale",
+    "factor": 2.0,
+    "generation_signature_hash": "537f803cc7d111f9ec1eead486b2e0bb5adee8f2b2180b557377bd34f0d8c3d7",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-roughness_scale-2-537f803cc7d1",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-roughness_scale-2-537f803cc7d1",
+        "generation_signature_hash": "537f803cc7d111f9ec1eead486b2e0bb5adee8f2b2180b557377bd34f0d8c3d7"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 2.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 1.5,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2-537f803cc7d1.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-2.5-4f8adec40787",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "roughness_scale",
+    "factor": 2.5,
+    "generation_signature_hash": "4f8adec40787a91d120c5718187126b9784593a4fadee57d1cefcf79f4793547",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-roughness_scale-2.5-4f8adec40787",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-roughness_scale-2.5-4f8adec40787",
+        "generation_signature_hash": "4f8adec40787a91d120c5718187126b9784593a4fadee57d1cefcf79f4793547"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 1.6,
+          "Jr_std": 0.1,
+          "Ja_mean": 1.875,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2.5-4f8adec40787.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-1.25-2acfc23e9453",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "orientation_spread",
+    "factor": 1.25,
+    "generation_signature_hash": "2acfc23e9453a0c062152492b3dbe7f78cfc450110480882b73f34d9d50d5a8d",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-orientation_spread-1.25-2acfc23e9453",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-orientation_spread-1.25-2acfc23e9453",
+        "generation_signature_hash": "2acfc23e9453a0c062152492b3dbe7f78cfc450110480882b73f34d9d50d5a8d"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 6.4,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.25-2acfc23e9453.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-1.5-626286cd8019",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "orientation_spread",
+    "factor": 1.5,
+    "generation_signature_hash": "626286cd8019b998c3752d7907dbfd6388bdf88ab887bcf3d92014a18becafce",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-orientation_spread-1.5-626286cd8019",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-orientation_spread-1.5-626286cd8019",
+        "generation_signature_hash": "626286cd8019b998c3752d7907dbfd6388bdf88ab887bcf3d92014a18becafce"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 5.333333333333333,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.5-626286cd8019.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-2-269a9c42c2fb",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "orientation_spread",
+    "factor": 2.0,
+    "generation_signature_hash": "269a9c42c2fbf8f845e099b59b454427db00f55847beba36442bbae09f236e14",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-orientation_spread-2-269a9c42c2fb",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-orientation_spread-2-269a9c42c2fb",
+        "generation_signature_hash": "269a9c42c2fbf8f845e099b59b454427db00f55847beba36442bbae09f236e14"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 4.0,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2-269a9c42c2fb.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-2.5-ab92e51ed5e5",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "orientation_spread",
+    "factor": 2.5,
+    "generation_signature_hash": "ab92e51ed5e5cdd0b8ac5e2965f480293cb78ff85789854ed284ba2ca8dd2b9b",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-orientation_spread-2.5-ab92e51ed5e5",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-orientation_spread-2.5-ab92e51ed5e5",
+        "generation_signature_hash": "ab92e51ed5e5cdd0b8ac5e2965f480293cb78ff85789854ed284ba2ca8dd2b9b"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 3.2,
+          "size_alpha": 2.5,
+          "size_r_min": 10.0,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2.5-ab92e51ed5e5.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-1.25-5b3f554e4c02",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "size_envelope",
+    "factor": 1.25,
+    "generation_signature_hash": "5b3f554e4c028314c24aced270631ad3993e317397ec65eaa8a094ca43b35cc3",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-size_envelope-1.25-5b3f554e4c02",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-size_envelope-1.25-5b3f554e4c02",
+        "generation_signature_hash": "5b3f554e4c028314c24aced270631ad3993e317397ec65eaa8a094ca43b35cc3"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 8.0,
+          "size_r_max": 125.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.25-5b3f554e4c02.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-1.5-3e7343c2445d",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "size_envelope",
+    "factor": 1.5,
+    "generation_signature_hash": "3e7343c2445d505cd1dc5f33cf357dfaca52a598b79313c1dd729d328b9d0a83",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-size_envelope-1.5-3e7343c2445d",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-size_envelope-1.5-3e7343c2445d",
+        "generation_signature_hash": "3e7343c2445d505cd1dc5f33cf357dfaca52a598b79313c1dd729d328b9d0a83"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 6.666666666666667,
+          "size_r_max": 150.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.5-3e7343c2445d.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-2-ad624248eac2",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "size_envelope",
+    "factor": 2.0,
+    "generation_signature_hash": "ad624248eac2bbe52c8d77399f39d9adaada499d45aca2331259f30b7c9cb145",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-size_envelope-2-ad624248eac2",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-size_envelope-2-ad624248eac2",
+        "generation_signature_hash": "ad624248eac2bbe52c8d77399f39d9adaada499d45aca2331259f30b7c9cb145"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 5.0,
+          "size_r_max": 200.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2-ad624248eac2.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-2.5-d2e5ab2ad340",
+    "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+    "parent_case_name": "scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "recipe": "size_envelope",
+    "factor": 2.5,
+    "generation_signature_hash": "d2e5ab2ad3402a818c760c616b6e8b2e14af2ed0e6168582f0abf154e8824900",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_12_coverage_high_q__r002-size_envelope-2.5-d2e5ab2ad340",
+      "description": "Coverage pilot targeting high borehole Q' with sparse large fractures",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "coverage_high_q",
+        "density_regime": "very_sparse",
+        "orientation_regime": "favorable_large",
+        "coverage_target": "high_q_gap",
+        "coverage_round": 2,
+        "parent_case": "scenario_12_coverage_high_q",
+        "candidate_id": "r002-size_envelope-2.5-d2e5ab2ad340",
+        "generation_signature_hash": "d2e5ab2ad3402a818c760c616b6e8b2e14af2ed0e6168582f0abf154e8824900"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 1.0,
+        "Jw_std": 0.05,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.2
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "sparse_large_favorable",
+          "mean_dip": 60,
+          "mean_dip_dir": 45,
+          "fisher_kappa": 8,
+          "size_alpha": 2.5,
+          "size_r_min": 4.0,
+          "size_r_max": 250.0,
+          "density_type": "P32",
+          "P32": 0.01,
+          "mean_spacing": 50.0,
+          "Jr_mean": 4.0,
+          "Jr_std": 0.1,
+          "Ja_mean": 0.75,
+          "Ja_std": 0.1
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2.5-d2e5ab2ad340.yaml"
+  },
+  {
+    "candidate_id": "r002-density_scale-1.25-e6e437057ee8",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "density_scale",
+    "factor": 1.25,
+    "generation_signature_hash": "e6e437057ee8142c6258072cb5de01c92380413977831b11423a134b0f24c198",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-density_scale-1.25-e6e437057ee8",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-density_scale-1.25-e6e437057ee8",
+        "generation_signature_hash": "e6e437057ee8142c6258072cb5de01c92380413977831b11423a134b0f24c198"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 6.25,
+          "mean_spacing": 0.4,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 1.25,
+          "mean_spacing": 0.8,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.25,
+          "mean_spacing": 4.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.25-e6e437057ee8.yaml"
+  },
+  {
+    "candidate_id": "r002-density_scale-1.5-181d943ec73d",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "density_scale",
+    "factor": 1.5,
+    "generation_signature_hash": "181d943ec73d140c9f7cfa3a90fffdd6ef294f7c1de5bd58b53858e288239a0e",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-density_scale-1.5-181d943ec73d",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-density_scale-1.5-181d943ec73d",
+        "generation_signature_hash": "181d943ec73d140c9f7cfa3a90fffdd6ef294f7c1de5bd58b53858e288239a0e"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 7.5,
+          "mean_spacing": 0.3333333333333333,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 1.5,
+          "mean_spacing": 0.6666666666666666,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.30000000000000004,
+          "mean_spacing": 3.3333333333333335,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.5-181d943ec73d.yaml"
+  },
+  {
+    "candidate_id": "r002-density_scale-2-c166f11a9e64",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "density_scale",
+    "factor": 2.0,
+    "generation_signature_hash": "c166f11a9e64bc332b65122e75eb24fdaeb84f0ce7311883bddedc302a957e46",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-density_scale-2-c166f11a9e64",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-density_scale-2-c166f11a9e64",
+        "generation_signature_hash": "c166f11a9e64bc332b65122e75eb24fdaeb84f0ce7311883bddedc302a957e46"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 10.0,
+          "mean_spacing": 0.25,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 2.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.4,
+          "mean_spacing": 2.5,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2-c166f11a9e64.yaml"
+  },
+  {
+    "candidate_id": "r002-density_scale-2.5-22881738775d",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "density_scale",
+    "factor": 2.5,
+    "generation_signature_hash": "22881738775d6306afa4e60db06870e23a9f85dfde6e763fdfb3815a91223d7f",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-density_scale-2.5-22881738775d",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-density_scale-2.5-22881738775d",
+        "generation_signature_hash": "22881738775d6306afa4e60db06870e23a9f85dfde6e763fdfb3815a91223d7f"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 12.5,
+          "mean_spacing": 0.2,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 2.5,
+          "mean_spacing": 0.4,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.5,
+          "mean_spacing": 2.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2.5-22881738775d.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-1.25-5377ebea4002",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "roughness_scale",
+    "factor": 1.25,
+    "generation_signature_hash": "5377ebea40027bfc02266d2eaf4429d1af30b2ec855c1fc92e774bdc8d4115f5",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-roughness_scale-1.25-5377ebea4002",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-roughness_scale-1.25-5377ebea4002",
+        "generation_signature_hash": "5377ebea40027bfc02266d2eaf4429d1af30b2ec855c1fc92e774bdc8d4115f5"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.96,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.3,
+          "Ja_mean": 3.125,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.75,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.25-5377ebea4002.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-1.5-f0fc4fc81a38",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "roughness_scale",
+    "factor": 1.5,
+    "generation_signature_hash": "f0fc4fc81a38002fc01dc8bed64bf85586b5dc14715783caa1773120978088c3",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-roughness_scale-1.5-f0fc4fc81a38",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-roughness_scale-1.5-f0fc4fc81a38",
+        "generation_signature_hash": "f0fc4fc81a38002fc01dc8bed64bf85586b5dc14715783caa1773120978088c3"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.7999999999999999,
+          "Jr_std": 0.2,
+          "Ja_mean": 3.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 1.0,
+          "Jr_std": 0.3,
+          "Ja_mean": 3.75,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 1.0,
+          "Jr_std": 0.4,
+          "Ja_mean": 4.5,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.5-f0fc4fc81a38.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-2-45a840cc930e",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "roughness_scale",
+    "factor": 2.0,
+    "generation_signature_hash": "45a840cc930e7555ef370e26b07626c6e74e49f2e909e114d47829289ea8c016",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-roughness_scale-2-45a840cc930e",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-roughness_scale-2-45a840cc930e",
+        "generation_signature_hash": "45a840cc930e7555ef370e26b07626c6e74e49f2e909e114d47829289ea8c016"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.6,
+          "Jr_std": 0.2,
+          "Ja_mean": 4.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 0.75,
+          "Jr_std": 0.3,
+          "Ja_mean": 5.0,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 0.75,
+          "Jr_std": 0.4,
+          "Ja_mean": 6.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2-45a840cc930e.yaml"
+  },
+  {
+    "candidate_id": "r002-roughness_scale-2.5-6070fbcf16bd",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "roughness_scale",
+    "factor": 2.5,
+    "generation_signature_hash": "6070fbcf16bdaee3632e0932961c9a02a78af2f066e95c91aaba550656115066",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-roughness_scale-2.5-6070fbcf16bd",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-roughness_scale-2.5-6070fbcf16bd",
+        "generation_signature_hash": "6070fbcf16bdaee3632e0932961c9a02a78af2f066e95c91aaba550656115066"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 0.48,
+          "Jr_std": 0.2,
+          "Ja_mean": 5.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 0.6,
+          "Jr_std": 0.3,
+          "Ja_mean": 6.25,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 0.6,
+          "Jr_std": 0.4,
+          "Ja_mean": 7.5,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2.5-6070fbcf16bd.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-1.25-4765e31f7b96",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "orientation_spread",
+    "factor": 1.25,
+    "generation_signature_hash": "4765e31f7b9630a56f8d4ddacb723c270803f161f692748664ce45b6d43e5e21",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-orientation_spread-1.25-4765e31f7b96",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-orientation_spread-1.25-4765e31f7b96",
+        "generation_signature_hash": "4765e31f7b9630a56f8d4ddacb723c270803f161f692748664ce45b6d43e5e21"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 32.0,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 16.0,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 8.0,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.25-4765e31f7b96.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-1.5-9d416042ac44",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "orientation_spread",
+    "factor": 1.5,
+    "generation_signature_hash": "9d416042ac44ac43553bcac5d6149b121a5f26d5cb0a0c3a5bb0fe0a1b1ac145",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-orientation_spread-1.5-9d416042ac44",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-orientation_spread-1.5-9d416042ac44",
+        "generation_signature_hash": "9d416042ac44ac43553bcac5d6149b121a5f26d5cb0a0c3a5bb0fe0a1b1ac145"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 26.666666666666668,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 13.333333333333334,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 6.666666666666667,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.5-9d416042ac44.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-2-0c06a01a2938",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "orientation_spread",
+    "factor": 2.0,
+    "generation_signature_hash": "0c06a01a2938dd8adb1ca26d9bc4cb09d1d68098c3563d7d49fa5da2e750a9af",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-orientation_spread-2-0c06a01a2938",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-orientation_spread-2-0c06a01a2938",
+        "generation_signature_hash": "0c06a01a2938dd8adb1ca26d9bc4cb09d1d68098c3563d7d49fa5da2e750a9af"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20.0,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10.0,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 5.0,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2-0c06a01a2938.yaml"
+  },
+  {
+    "candidate_id": "r002-orientation_spread-2.5-be20c5169045",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "orientation_spread",
+    "factor": 2.5,
+    "generation_signature_hash": "be20c51690451d975b065cf78c85391266103de9491f05f2e09d3c2027ec0ca4",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-orientation_spread-2.5-be20c5169045",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-orientation_spread-2.5-be20c5169045",
+        "generation_signature_hash": "be20c51690451d975b065cf78c85391266103de9491f05f2e09d3c2027ec0ca4"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 16.0,
+          "size_alpha": 3.2,
+          "size_r_min": 0.3,
+          "size_r_max": 10.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 8.0,
+          "size_alpha": 3.0,
+          "size_r_min": 0.5,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 4.0,
+          "size_alpha": 2.8,
+          "size_r_min": 1.0,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2.5-be20c5169045.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-1.25-34508f201d47",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "size_envelope",
+    "factor": 1.25,
+    "generation_signature_hash": "34508f201d477a8a8151623baa95c9a32ad82ccfab6cad0b0e737c38fcda7029",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-size_envelope-1.25-34508f201d47",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-size_envelope-1.25-34508f201d47",
+        "generation_signature_hash": "34508f201d477a8a8151623baa95c9a32ad82ccfab6cad0b0e737c38fcda7029"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.24,
+          "size_r_max": 12.5,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.4,
+          "size_r_max": 25.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 0.8,
+          "size_r_max": 50.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.25-34508f201d47.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-1.5-4f0967cc3407",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "size_envelope",
+    "factor": 1.5,
+    "generation_signature_hash": "4f0967cc34077acf5171c19b14fa54f2efe33645551bb4f31199f922a7121a20",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-size_envelope-1.5-4f0967cc3407",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-size_envelope-1.5-4f0967cc3407",
+        "generation_signature_hash": "4f0967cc34077acf5171c19b14fa54f2efe33645551bb4f31199f922a7121a20"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.19999999999999998,
+          "size_r_max": 15.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.3333333333333333,
+          "size_r_max": 30.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 0.6666666666666666,
+          "size_r_max": 60.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.5-4f0967cc3407.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-2-a7a8c3ad0fb5",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "size_envelope",
+    "factor": 2.0,
+    "generation_signature_hash": "a7a8c3ad0fb5a1c2f4e0096e603105c422478a8501670f4f11ce98b0c56ce0d8",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-size_envelope-2-a7a8c3ad0fb5",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-size_envelope-2-a7a8c3ad0fb5",
+        "generation_signature_hash": "a7a8c3ad0fb5a1c2f4e0096e603105c422478a8501670f4f11ce98b0c56ce0d8"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.15,
+          "size_r_max": 20.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.25,
+          "size_r_max": 40.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 0.5,
+          "size_r_max": 80.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2-a7a8c3ad0fb5.yaml"
+  },
+  {
+    "candidate_id": "r002-size_envelope-2.5-65a09eb0ecc3",
+    "parent_case_path": "cases/scenario_06_layered_density.yaml",
+    "parent_case_name": "scenario_06_layered_density",
+    "target_region": "middle_gap",
+    "recipe": "size_envelope",
+    "factor": 2.5,
+    "generation_signature_hash": "65a09eb0ecc367d7bed61fea8b778e0e30f88322f953705861d63686bb62a4a5",
+    "seed_values": [
+      300
+    ],
+    "case": {
+      "name": "scenario_06_layered_density__r002-size_envelope-2.5-65a09eb0ecc3",
+      "description": "Layered density variations",
+      "seed": 300,
+      "tags": {
+        "quality_regime": "layered",
+        "density_regime": "varying",
+        "orientation_regime": "similar",
+        "coverage_round": 2,
+        "coverage_target": "middle_gap",
+        "parent_case": "scenario_06_layered_density",
+        "candidate_id": "r002-size_envelope-2.5-65a09eb0ecc3",
+        "generation_signature_hash": "65a09eb0ecc367d7bed61fea8b778e0e30f88322f953705861d63686bb62a4a5"
+      },
+      "domain": {
+        "nx": 60,
+        "ny": 30,
+        "nz": 30,
+        "dx": 1.0,
+        "dy": 1.0,
+        "dz": 1.0
+      },
+      "tunnel": {
+        "center_y": 15.0,
+        "center_z": 15.0,
+        "radius": 5.0
+      },
+      "boreholes": [
+        {
+          "dy": 0.0,
+          "dz": 0.0
+        }
+      ],
+      "rqd": {
+        "scan_length": 5.0
+      },
+      "global_params": {
+        "Jw_mean": 0.8,
+        "Jw_std": 0.1,
+        "SRF_mean": 1.0,
+        "SRF_std": 0.3
+      },
+      "joint_sets": [
+        {
+          "set_id": 1,
+          "name": "shallow",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 40,
+          "size_alpha": 3.2,
+          "size_r_min": 0.12,
+          "size_r_max": 25.0,
+          "density_type": "P32",
+          "P32": 5.0,
+          "mean_spacing": 0.5,
+          "Jr_mean": 1.2,
+          "Jr_std": 0.2,
+          "Ja_mean": 2.0,
+          "Ja_std": 0.5
+        },
+        {
+          "set_id": 2,
+          "name": "mid",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 20,
+          "size_alpha": 3.0,
+          "size_r_min": 0.2,
+          "size_r_max": 50.0,
+          "density_type": "P32",
+          "P32": 1.0,
+          "mean_spacing": 1.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.3,
+          "Ja_mean": 2.5,
+          "Ja_std": 0.6
+        },
+        {
+          "set_id": 3,
+          "name": "deep",
+          "mean_dip": 10,
+          "mean_dip_dir": 0,
+          "fisher_kappa": 10,
+          "size_alpha": 2.8,
+          "size_r_min": 0.4,
+          "size_r_max": 100.0,
+          "density_type": "P32",
+          "P32": 0.2,
+          "mean_spacing": 5.0,
+          "Jr_mean": 1.5,
+          "Jr_std": 0.4,
+          "Ja_mean": 3.0,
+          "Ja_std": 1.0
+        }
+      ],
+      "cost": {
+        "cost_fp": 1,
+        "cost_fn": 5
+      }
+    },
+    "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2.5-65a09eb0ecc3.yaml"
+  }
+]

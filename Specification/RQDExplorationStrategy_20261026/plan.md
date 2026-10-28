@@ -8,11 +8,15 @@
 - 확인한 선택: Latin hypercube sampling(LHS), 새 모드의 고정 간격 face 평가,
   1차 범위는 bin 조건부 초기 배분·LHS 기초 탐색·RQD 저장·Jr/Ja 조합 분석 및
   관측 기반 자동 batch 갱신.
-- 최신 전략 계약: [DesignSpec 5.9](../DesignSpec_20260922.md#59-rqd-중심bin-조건부-자동-탐색-전략-2026-10-26-후속-합의).
-- 기본 계약: [기존 DesignSpec](../DesignSpec_20260922.md)과
-  [기존 종료 문제 기록](../EulerCampaignSaturationIncident_20261005.md).
-- 분석 근거: [점수 조합 및 bin 역추적 설명](../../Analysis/README.md),
-  [사용자 제공 NGI 2025 핸드북](../q-handbook_2025_english_final.pdf).
+- 최신 전략 계약: [DesignSpec 5.9](../../obsolete/Specification/DesignSpec_20260922.md#59-rqd-중심bin-조건부-자동-탐색-전략-2026-10-26-후속-합의).
+- 기본 계약: [기존 DesignSpec](../../obsolete/Specification/DesignSpec_20260922.md)과
+  [기존 종료 문제 기록](../../obsolete/Specification/EulerCampaignSaturationIncident_20261005.md).
+- 분석 근거: [점수 조합 및 bin 역추적 설명](../../obsolete/Analysis/README.md),
+  [사용자 제공 NGI 2025 핸드북](../../obsolete/Specification/q-handbook_2025_english_final.pdf).
+- 구현 단계·작업 순서: [ImplementationPlan_v4.md](../ImplementationPlan_v4.md).
+  이 문서는 v4 구현 준비의 실행 순서를 정하며, 전략·요구사항·승인값의 근거는 계속
+  본 계획과 아래 명시한 참조 문서/소스에 둔다. 두 문서가 충돌하면 본 계획의 최신
+  timestamped 사용자 합의가 우선하고, 구현계획은 그에 맞춰 갱신한다.
 
 ## 1. 전략과 연구 질문
 
@@ -63,6 +67,7 @@ DFN 시그니처와 RQD 응답의 관계는 미지의 연구 대상이다. 이�
   상태로 보고, 적용 가능한 경우 계산된 최종 하한·상한의 중간값을 단일 경계로 삼아
   TR이 없는 판정을 고려한다. 이때 중간값 미만은 비굴착, 중간값 이상은 굴착으로 나눈다.
   적용 여부와 그 밖의 세부 처리는 상황별로 판단하며 고정 규칙으로 확정하지 않는다.
+  **겹치거나 교차하는 결합 경계의 처리 (2026-10-28 11:33:55 +09:00 사용자 합의):** 중간값 단일 경계를 자동 적용하지 않는다. profile별 경계와 실제 자료를 검토해 사례별로 판단하며, 적용 가능한 경우에만 TR이 없는 판정을 고려한다.
   `Q′BH`는 굴착 전에 얻는 예측 입력이며, 경계의 타당성을 평가할 때는 굴착 후 예상
   결과인 `Q′Face`와 절리 miss/detection·밀도 관련 참조 profile을 우선 시험한다.
   방향성은 중요하지만 경사·경사방향, 터널·시추공 기하 및 수평·수직 처분 조건에 민감해
@@ -108,10 +113,15 @@ DFN 시그니처와 RQD 응답의 관계는 미지의 연구 대상이다. 이�
   이를 뒷받침하는 데 필요한 서로 다른 DFN 시그니처의 수는 아직 정해져 있지 않으며,
   고정된 표본 수만으로 충분성을 가정하지 않는다. 서로 다른 시그니처가 제공하는
   조건 범위의 다양성과 동일 시그니처를 다른 realization seed로 반복한 근거는
-  구별해 보존한다. 일부 bin만 조사된 이른 단계에서 상·하한을 정하지 않는다. 높은 Q′부터
+  구별해 보존한다. 일부 bin만 조사된 이른 단계에서 최종 상·하한을 정하지 않는다.
+  다만 일부 bin이 비어 있어도 긍정적 경향이 관찰되면 PR/TR/POST를 잠정 분류할 수 있고,
+  미관측 bin을 명시한다. 모든 target bin이 관측된 뒤 경향성을 최종 확인한다. 이는
+  고정 coverage 비율이나 경계 충분성 기준을 정하는 것이 아니다. 높은 Q′부터
   낮은 Q′까지 순차적으로 자료를 축적하고, 거의 모든 bin의 조사가 마무리될 무렵 누적된
   bin별 시그니처 그룹의 특성을 함께 분석하여 굴착·판단 유보·비굴착으로 분류할 Q′ 경계를
   찾는다.
+  **profile 결합 최소 수 유보 (2026-10-28 11:32:36 +09:00 사용자 합의):** 고정 최소 profile 수를 정하지 않는다. 식별 가능한 profile이 하나뿐이어도 경계 추정을 시도하되 잠정 결과로 표시하고, 실제 batch 자료를 본 뒤 충분성을 판단한다.
+  **Coverage와 근거 충분성 구분 (2026-10-28 11:38:53 +09:00 사용자 합의):** 모든 target bin에 관측이 있다는 사실만으로 profile별 근거가 충분하다고 간주하지 않는다. Q′ 분포·support·독립 seed 반복성·시그니처 다양성을 함께 검토하며, PR/TR/POST 식별 근거가 부족한 profile은 미식별로 보존하고 경계 결합에서 제외한다.
   분류 근거는 목표 bin 배정 자체가 아니라 실제 측정 RQD와 연결된 DFN 시그니처·Jn 및
   Jr/Ja 후처리 Q′ 결과다. 목표 bin은 자료 수집과 탐색 순서를 정하는 데 사용하며,
   경계는 bin 대표값이 아닌 실제 연속 Q′ 결과를 바탕으로 분석한다.
@@ -185,7 +195,8 @@ DFN–RQD 자료를 확보하는가”로 확장하는 전략 세대다.
 | Jr·Ja | 교차 joint 중 최소 Jr/Ja인 동일 joint의 쌍 | 동일 raw RQD에 승인된 Jr·Ja 66개 숫자 조합을 후처리 |
 | RQD 하한 | Q′ 계산 시 최소 10 적용 | 원시값을 보존하고 후처리에서 최소 10 적용; 연속 원값을 2단위로 양자화하지 않음 |
 | 무교차 구간 | Q′용 RQD=100, Jr=4, Ja=0.75 convention | 무교차 여부와 측정 RQD를 보존하고 66개 가상 점수 조건을 별도 적용 |
-| face 평가 위치 | 현재 face Q′가 다음 굴진장을 결정 | 새 모드만 Q′와 무관한 고정 공간 간격; geometry·유효 경계 기준은 유지 |
+| face 평가 위치·굴진장 | 기존 동작은 현재 face Q′로 다음 굴진장을 정하므로 위치 간격이 고정되지 않음 | 기존 동작은 유지. 새 모드는 Q′와 무관하게 1 m씩 전진해 face를 평가하고 그 위치에서 Q′Face를 다시 산정; vertex·유효 경계에서는 더 짧게 끝날 수 있음 |
+| BH RQD interval | 기존 borehole별 설정 | 새 모드의 각 BH RQD interval은 1 m; 기존 모드 설정은 유지 |
 | 업데이트 단위 | parent 중심, density/size/orientation block 순회 | 목표별 관측 부족과 접근 효과를 반영한 다음 실험 batch |
 | density 이동 | 초기 방향 고정, 거부 시 step scale 배증, 선택 bound에서 소진 | 관측 근거에 따라 방향·step·축·위치를 갱신; 구체 규칙은 승인 전 미결 |
 | 새 bin 없는 후보 | v3도 새 bin 검증 조건을 상속해 parent 미채택 가능 | 거리 감소·support 증가도 탐색 지속 근거; 새 bin 미발견만으로 일괄 거부하지 않음 |
@@ -256,8 +267,8 @@ GPU simulation은 기존 MLX 정책을 유지하며 CPU로 조용히 전환하�
 | `src/euler_campaign/profiles.py` | BH Deere, face scanline Priest–Hudson, clipping·경계 처리. 현재 반환 자료와 Q′ 의존 순회를 그대로 새 모드에 사용하면 안 됨 |
 | `src/euler_campaign/geometry.py` | tunnel station, polyline vertex, overlap, 유효 face support |
 | `src/euler_campaign/qprime.py` | 기존 최약 절리 선택·무교차 fallback은 보존. 새 조합 분석과 의미가 달라 별도 처리 |
-| `src/euler_campaign/campaign.py`, `euler.py`, `campaign_store.py` | 기존 Euler controller/state는 새 LHS controller로 재사용하지 않음 |
-| `tools/tabulate_qprime_scores.py` | 승인 점수 집합·정확한 유리수 열거·bin 역추적의 기존 기준 |
+| `obsolete/src_obs/euler_campaign/campaign.py`, `euler.py`, `campaign_store.py` | 보관된 기존 Euler controller/state는 새 LHS controller로 재사용하지 않음 |
+| `obsolete/tools/tabulate_qprime_scores.py` | 승인 점수 집합·정확한 유리수 열거·bin 역추적의 기존 기준 |
 
 기존 architecture 계약과 직접 읽은 위 소스가 계획 근거다. 별도 constitution/topology
 문서는 확인되지 않았으며 존재하는 것으로 가정하지 않는다. 신규 상세 schema·API 설계는
@@ -276,42 +287,215 @@ GPU simulation은 기존 MLX 정책을 유지하며 CPU로 조용히 전환하�
 
 ### 4.1 LHS 설계
 
-한 조건군(block)은 절리군 수·Jn·geometry·고정 파라미터를 공유한다. 각 block의 연속
+한 조건군(block)은 절리군 수·Jn·geometry와 block 내 고정 파라미터를 공유한다. 각 block의 연속
 탐색 축에 LHS를 적용하며 서로 다른 절리군 구성이나 Jn을 연속 보간하지 않는다.
-표본 수 N, 설계 seed, 각 축의 단위·변환·bounds를 manifest에 기록한다.
+초기 LHS 표본 수 N은 block마다 다를 수 있으며 공통 N을 강제하지 않는다. N은 실제 설계 표본
+개수이지 가능한 조합의 총수와 같은 뜻이 아니다. block별 N과 그 산정 기준은 별도 결정한다.
+각 block의 N, 설계 seed, 각 축의 단위·변환·bounds를 manifest에 기록한다.
+각 초기 signature는 우선 당초 realization seed 하나로 평가한다. 모든 초기 signature를
+반복 실행하지 않으며, 효과 가능성이 관측된 후보만 다른 realization seed로 효과를 확인한다.
+검증 seed는 후보와 기준점의 짝비교에 사용하고, 단계·추가 확인 기준은 4.10–4.12를 따른다.
+당초 시드는 검증 seed 수에 포함하지 않는다.
 
 양수 density와 size 축은 로그 좌표 사용을 제안한다. 방향 축과 size의 순서 제약은
 원래 bounds와 목적에 맞는 변환을 승인한 뒤 사용한다. `r_min < r_max`를 위반한 표본을
 조용히 버리거나 clamp하여 원래 공간의 LHS를 유지했다고 주장하지 않는다.
 허용 영역의 좌표변환과 그로 인한 분포를 명시해야 한다.
-fisher_kappa 포함 여부도 축 명세에서 결정하고 자동 추가하지 않는다.
+
+**v4 반경 LHS 순서 제약 변환 결정 (2026-10-28 14:07:53 +09:00):** `size_r_min`·
+`size_r_max`용 두 LHS 좌표를 각각 로그 반경 범위에서 만든 뒤, 각 표본쌍의 작은 값을
+`size_r_min`, 큰 값을 `size_r_max`에 배정한다. 따라서 `size_r_min < size_r_max`를
+만족하며 유효 표본 수를 줄이거나 경계 clamp로 대체하지 않는다. 변환 뒤 각 반경의
+주변분포는 독립·균등 로그분포가 아니라 order-statistic 분포가 되므로, 표본 생성 기록에
+이 변환을 명시한다.
+
+**최초 pilot LHS 생성 계약 결정 (2026-10-28 14:50:45 +09:00):** 기존 SciPy 의존성의 randomized LHS를 사용한다. block별 확정 설계 seed(Jn 0.5는 `39`, Jn 1은 `36`)로 독립 표본을 생성하고, LHS 최적화나 사후 표본 재배열은 적용하지 않는다. SciPy 버전과 합의된 좌표 변환을 적용한 최종 signature 값을 frozen manifest에 보존한다. 이 계약은 최초 pilot에 한정하며 전체 탐색 전략의 후속 LHS 정책은 별도 승인한다.
 
 기초 LHS 표본과 seed 목록은 기초 batch 전에, 후속 표본은 각 batch 실행 전에 저장한다.
 각 batch의 부모 관측·목표·선정 이유·정책 버전을 기록한다. 실패한 표본을 유리한 다른 표본으로
 치환하지 않는다. 축의 층화와 물리 좌표에서의 분포는 구별해 기록한다.
 N 변경은 새 설계/manifest로 취급한다. 독립 LHS batch를 합쳤다고 전역 LHS라고 부르지 않는다.
 
+**v4 크기 반경 범위 합의 (2026-10-28 11:56:26 +09:00):** v4에서 `size_r_min`과 `size_r_max` 각각의 허용 반경 범위 상한을 150 m로 통일하고 하한 0.05 m 및 `size_r_min < size_r_max` 제약을 유지한다. 이는 v4의 크기 범위에 적용하며, v3의 0.05–100 m 기록은 역사적 v3 계약으로 보존한다. v4에서 100 m 상한은 더 이상 적용하지 않는다.
+
+**v4 P32 상한 합의 (2026-10-28 12:15:01 +09:00):** 각 joint set에 입력하는 P32의 탐색 상한을 100 m²/m³로 둔다. P32는 joint set별 값이며 block의 합계 상한을 뜻하지 않는다. 여러 set의 전체 밀도·선밀도 기여는 set별 값과 방향을 합산해 평가한다. 이 상한은 v4의 탐색 범위이며 물리적 최대값 주장을 뜻하지 않는다.
+
+**v4 P32 하한 합의 (2026-10-28 12:16:21 +09:00):** 각 joint set의 P32 탐색 하한은 0.01 m²/m³로 둔다. 이에 따라 현재 합의된 v4 joint-set별 P32 탐색 범위는 `[0.01, 100] m²/m³`이다. 0은 범위에 포함하지 않는다. 이 범위는 탐색 설정이며 물리적 적용성 한계 주장은 아니다.
+
+**분포 형상 파라미터 고정 합의 (2026-10-28 12:24:39 +09:00, 이후 정정):** 당시 `size_alpha`(반경 크기 분포의 꼬리·집중도)와 `fisher_kappa`(방향 분포의 집중도)를 조건군/block 내 고정하고 v4 연속 탐색축에서 제외하기로 했다. 13:05 이후의 signature별 난수화 결정으로 고정값 적용 방식은 정정되었으며, 현재 규칙은 아래 timestamped correction을 따른다. 과거 high-Q screening catalog의 kappa 8→2 제안은 v4의 승인된 범위로 자동 채택하지 않는다.
+
+**평균 방향 탐색 범위 합의 (2026-10-28 12:26:13 +09:00, 이후 정정):** 당시 `mean_dip`·`mean_dip_dir`의 전역 유효 각도 범위를 자동 적용하지 않고 block별 수치를 정하기로 했으나, 13:36의 전체 유효 범위 결정으로 정정했다. 기존 schema의 입력 유효 범위와 과거 `orientation_beta` 상대각 sweep은 서로 다른 개념이다.
+
+**평균 방향 bounds 적용 단위 결정 (2026-10-28 13:11:45 +09:00, 범위는 이후 정정):** 방향 bounds는 block별이며 한 block 안에서 모든 joint set에 공통 적용한다. 각 set의 평균 방향값 자체는 다를 수 있다.
+
+**평균 방향 전체 유효 범위 결정 (2026-10-28 13:36:12 +09:00):** v4 탐색은 전체 입력 유효 각도 범위를 사용하며, 이보다 좁은 방향 제한을 두지 않는다: `mean_dip` `[0, 90]°`, `mean_dip_dir` `[0, 360]°`(360°는 0°와 동일). 이 bounds는 block별이며 block 내 모든 joint set에 공통 적용한다. 이는 각도 입력의 전체 유효 영역을 뜻하며 수학적으로 무제한인 각도를 뜻하지 않는다. 절리면과 관측 선형 기하 사이의 사잇각은 별도 파생량이다. 기존 `orientation_beta`는 관측공 축과 절리면 사이의 0–90° 각도를 방향 갱신 좌표로 쓰며, 실제 관측공 축을 사용해야 한다. 이 결정만으로 터널축 상대각을 별도의 v4 방향 갱신 좌표로 채택하지는 않는다.
+
+**BH·터널 사잇각 역할 결정 (2026-10-28 13:48:05 +09:00):** v4 방향 갱신 좌표는 기존 `orientation_beta`처럼 각 관측공의 실제 축과 절리면 사이 사잇각으로 둔다. 터널 사잇각은 각 tunnel polyline segment의 실제 진행방향과 절리면 사이의 파생값으로 산출해 결과 해석용으로 기록하며, 후보 생성·방향 갱신을 유도하는 좌표로 사용하지 않는다. 두 값은 절리면 법선 `n`과 해당 선형 방향 단위벡터 `d`를 사용해 `β = asin(|n·d|)`로 표현하는 0–90° 예각이다.
+
+**v4 조건군 목록의 출발점 결정 (2026-10-28 12:28:51 +09:00):** 기존 low-Q/high-Q case와 high-Q portfolio manifest는 v4 승인 조건군으로 직접 채택하지 않고 참고 자료로만 보존한다. v4 condition-group 목록은 새로 설계하며, 구체 절리군 구성·Jn·geometry와 승인 범위는 별도 논의한다.
+
+**v4 Jn 목표 범위 합의 (2026-10-28 12:30:40 +09:00):** 신규 v4 조건군 설계에서 기존 Q′ 점수 격자의 Jn 10개 값 `{0.5, 1, 2, 3, 4, 6, 9, 12, 15, 20}`을 모두 목표 범위로 포함한다. 이는 각 값의 DFN block 또는 지질·기하 구성이 승인되었다는 뜻은 아니다. Jn과 block/절리군 구성의 연결은 자동 산정하지 않고 별도 논의한다.
+
+**Jn 평가 용어 및 적용 방식 정정 (2026-10-28 12:47:15 +09:00):** 절리군 수와 혼동하지 않도록 이 안건에서는 “Jn 평가값”이라고 부른다. 기존 Q′ 격자의 Jn 10개 값 `{0.5, 1, 2, 3, 4, 6, 9, 12, 15, 20}`은 모두 명시적인 Jn 평가 목표다. 다만 각 DFN condition block에는 해당 Jn을 고정하고, 그 Jn에 대한 목표·필요 RQD를 탐색한다. 같은 DFN의 관측 RQD에 Jn 10개를 모두 후처리 적용하는 뜻은 아니며, Jr/Ja 후처리와 구별한다. Jn은 절리군 수에서 자동 도출하지 않는다. 이 결정은 “Jn 값이 평가 격자에만 쓰인다”는 해석을 바로잡는다.
+
+**Jn별 복수 조건군 허용 합의 (2026-10-28 12:31:36 +09:00):** 한 Jn 값 아래 서로 다른 DFN condition block을 둘 수 있다. 이에 따라 Jn 값마다 대표 block 하나로 제한하지 않는다. 각 block의 정확한 수와 절리군·geometry 구성은 미정이며, Jn을 절리군 수에서 자동 도출하지 않는다.
+
+**동일 Jn 내 복수 block 역할 합의 (2026-10-28 12:32:17 +09:00):** 같은 Jn의 복수 block은 동일 구조의 단순 고정값 민감도 반복만이 아니라 서로 다른 절리 구조·기하를 나타내는 condition family로 설계한다. 구체적인 family 차원과 구성은 미정이다.
+
+**구조적 family 구분 차원 초기 논의 (2026-10-28 12:33:27 +09:00, 이후 세부 결정):** 당시 절리군 수·상호작용, 방향 regime, `size_alpha`·`fisher_kappa`, set별 P32 배분, 도메인·터널·시추공 기하를 family 차원 후보로 고려했다. 이후 상호관계·방향은 별도 유형이 아닌 파라미터로 표현하고, geometry는 공통 적용하며, α/κ는 signature별 공통 난수값으로 적용하기로 정정했다. set별 P32의 별도 비율 제약은 두지 않는다.
+
+**신규 condition family의 절리군 수 후보 (2026-10-28 12:35:06 +09:00):** 새 structural family 설계에서 절리군 수 후보로 1, 2, 3, 4, 5를 포함한다. 이 값들은 Jn과 일대일 또는 자동 대응하지 않는다. 다섯 set-count 값과 Jn 10개 목표의 pairing 및 그로 인한 block 수는 미정이다.
+
+**조건 후보 공간과 실행 조합 구분 합의 (2026-10-28 12:41:27 +09:00):** Jn 10개 값, 절리군 수 1–5 및 추가 structural family 차원의 조합은 v4 업데이트 룰이 탐색할 후보 공간으로 본다. 이는 가능한 조합의 전수 실행을 뜻하지 않는다. 실제 batch에서 무엇을 실행할지는 업데이트 룰·배분·예산에 따라 선택하며, 후보별 유효성/물리 제약과 구체적인 family 목록도 별도 설정한다. 후보 공간의 크기나 초기·후속 batch 수는 아직 정하지 않았다.
+
+**Jn 평가값·절리군 수 전체 pairing 후보 허용 (2026-10-28 12:48:29 +09:00):** Jn 평가 목표 10개 각각과 절리군 수 후보 1–5개의 모든 pairing을 조건군 후보 공간에 허용한다. 이는 각 pairing의 물리적·구조적 유효성 승인을 미리 뜻하지 않으며, 전 조합 실행을 뜻하지도 않는다. 유효성 검토와 실제 batch 실행 대상 선택은 업데이트 룰 및 후속 조건군 설계에 따른다.
+
+**초기 block 수와 타겟 빈 순차 탐색 결정 (2026-10-28 13:55:17 +09:00):** v4는 소수의 실제 parameter block으로 시작한다. Jn 10개 × 절리군 수 1–5개라는 pairing 후보 공간은 그대로 열어두되, 50개 조합의 block 정의를 미리 만들거나 전부 실행 목록으로 구성할 필요는 없다. 실제 block·signature는 연구 진행과 관측 근거에 따라 필요한 만큼 선택·추가한다. 타겟 Q′ bin은 기존 합의대로 가장 높은 bin부터 가능한 한 순차적으로 낮은 bin으로 진행하며, 현재 목표 bin의 자료·support를 고려해 signature를 선정한다. 아직 관측되지 않은 signature–Q′ 관계를 안다고 가정해 파라미터를 역산하지 않고, 초기 탐색과 실제 관측을 통해 선정 근거를 갱신한다. 각 단계에서 다른 bin에 기여한 관측도 함께 기록한다. 구체적인 초기 block 수, block roster, bin별 완료 support와 전환 기준은 미정이다.
+
+**초기 Jn block 범위 결정 (2026-10-28 13:56:44 +09:00):** 초기 block은 최고 Q′ target bin 조사에 필요한 소수 Jn 목표로 제한한다. 이후 target bin을 낮춰 순차 진행할 때 필요한 Jn block을 추가한다. Jn 10개 모두 최종 평가 목표로 유지하지만, 초기부터 각 Jn의 block을 모두 구성하지는 않는다. 최고 bin에 필요한 구체 Jn 및 추가 block 선택 근거는 관측·support 자료를 토대로 정한다.
+
+**Q′ > 400을 첫 타겟으로 지정 (2026-10-28 13:57:39 +09:00):** 기존 10개 주 bin과 경계 정의는 유지하며, 별도 집계하던 `Q′ > 400` 구간을 순차 탐색의 첫 최고 타겟으로 포함한다. 이후 기존 10개 주 bin을 높은 값부터 낮은 값 순으로 탐색한다. 이 결정은 별도 구간을 10개 주 bin 중 하나로 재정의하지 않는다.
+
+**초기 Jn block 목표 결정 (2026-10-28 13:59:47 +09:00):** 첫 target인 `Q′ > 400` 탐색을 위해 초기 Jn 목표는 0.5와 1로 한다. Jr/Ja 조합에서 `Jr ≤ 4`, `Ja ≥ 0.75`, `raw_RQD ≤ 100`일 때 `Jn ≥ 2`의 최대 Q′는 266.7이므로 산술상 `Q′ > 400`에 도달할 수 없다. Jn 0.5·1 block의 실제 RQD와 `Q′ > 400` 도달 여부는 관측으로 판단하며, 산술상 가능성이 도달을 보장하지 않는다. 각 Jn의 초기 절리군 수와 실제 block 구성은 별도 결정이다.
+
+**`Q′ > 400` 초기 목표의 Jr/Ja 도달성 반영 (2026-10-28 14:40:00 +09:00):** 각 관측에 대한 66개 Jr/Ja 파생점수는 모두 계산·보존한다. 단, `Q′ > 400` 목표 우선순위에서는 계산용 RQD 상한 100으로 산술상 도달 가능한 조합에 집중한다. 필요 조건은 `calculation_RQD > 400 × Jn × Ja / Jr`이다. 초기 Jn 0.5 block에서는 `(Jr,Ja)=(4,0.75),(4,1),(3,0.75),(3,1),(2,0.75)`의 5개 조합만 가능하며 필요한 calculation RQD는 각각 `>37.5, >50, >50, >66.7, >75`이다. Jn 1 block에서는 `(4,0.75)` 1개 조합만 가능하며 필요 calculation RQD는 `>75`이다. 나머지 수치 조합은 최대 calculation RQD 100에서도 `Q′ > 400`에 도달할 수 없으므로 이 target의 비도달로 기록하고, 파생점수·다른 bin 분석에서는 유지한다. 실제 관측·support와 무교차 convention은 별도 provenance로 해석하며 산술상 도달 가능성을 실현 보장으로 보지 않는다.
+
+**초기 block 절리군 수 결정 (2026-10-28 14:01:22 +09:00):** 최고 타겟 조사 초기 묶음은 Jn 0.5와 1 각각 하나의 절리군(set-count 1)으로 구성한다. 따라서 현 단계의 초기 block은 2개이며, 이는 초기 비교 구성을 정할 뿐 이후 다른 set-count·block 추가 가능성을 제한하지 않는다.
+
+**초기 LHS 표본 수 결정 (2026-10-28 14:05:13 +09:00):** 초기 두 block 각각에 LHS signature 5개를 둔다(N=5/block, 총 10 signatures). 각 signature는 당초 시드 하나로 평가한다. 이는 첫 관측을 위한 시작 표본 수이며 충분성·경계 식별 기준이 아니다. 이후 표본 추가와 검증 시드는 관측 결과 및 기존 검증 규칙에 따른다.
+
+**초기 pilot seed 값 결정 (2026-10-28 14:36:40 +09:00):** Jn 0.5 block의 design seed는 `39`, Jn 1 block의 design seed는 `36`으로 구분한다. 두 block의 총 10개 signature는 공통 당초 realization seed `43`으로 평가한다. Design seed는 각 block의 LHS·signature별 α/κ 추출을 재현하며, realization seed는 고정 signature에서 DFN realization을 재현한다. 후속 paired 검증에는 별도 검증 seed를 사용한다.
+
+**초기 P32 step 결정 시점 합의 (2026-10-28 14:11:43 +09:00):** P32의 후속 작은/큰 step 값은 임의의 사전값으로 정하지 않고 초기 10 signatures 관측 결과를 검토한 뒤 결정한다. 이는 P32 step 수치만 미룬 것이며 다른 축의 step 결정 시점을 자동으로 정하지 않는다.
+
+**반경 step 결정 시점 합의 (2026-10-28 14:12:07 +09:00):** `size_r_min`과 `size_r_max`의 각 작은/큰 step 값도 초기 10 signatures 관측 결과를 검토한 뒤 정한다. 두 축은 별도 probe 축이며 동일 step을 강제하지 않는다.
+
+**방향 step 결정 시점 합의 (2026-10-28 14:12:31 +09:00):** 실제 관측공 축–절리면 사잇각 `β`의 작은/큰 step도 초기 10 signatures 관측 결과를 검토한 뒤 결정한다. 기존 제안값 5°를 v4의 확정 step으로 자동 채택하지 않는다.
+
+**최고 타겟 구간 전환 검토 시점 결정 (2026-10-28 14:13:01 +09:00):** `Q′ > 400` 초기 batch의 관측 결과를 검토한 뒤, 해당 구간을 더 탐색할지 다음 낮은 주 bin으로 이동할지 결정한다. 사전 고정된 support 수나 자동 전환은 두지 않으며, 초기 관측이 bin 충분성을 보장한다고 해석하지 않는다.
+
+**P32 LHS 좌표 결정 (2026-10-28 14:08:42 +09:00):** joint set별 P32의 `[0.01,100] m²/m³` 표본은 로그 좌표에서 LHS를 적용한다. 물리 단위의 P32 경계는 유지하며, 범위의 자릿수별 탐색을 위한 좌표 선택이지 P32의 물리적 분포 가정이 아니다.
+
+**방향 LHS 좌표 결정 (2026-10-28 14:09:45 +09:00):** 초기 LHS는 `mean_dip` `[0,90]°`와 `mean_dip_dir` `[0,360)°`를 입력 각도 좌표 그대로 균등 분산한다. 이는 각도 파라미터 공간의 탐색 설계이며, equal-area 면 방향 분포나 물리적 사전분포를 가정하지 않는다. 360°는 0°와 동일하므로 상단 endpoint는 중복 표본으로 포함하지 않는다.
+
+**반경 LHS 순서 제약 변환 결정 (2026-10-28 14:07:53 +09:00):** 로그 반경 LHS 좌표 두 개를 표본별 정렬해 작은 값은 `size_r_min`, 큰 값은 `size_r_max`로 사용한다. 순서 제약을 보장하면서 표본을 버리거나 clamp하지 않으며, 이에 따른 order-statistic 주변분포를 기록한다.
+
+**절리군 간 상호관계의 표현 방식 결정 (2026-10-28 12:57:04 +09:00):** 절리군 간 상호관계를 별도의 사전 정의 family 유형으로 분류하지 않는다. 절리군별 방향 등 파라미터 설정을 통해 관계와 구조적 차이를 표현한다. 구체 파라미터와 허용 bounds는 후속 설정 논의에서 결정한다.
+
+**방향 regime의 표현 방식 결정 (2026-10-28 12:57:38 +09:00):** 방향 regime을 별도의 사전 정의 family 유형으로 나누지 않는다. 각 절리군의 `mean_dip`·`mean_dip_dir`와 block별 bounds로 방향 차이를 표현한다. 승인된 범위·실제 설정은 별도 결정으로 남는다.
+
+**`size_alpha`·`fisher_kappa`의 block 간 적용 범위 초기 결정 (2026-10-28 12:59:17 +09:00, 13:05에 정정):** 당시 각 파라미터를 모든 block에서 공통 고정값으로 두기로 했으나, 이후 signature별 난수화 결정으로 대체되었다.
+
+**분포 형상 파라미터의 signature별 난수화 단위 결정 (2026-10-28 13:05:32 +09:00):** 앞선 모든 block 공통 고정값 결정은 정정한다. `size_alpha`·`fisher_kappa`는 승인될 범위 안에서 signature별로 난수 생성하고, 해당 signature의 seed 반복에서는 같은 값을 유지한다. 범위, 난수분포, 두 파라미터 간 추출 관계, seed 외 재현성 규칙은 미정이다.
+
+**분포 형상 파라미터 탐색 범위 결정 (2026-10-28 13:06:31 +09:00):** signature별 난수 생성의 연구용 후보 범위를 `size_alpha` `[2.5, 4.0]`, `fisher_kappa` `[0, 50]`으로 정한다. 이는 구현의 허용범위나 물리적 한계 주장이 아니다. 각 범위에서의 난수분포, 두 파라미터 간 추출 관계, 재현성 규칙은 미정이다.
+
+**분포 형상 파라미터 난수분포 결정 (2026-10-28 13:07:01 +09:00):** `size_alpha`와 `fisher_kappa`를 각각 승인 범위에서 서로 독립인 균등분포로 signature마다 한 번 추출한다. 같은 signature의 seed 반복에서는 같은 값을 유지한다. 추출 결과의 기록 및 난수 seed 재현성 규칙은 미정이다.
+
+**분포 형상 파라미터와 LHS의 분리 결정 (2026-10-28 13:08:02 +09:00):** `size_alpha`·`fisher_kappa`는 LHS 축에 넣지 않는다. 각 signature에서 두 값을 서로 독립인 균등 난수로 추출하고, 나머지 승인 연속축은 기존 LHS 설계를 유지한다. 이 방식은 LHS 표본의 층화를 두 형상 파라미터에 적용하지 않는다. 난수 seed 및 실현값 기록 규칙은 미정이다.
+
+**분포 형상 파라미터 난수 재현성 결정 (2026-10-28 13:09:10 +09:00):** `size_alpha`·`fisher_kappa` 난수는 manifest의 design seed에서 LHS와 분리된 별도 RNG stream을 사용한다. 실제 signature별 추출값을 manifest에 기록하여 같은 manifest에서 동일하게 재현하고, 이 난수 추가가 LHS 표본열을 바꾸지 않도록 한다.
+
+**분포 형상 파라미터의 signature 내 공유 결정 (2026-10-28 13:10:12 +09:00):** 다중 joint set을 포함한 signature에서도 `size_alpha` 하나와 `fisher_kappa` 하나만 추출하여 모든 set에 공통 적용한다. 두 파라미터 값은 서로 독립이며, 같은 signature의 모든 realization seed에 동일하게 유지한다.
+
+이후 condition block의 각 signature에는 앞서 정한 범위·분포에 따라 α/κ를 부여한다. 두 값은 block의 모든 joint set에서 공유되며 seed 반복 간 고정되고, LHS 연속축과 별도 RNG stream을 사용한다.
+
+**초기 LHS 표본 수의 block별 적용 원칙 (2026-10-28 13:14:30 +09:00):** 초기 표본 수 N은 block마다 달라질 수 있으며 모든 block에 동일한 N을 강제하지 않는다. N은 실제로 생성할 LHS 표본 수이며 가능한 조합의 총수와 자동으로 같아지지 않는다.
+
+**초기 LHS 표본 수의 block별 산정 원칙 (2026-10-28 13:16:28 +09:00):** 각 block의 실제 LHS 연속축 구성·범위와 초기 탐색 목적을 고려해 N을 정한다. Jn 평가값×절리군 수와 같은 이산 pairing 개수를 N으로 삼지 않는다. 자동 산식과 최소 표본 수는 두지 않으며, 실제 N은 설계 전에 승인하고 manifest에 기록한다.
+
+**당초 시드와 검증 시드의 구분 (2026-10-28 13:20:33 +09:00, 용어 정정 13:24:04):** 각 초기 signature는 먼저 당초 시드 하나로 평가하며, 모든 signature를 초기부터 반복하지 않는다. 효과 가능성이 보인 후보만 당초 시드와 다른 검증 시드로 기준점과 짝비교해 확인한다. 검증 시드 수와 추가 확인 절차는 기존 4.10–4.12 규칙을 적용하며 당초 시드는 검증 시드 수에 포함하지 않는다.
+
+**시드 용어 합의 (2026-10-28 13:24:04 +09:00):** 초기 signature를 처음 평가하는 seed를 “당초 시드”, 효과 가능성을 후보·기준점의 paired 비교로 확인하는 추가 seed를 “검증 시드”라고 부른다. “탐색 시드”라는 표현은 사용하지 않는다.
+
+**Set별 P32 배분 추가 제약 없음 (2026-10-28 13:00:41 +09:00):** 각 joint set의 P32를 기존 범위 `[0.01,100] m²/m³` 안에서 별도로 설정하며, set 간 동일값·비율 같은 추가 배분 제약은 두지 않는다. block 전체 합계 상한도 별도로 두지 않는다.
+
+**Geometry block 간 공통 적용 결정 (2026-10-28 13:01:34 +09:00):** domain·터널·BH geometry는 모든 block에서 공통으로 유지하며, condition-family 차이로 두지 않는다. 구체 출발 형상은 후속 결정으로 남긴다.
+
+**v4 공통 geometry 출발점 채택 (2026-10-28 13:30:42 +09:00):** 참고 사례의 공통 형상을 v4의 출발점으로 채택한다: domain `60×30×30 m`, grid spacing `1 m`; x축 직선 tunnel `[0,15,15]`→`[60,15,15]`, radius `5 m`; 중앙선상 x방향 borehole 길이 `60 m`. 이 형상은 모든 block에 공통 적용한다. 연구용 출발 geometry 선택이며 기존 case를 v4 전체 설정으로 채택하거나 다른 미결 조건을 확정하는 것은 아니다.
+
 ### 4.2 RQD 측정과 고정 face 위치
 
-BH: 기존 Deere 직접법, interval length, clipping·tail 규칙 유지.
+BH: 기존 Deere 직접법, clipping·tail 규칙을 유지한다. 새 모드의 BH RQD interval은 1 m로
+고정하며, 기존 모드의 borehole별 interval 설정은 변경하지 않는다.
 Face: 기존 scanline Priest–Hudson 계산과 유효 face 면적 기준 유지.
 두 RQD 방법은 별도 층으로 분석하며 같은 측정법으로 합치지 않는다.
 
-새 face 순회는 segment 시작 face를 reference로 기록하고, 각 직선 segment 안에서 승인한
-간격으로 전진하며 마지막 잔여 구간은 segment 끝에서 자른다. 도달 face는 직전 구간
-길이를 대표 support로 기록한다. 최초 reference face에는 미래 support를 부여하지 않는다.
+기존 운용의 굴진장은 DesignSpec 5.8.4에 따라 현재 face의 Q′Face로 다음 round 길이를
+정하므로, 기존 face 위치와 굴진거리는 고정 간격이 아니다. 이 규칙은 기존 동작으로 보존한다.
+
+새 모드에서는 현재 Q′Face와 무관하게 터널 polyline을 따라 1 m씩 전진해 face를 평가하고,
+각 도달 위치에서 새 Q′Face를 산정한다. 따라서 이 모드에서 다음 평가 위치와 전진거리는
+고정 1 m이며 현재 Q′Face가 다음 위치를 바꾸지 않는다. segment 끝·vertex에 1 m 지점이
+걸리지 않으면 해당 segment 끝에서 더 짧은 잔여 거리만 전진하고, 다음 직선 segment에서
+새 1 m 간격을 시작한다. 유효 face 경계가 먼저 나타나면 그 지점에서 중단한다.
+도달 face는 직전 실제 전진거리(통상 1 m, segment 끝의 잔여 구간에서는 그 실제 길이)를
+대표 support로 기록한다. 최초 reference face에는 미래 support를 부여하지 않는다.
 vertex는 도달 segment 방향으로 평가하고 다음 segment 방향은 새 reference로 구분한다.
-마지막 평가점·불완전 support·유효 경계 중단 이유를 보존하며 Q′로 간격을 변경하지 않는다.
-이것은 새 모드의 공간 표본 support이지 실제 굴진장 정책을 대체한다는 뜻이 아니다.
+마지막 평가점·불완전 support·유효 경계 중단 이유를 보존한다. 이 1 m 고정 전진은 새 모드에만
+적용하며 기존 Q′ 기반 굴진장 동작을 변경하지 않는다.
+
+**새 모드 face 평가 간격·굴진장 합의 (2026-10-28 13:26:45 +09:00):** 기존 Q′Face 기반 가변 굴진장 동작과의 충돌 가능성을 확인했다. 기존 동작은 보존하고, 새 모드에서는 Q′와 무관한 고정 1 m 전진 후 각 위치에서 Q′Face를 재산정한다. Polyline segment 끝·vertex에서 1 m가 되지 않는 잔여 구간은 segment 끝에서 종료하며, 유효 경계에서 먼저 중단할 수 있다. 대표 support는 실제 직전 전진거리로 둔다. 이는 새 모드에 한정된 규칙이다.
+
+**새 모드 BH RQD interval 길이 합의 (2026-10-28 13:29:25 +09:00):** 새 모드에서 각 BH raw RQD는 1 m interval로 산출한다. Deere 직접법과 기존 clipping·tail 처리 규칙을 유지하며, 기존 모드의 borehole별 interval 설정은 소급 변경하지 않는다. Face의 1 m 전진 간격은 별도로 정한 새 모드 규칙이다.
+
+**최초 pilot face 측정 범위 결정 (2026-10-28 14:41:34 +09:00):** 초기 10개 signature 모두에서 BH 자료와 함께 전체 tunnel face profile을 산출한다. Face는 BH 탐색 우선순위를 바꾸지 않는 동일 DFN의 대응 분석자료이며, 새 모드의 고정 1 m face 평가 간격을 적용한다.
 
 유효 face가 없거나 BH support가 없으면 0이나 정상 결과로 대체하지 않고 unavailable과
 사유를 기록한다. 기존 overlap 비교 계약은 유지하되 유효한 실제 support만 사용한다.
 
+**최초 pilot G0 자료 계약 원칙 승인 (2026-10-28 14:17:12 +09:00):** 원자료 관측, Jr/Ja 파생 점수, 실행 시도·오류를 서로 분리하고 provenance로 연결한다. 원자료의 raw RQD·측정법·위치·실제 support·무교차 여부는 후처리 점수와 별개로 보존한다.
+
+**최초 pilot 자료 schema 제안 (field group 승인; 구체 자료형·제약은 pilot 준비 시 명시):**
+
+1. `measurement`: `observation_id`, `block_id`, `signature_id`, realization `seed`,
+   관측 종류(BH interval/face station), profile ID, 위치·구간 또는 station/chainage,
+   측정법 ID, `raw_rqd`, 실제 support, 무교차 여부, 관측 유효성/제외 사유.
+   Face observation은 실제 support 면적과 직전 전진거리, 위치별 RQD 산출 근거가
+   보존되도록 scanline evidence를 자식 레코드로 연결한다.
+2. `derived_score`: source `observation_id`, Jr/Ja scenario ID, 고정 Jn, Jr, Ja,
+   `calculation_rqd`, 연속 `qprime`, 해당 bin, 무교차 convention provenance.
+   원자료 한 건의 66개 파생 점수는 각각 독립 관측이나 추가 support로 세지 않는다.
+3. `execution_attempt`: attempt ID, block/signature/seed 연결, 실행 상태, 오류·결측
+   분류와 간단한 사유, 재시도 연결 정보, 입력/plan fingerprint, 실행 fingerprint.
+   실패·비교 불가·정상 무교차 관측을 서로 다른 상태로 구별한다.
+   pilot의 사유는 상태 판별에 필요한 간단한 분류/설명으로 제한하며 stack trace나
+   상세 진단 로그를 저장하지 않는다. 이는 기존 오류 상세 저장 제한을 유지한다.
+
+**최초 pilot 자료 schema 필드 승인 (2026-10-28 14:18:59 +09:00):** 위 세 레코드 종류와 필드 목록을 첫 pilot용으로 승인했다. 이는 pilot에서 쓸 최소 schema 선택이며 기존 10:22–10:27의 더 넓은 자료 계약 전체를 대체하지 않는다. pilot을 실행한 뒤 실제로 필요한 추가 field-group과 schema 확장을 검토한다. 오류 사유는 판별용의 간단한 분류/설명만 저장하고 stack trace·상세 진단 로그는 저장하지 않는다.
+
+**최초 pilot 저장 형식 선택 (2026-10-28 14:22:35 +09:00, pilot 한정 예외):** 첫 pilot은 YAML 입력과 단일 신규 SQLite DB를 사용하고, 실행 전 고정 manifest JSON payload도 같은 DB에 넣으며 독립 `manifest.json`은 두지 않는다. 이는 pilot의 간소화 선택으로서 10:21의 장기 자료 계약(YAML + 별도 frozen `manifest.json` + SQLite result store)을 폐기하지 않는다. pilot 경험을 바탕으로 이후 저장 구성을 다시 결정한다.
+
+**최초 pilot schema 버전 표기 결정 (2026-10-28 14:51:09 +09:00):** frozen manifest JSON payload에 정수 `schema_version: 1`을 기록한다. 별도 schema-version 테이블이나 migration 체계는 pilot에 추가하지 않는다.
+
+**최초 pilot 레코드 ID 결정 (2026-10-28 14:51:27 +09:00):** observation·derived-score·execution-attempt 레코드의 내부 관계용 ID는 SQLite DB가 부여하는 정수형 ID로 한다. `block_id`·`signature_id` 등 설계 식별자는 manifest의 text ID로 유지한다. UUID나 반복 실행 간 DB row ID 재현 규칙은 추가하지 않는다.
+
+**최초 pilot RQD 저장 표현 결정 (2026-10-28 14:52:26 +09:00):** `raw_rqd`와 `calculation_rqd`를 SQLite `REAL` 값으로 별도 저장하고, raw 관측값은 반올림해 덮어쓰지 않는다. 계산용 값은 `max(raw_RQD, 10)` 규칙으로 산출한다. 결측·유효하지 않은 관측은 0으로 대체하지 않고 NULL 및 해당 상태/사유로 표현한다.
+
+**최초 pilot 관측 위치 표현 결정 (2026-10-28 14:52:59 +09:00):** 공통 직선 geometry가 frozen manifest에 저장되므로, BH 관측에는 `start_m`·`end_m`, face 관측에는 `chainage_m`을 기록한다. 각 observation 행에 중복 world `x/y/z` 좌표는 저장하지 않는다. 위치는 해당 거리값과 manifest geometry로 재구성한다.
+
+**최초 pilot support 필드·단위 결정 (2026-10-28 14:53:22 +09:00):** BH interval은 실제 유효 길이 `support_length_m`(REAL), face station은 실제 유효 면적 `support_area_m2`(REAL)와 직전 실제 `advance_distance_m`(REAL)을 저장한다. Face 계산에 사용한 scanline evidence는 해당 observation에 연결한다. 예정 support를 실제 support의 대체값으로 사용하지 않는다.
+
+**최초 pilot 관측 유효성·미생성 구분 결정 (2026-10-28 14:54:13 +09:00):** measurement 행의 `is_valid`는 SQLite INTEGER `0`/`1`로 저장한다. RQD가 실제 산출됐으나 support·측정 조건으로 분석에서 제외되는 행은 raw 값과 `exclusion_reason`을 보존한다. 관측 자체가 생성되지 않은 경우에는 measurement 행을 만들지 않고 해당 `execution_attempt`의 상태·사유로만 기록한다.
+
+**최초 pilot attempt 상태·재시도 기록 결정 (2026-10-28 14:54:36 +09:00):** `execution_attempt` 상태는 `running`·`completed`·`failed`로 구분하며 별도 `partial` 상태는 두지 않는다. 실패 전에 정상 산출된 measurement 행은 보존하고 attempt는 `failed`로 기록한다. 재시도는 자동화하지 않고 새 attempt 행으로 생성해 이전 attempt ID를 연결한다.
+
+**최초 pilot face scanline evidence 결정 (2026-10-28 14:57:04 +09:00):** face observation별 scanline 자식 자료에는 `scanline_index`, 실제 유효 `length_m`, `intersection_count`, 선별 `raw_rqd`를 저장한다. 직선 geometry와 face chainage에서 재구성 가능한 시작점·방향은 중복 저장하지 않으며, 선밀도는 count/length에서 재계산한다. 개별 교차점 좌표 목록은 저장하지 않는다.
+
+**남은 6단계 결정에 대한 사용자 진행 지침 (2026-10-28 14:58:51 +09:00):** 사용자는 6단계의 남은 선택을 권고안에 따라 진행하겠다고 했다. 재개 시 이미 합의된 방향을 다시 묻지 말고, 남은 pilot 준비 선택은 권고안과 연구상 이유를 간결히 제시해 이어서 정리한다. 이 지침은 pilot simulation 실행, 일반 자동 탐색 구현·실행 또는 별도로 제한된 승인 범위를 확장하지 않는다.
+
+**최초 pilot 목표 장부 저장 결정 (2026-10-28 14:43:38 +09:00):** frozen manifest JSON payload에 최소 `target_goals` 목록을 포함한다. goal ID, target bin, 고정 Jn, Jr/Ja scenario, 필요 calculation RQD 경계와 산술상 도달 가능 여부를 기록해 초기 LHS의 선정 의도를 보존한다. 별도 SQLite goal table은 추가하지 않는다. 실행 관측에서 발생한 목표 기여는 observation·derived score와 연결해 결과 DB에서 해석하며 초기 선정 의도를 소급 변경하지 않는다.
+
+**최초 pilot high-bin 목표 간 우선순위 결정 (2026-10-28 14:44:54 +09:00):** `Q′ > 400`의 산술상 도달 가능한 6개 목표를 manifest에 각각 독립 항목으로 동등하게 기록한다. 각 signature에서 함께 산출되는 점수이므로 pilot 표본을 목표별로 나누거나 사전 가중치를 부여하지 않는다. 가중 우선순위는 pilot 관측 결과를 검토한 뒤 결정한다.
+
+**pilot 예외 범위 해석 정정 (2026-10-28 14:30:23 +09:00):** 14:15의 제한 pilot 예외와 14:18·14:22의 schema·저장 선택은 논의 미완료로 인한 미승인이 아니라, 먼저 작은 pilot을 실행해 자료 계약의 적정성을 판단하려는 의도적·pilot 한정 선택이다. 따라서 pilot에서는 승인한 간소 schema 및 단일 SQLite 구성을 시험할 수 있다. 기존 장기 자료 계약은 pilot 결과를 보고 유지·확장·수정할지 다시 판단한다. 이 예외는 pilot 실행 준비를 허용하지만, simulation 실행은 사용자가 입력·manifest를 확인하고 직접 요청해야 하며 일반 자동 탐색·후속 batch 실행은 포함하지 않는다.
+
+**pilot와 장기 자료 계약의 관계 설명 (2026-10-28 14:30:23 +09:00):** pilot의 단일 SQLite manifest 저장은 장기 합의의 별도 `manifest.json`을 pilot 동안 대체하는 의도적 실험이다. 이는 manifest 내용을 없애거나 실행 후 결과와 혼합해야 한다는 뜻은 아니다. manifest JSON payload는 실행 전에 고정해 DB에 보존한다. pilot의 `execution_attempt`는 상태 판별에 필요한 오류 분류/간단한 사유를 포함하지만 상세 로그는 저장하지 않아 장기 합의의 `failed` 상태 및 상세 진단 미저장 원칙을 유지한다. planned-location, target-goal ledger, immutable dataset revision/digest, 별도 analysis fingerprint 등 전체 field-group은 pilot schema에 모두 구현한다고 약속하지 않으며, pilot의 목적에 필요해지는 항목만 포함하거나 결과 검토 뒤 보강한다.
+
 ### 4.3 Jr/Ja 후처리
 
 - Jr = `{0.5, 1, 1.5, 2, 3, 4}`, Ja = `{0.75, 1, 2, 3, 4, 6, 8, 10, 12, 13, 20}`.
-- 한 DFN에서는 해당 DFN의 Jn만 사용. Jn 전체를 열거했던 660개 조합을 각 DFN에
-  적용하지 않는다. Jn의 기존 의미를 변경하거나 절리군 수를 NGI 점수로 자동 변환하지 않는다.
+- Jn 평가값은 명시적 목표 범위이며, 절리군 수와 구별해 “Jn 평가”라고 부른다. 각 DFN condition block에는 해당 Jn을 고정하고 그 Jn에 대한 목표·필요 RQD를 탐색한다. 같은 DFN의 관측 RQD에 Jn 평가값 10개를 모두 적용하지 않는다. Jn과 절리군 수를 자동 대응시키지 않는다.
 - `Q′ = max(raw_RQD, 10) * Jr / (Jn * Ja)`.
 - simulation RQD는 연속 원값을 유지한다. 정적 테이블의 2단위 격자로 반올림하지 않는다.
 - 새 모드는 교차 절리의 Jr/Ja 선택과 무교차 Jr=4/Ja=0.75 강제를 사용하지 않는다.
@@ -333,8 +517,10 @@ vertex는 도달 segment 방향으로 평가하고 다음 segment 방향은 새 
 
 ### 4.4 Bin 진단
 
-기존 `primary_profile_10bin_v1`의 정확한 경계와 `(lower, upper]` 규칙, 400 초과 별도
-집계를 유지한다. Bin은 순차 자료수집과 분류·보고를 위한 구간이며, Q′ 상·하한 경계
+기존 `primary_profile_10bin_v1`의 정확한 경계와 `(lower, upper]` 규칙을 유지하고,
+400 초과는 별도 구간으로 집계한다. 순차 탐색에서는 이 `Q′ > 400` 구간을 첫 최고
+타겟으로 둔 뒤, 10개 주 bin을 높은 값부터 낮은 값 순으로 탐색한다. Bin은 순차 자료수집과
+분류·보고를 위한 구간이며, Q′ 상·하한 경계
 분석은 양자화하거나 bin 대표값으로 치환하지 않은 실제 연속 Q′ 결과를 사용한다.
 다음을 서로 다른 산출물/열로 구분한다.
 
@@ -427,7 +613,8 @@ coverage가 낮거나 변화가 없어도 나머지 승인 표본을 실행한�
 조정으로 대응한다. 기준 후보 미채택과 방향 폐기를 동일시하지 않는다.
 복합 지표 상충은 별도 기록하며 임의 가중치·무조건 step 배증을 도입하지 않는다.
 
-Q′ 타겟 bin은 높은 Q′ 방향에서 낮은 Q′ 방향으로 순차적으로 탐색한다. 한 단계에서
+Q′ 타겟 구간은 `Q′ > 400`부터 시작하고, 이후 10개 주 bin을 높은 Q′에서 낮은 Q′
+방향으로 순차 탐색한다. 한 단계에서
 현재 목표 bin에 집중하고, 그 과정에서 관측된 다른 bin의 도달·support도 부수 성과로
 빠짐없이 기록한다. 현재 목표를 충분히 조사했다고 판정한 뒤 다음으로 낮은 bin으로
 이동하며, 여러 bin을 동시에 중구난방으로 추적하지 않는다. 다음 bin으로의 전환은
@@ -488,8 +675,29 @@ Jn은 DFN과 일관된 구성의 조건군을 통해 탐색한다. 조건군 내
 4.7 말미의 후보 생성·진전 판단 미결은 본 절의 방식 선택으로 일부 해결되었고,
 거리·floor 및 한 지표 불변 시 처리의 원칙은 4.9에서 추가 확정한다.
 혼합 배분량, 거리 정규화·비교 적격성, 수치 허용폭, 비교 seed,
-추가 확인 한도, step 좌표계·크기와 전환 순서, 충분성·종료 기준은 남아 있다.
+추가 확인 한도, 축별 step 실제 값과 실행 우선순위, 위치 전환·혼재 재검토의 세부 기준,
+충분성·종료 기준은 남아 있다.
 후속 T003/T011에서 이 원칙을 사용하며 세부 규칙은 사용자 승인 없이 추정하지 않는다.
+
+**후보 step 좌표계 합의 (2026-10-28 10:57:43 +09:00):** 후보 step은 각 탐색 축의 원래 설정 단위로 표현한다. 별도 bounds 정규화 좌표계는 두지 않는다.
+
+**후보 step 크기 표현 합의 (2026-10-28 10:58:34 +09:00):** 작은 step과 큰 step의 크기는 탐색 축별로 각각 해당 축의 원래 설정 단위 값으로 지정한다. 실제 값은 실험 설정과 bounds를 논의할 때 정하며 모든 축에 공통 비율을 강제하지 않는다. 작은/큰 step의 적용 순서는 미결이다.
+
+**Bounds 밖 후보 처리 합의 (2026-10-28 11:01:23 +09:00):** 후보 step이 설정 bounds 밖으로 나가면 해당 후보를 생략하고 bounds 경계로 clamp하지 않는다. 이는 후보 탐색 규칙이며 4.1의 LHS 표본 검증 규칙을 대체하지 않는다.
+
+**Batch 내 중복 후보 처리 합의 (2026-10-28 11:02:54 +09:00):** 같은 batch에서 서로 다른 생성 경로가 동일한 signature를 만들면 실행 대상은 하나로 합치고, 한 축 이동·복수 축 조합 등 모든 생성 근거는 보존한다. 별도 seed를 둔 반복 실험은 이 중복 제거와 구별한다. 이는 4.17의 같은 signature 활성 참조 통합 원칙과 일치한다.
+
+**작은/큰 step 후보 활성화 합의 (2026-10-28 11:05:15 +09:00):** 작은 step과 큰 step 후보는 처음부터 모두 후보군에 포함한다. 큰 step을 작은 step의 정체가 확인된 뒤에만 활성화하지 않는다. 이는 후보군 구성 원칙이며 batch별 실제 실행 배분을 뜻하지 않는다.
+
+**이전 batch에서 관측한 signature 재제안 합의 (2026-10-28 11:23:08 +09:00):** 이미 유효하게 관측된 같은 signature·같은 seed 결과는 다시 실행하지 않고 기존 결과를 사용한다. 독립 seed 반복이 필요하면 같은 signature를 새 seed로 제안할 수 있다. 오류 수정 후 같은 seed 재실행은 4.16의 복구·분석 규칙을 따른다.
+
+**축·방향 전환 원칙 합의 (2026-10-28 11:23:58 +09:00):** 진전이 확인된 축·방향은 다음 후보 생성에서도 계속 활용한다. 한 차례 진전이 없었다는 이유만으로 다른 축·방향을 영구 제외하지 않으며, 다른 단일 축과 복수 축 조합도 후보군에 남긴다. 이 원칙은 후보 제안에 관한 것으로 우선순위·실행량은 정하지 않는다.
+
+**새 후보가 없는 활성 참조 처리 합의 (2026-10-28 11:25:47 +09:00):** 활성 참조에서 후보 생성 시 bounds 밖이거나 같은 signature·seed가 이미 유효하게 관측되어 새 후보가 없으면, 참조는 유지하고 해당 생성 회차에 신규 후보가 없음을 기록한다. 이를 clamp·동일 seed 재실행·참조 폐기로 대체하지 않으며 다른 활성 참조의 후보 생성은 계속한다. 참조의 최선 지위가 바뀌면 batch 종료 갱신 원칙에 따라 재선정한다.
+
+**복수 축 후보의 진전 귀속 합의 (2026-10-28 11:28:01 +09:00):** 복수 축을 함께 변경한 후보에서 진전이 확인되면 그 진전은 변경 조합 전체의 근거로 기록하며 각 축의 개별 효과로 귀속하지 않는다. 개별 축 효과는 단일 축 후보로 별도 확인한다. 복수 축 결과로 단일 축 탐색을 중단하지 않는다.
+
+**타겟 빈별 탐색 근거 분리 합의 (2026-10-28 11:29:23 +09:00):** 축·방향·조합의 진전·정체 근거는 타겟 빈별로 판단한다. 한 빈에서 확인한 효과를 다른 빈의 성공·실패로 자동 전이하지 않는다. 같은 관측이 여러 빈에 기여하면 각 빈에서 별도로 평가한다.
 
 ### 4.9 선택 확정: 목표 접근 거리와 한 지표 개선
 
@@ -815,14 +1023,21 @@ B의 최초 실행도 실패하면 추가 재시도 없이 전체 실행을 중�
 평가 근거를 보존하기 위한 원칙이며, 과거 후보·관측·선정 이력은 활성 참조 여부와
 무관하게 보존한다.
 
+**정확한 동률의 참조 처리 (2026-10-28 10:50:56 사용자 합의):** 목표 거리 또는 도달 support가 정확히 동률인 서로 다른 signature는 모두 해당 기준의 co-best 참조로 유지한다. 이는 한 지표로 다른 동률 후보를 임의 배제하지 않는다는 뜻이며, 이 결정만으로 모든 co-best 후보에 실행 기회를 배분한다고 정하지 않는다. 실제 배분은 별도 안건이다.
+
+**활성 참조 갱신 시점과 누적 진전 기준 (2026-10-28 10:55:51 +09:00 사용자 합의):** 유효한 결과를 반영한 거리 최선·support 최선 활성 참조는 각 batch가 모두 끝난 시점에 다시 선정한다. batch 진행 중에는 참조를 바꾸지 않는다. 활성 참조가 갱신되어도 4.11의 누적 진전 비교 기준은 자동 초기화하지 않으며, 과거 후보·관측·선정 이력을 보존한다.
+
+**활성 참조별 후보 제안 합의 (2026-10-28 11:22:03 +09:00 사용자 합의):** 후보 제안은 모든 활성 참조에서 생성한다. 거리 참조와 support 참조가 다르거나 co-best 참조가 여럿이어도 제안 단계에서 임의로 하나를 제외하지 않는다. 같은 batch 내 동일 signature는 기존 합의대로 하나로 합친다. 이는 후보 제안 범위만 정하며 실제 batch 편성·실행량 배분은 별도 안건이다.
+
 참조 후보를 유지하는 것과 실제 실행 기회를 배분하는 것은 구별한다.
 여러 후보를 유지한다고 모든 후보에서 매번 실행하는 것은 아니다.
 거리 접근 근거의 참조와 목표 구간 도달 support 근거의 참조가 다르면,
 한 지표만으로 다른 후보를 배제하거나 임의 가중합으로 단일 승자를 정하지 않고
 두 근거의 참조에 각각 실행 기회를 배분한다.
-이 원칙은 실제 배분량을 정하지 않는다.
-동률 처리, 참조 갱신 시점·규칙, 여러 목표가 상충할 때의 실제 실행 선택·예산 배분과
-참조 변경 후 누적 이력을 이어 쓰는 규칙은 아직 확정하지 않았다.
+이 원칙은 실제 배분량을 정하지 않는다. 정확히 동률인 참조는 위의 2026-10-28 합의를 따른다.
+여러 목표가 상충할 때의 실제 실행 선택·예산 배분과 co-best 후보 간 실행 기회 배분은
+아직 확정하지 않았다. 누적 진전 기준의 자동 초기화는 하지 않기로 했으며,
+그 밖의 실제 실행 계보·배분 세부는 별도 논의 대상으로 남긴다.
 
 ### 4.18 타겟 빈별 시그니처 선택 우선순위 (2026-10-27 사용자 합의)
 
@@ -844,26 +1059,31 @@ B의 최초 실행도 실패하면 추가 재시도 없이 전체 실행을 중�
   실제 선택 이유를 보존한다.
 
 weight 산식·감소량·하한, 성공 근거가 쌓일 때의 회복 여부와 방식은 미결이다.
-이 항목을 정하기 전에는 weight 조정을 구체적인 계산 규칙으로 구현하지 않는다.
+해당 규칙이 승인되기 전까지 유효한 bin별 미달·거리·support 근거만 기록하고 weight를
+자동 변경하지 않는다.
 
 ## 5. 구현 전 승인 게이트
 
 | 게이트 | 확인 항목 | 현재 상태 |
 |---|---|---|
-| G0 | 이 계획과 신규 raw-RQD/profile 자료 계약 검토 | 검토 대기 |
-| G1 | block별 절리군 구성·Jn·geometry·축·bounds·분포·size 제약 변환 | 수치/축 승인 필요 |
-| G2 | N, seed·재사용, 간격·예산, BH 우선 배분량·부족 정규화, 접근/충분성 지표, 참조 위치 선정·step/정체/중복/종료 정책 | 일부 확정(4.7–4.13); 세부 승인 필요 |
+| G0 | 이 계획과 신규 raw-RQD/profile 자료 계약 검토 | 최초 pilot용 간소 필드 schema, YAML+단일 SQLite/manifest payload, manifest 내 target-goal 목록 승인됨. pilot 범위에서는 G0 자료 계약 승인; 장기 field-group의 pilot 후 유지·확장 여부는 결과 검토 시 판단 |
+| G1 | block별 절리군 구성·Jn·geometry·축·bounds·분포·size 제약 변환 | pilot 초기 2개 block 확정: Jn 0.5·1 각각 1 set, N=5/block; design seed는 각각 39·36(서로 다른 LHS 설계), 공통 realization seed 43, geometry 공통. BH와 전체 tunnel face profile을 10개 signature에서 산출. 크기·P32 bounds, 분포 형상 난수 규칙, 각도 bounds와 LHS 변환 확정. 후속 step 수치와 추가 block 설정은 관측 후/필요 시 결정 |
+| G2 | N, seed·재사용, 간격·예산, BH 우선 배분량·부족 정규화, 접근/충분성 지표, 참조 위치 선정·step/정체/중복/종료 정책 | pilot 공통 당초 realization seed 43, 최고 target `Q′ > 400` 확정. 실행별 최대 simulation 수 입력 및 상한 도달 시 미완료 목표의 `unresolved_at_budget` 처리만 결정; 정량 충분성·비용/시간 집계·목표별 예산 배분·step 및 bin 전환은 미결 |
 | G3 | 사용자가 기존 회귀 검증·새 모드의 소규모 검증 결과 확인 | 구현 후 |
 | G4 | benchmark·예상 출력 크기/메모리·시간 검토와 대규모 실행 승인 | 소규모 검증 후 |
 
-G1/G2 값 없이 예시 설정을 실행 가능한 승인 설정으로 만들지 않는다. 설정 스키마 등
-수치 독립 작업은 G0 승인 후 가능하지만 모든 simulation은 G1/G2와 사용자 실행 요청이 필요하다.
-새 선택/미결 설계가 드러나면 구현자가 임의 결정하지 않고 질문한다.
+일반 자동 탐색은 G1/G2 완료 전 구현 승인으로 해석하지 않는다. 사용자가 승인한 최초
+10-signature pilot은 G0 상세 schema 확인 후에만 제한적으로 준비·검증한다. 실제
+simulation은 사용자가 설정과 manifest를 확인한 뒤 직접 실행하며, 이 예외는 자동
+탐색기나 후속 batch 구현·실행을 승인하지 않는다. 새 선택/미결 설계가 드러나면
+구현자가 임의 결정하지 않고 질문한다.
 
 ## 6. 구현 단계와 작업
 
-경로는 저장소 root 기준이다. 아래 신규 파일은 예정 경로이며 아직 생성하지 않았다.
-불필요한 기존 controller 재작성이나 대규모 추상화는 피한다.
+경로는 저장소 root 기준이다. 2026-10-28 현재 신규 package·root CLI·설정/결과 위치는
+골격만 준비했으며 pilot 기능은 미구현이다. 불필요한 기존 controller 재작성이나 대규모
+추상화는 피한다. T-ID/REQ는 이 절에서 유지하고, 상세 Phase/Step·의존성과 실행 기록은
+[ImplementationPlan_v4 §5.1](../ImplementationPlan_v4.md#51-phase--step-상세-실행-계획)을 따른다.
 
 ### P1.1 계약·입력 확정 — REQ-001,002,008,010
 
@@ -877,7 +1097,7 @@ G1/G2 값 없이 예시 설정을 실행 가능한 승인 설정으로 만들지
 ### P3.1 Q′ 독립 RQD 측정 — REQ-003,004,008
 
 - [ ] T004 [Plan:3.1] `src/euler_campaign/profiles.py`의 BH/face 기하·RQD 공통 계산을 재사용 가능하게 분리한다. 기존 public 함수와 `.pyi` 계약 및 결과 의미를 보존하며 알고리즘을 중복 작성하지 않는다.
-- [ ] T005 [Plan:3.1] `src/rqd_exploration/runner.py`에 기존 DFN factory와 고정 station 순회를 연결하고 raw RQD·scanline·support·무교차·경계 사유를 저장할 자료로 반환한다. Jr/Ja가 RQD나 station을 바꾸지 않게 한다.
+- [ ] T005 [Plan:3.1] `src/rqd_exploration/measurement.py`에 단일 realization의 BH/고정 face raw measurement를 구현하고 `src/rqd_exploration/runner.py`에서 기존 DFN factory를 호출해 연결한다. Raw RQD·scanline·support·무교차·경계 사유를 반환하며 Jr/Ja가 RQD나 station을 바꾸지 않게 한다.
 
 ### P4.1 저장·진행·별도 CLI — REQ-007,008,009,010
 
@@ -886,39 +1106,49 @@ G1/G2 값 없이 예시 설정을 실행 가능한 승인 설정으로 만들지
 
 ### P5.1 점수 후처리와 보고 — REQ-005,006,009
 
-- [ ] T008 [Plan:5.1] `src/rqd_exploration/analysis.py`에서 저장 RQD와 고정 Jn에 Jr/Ja 66개 조합을 적용한다. `tools/tabulate_qprime_scores.py`의 승인 점수 집합/경계 규칙은 공유해 서로 달라지지 않게 하고 정적 표 산출 동작은 보존한다.
+- [ ] T008 [Plan:5.1] `src/rqd_exploration/analysis.py`에서 저장 RQD와 고정 Jn에 Jr/Ja 66개 조합을 적용한다. `obsolete/tools/tabulate_qprime_scores.py`의 승인 점수 집합/경계 규칙은 공유해 서로 달라지지 않게 하고 정적 표 산출 동작은 보존한다.
 - [ ] T009 [Plan:5.1] 같은 분석 모듈과 `run_rqd_exploration.py`의 재분석 경로에서 scenario별 CSV, DFN–RQD 응답 요약, 실제 bin support, inverse 진단, 수평 BH 조건별 face 분포·불일치, 독립 realization/원본 support 수를 산출한다. 먼저 크기를 추정하고 66배 장기 CSV를 무조건 메모리에 전개하지 않는다.
 
 ### P5.2 Bin 조건부 자동 batch 갱신 — REQ-007,009,011,012,013
 
-- [ ] T011 [Plan:5.2] `src/rqd_exploration/design.py`, `analysis.py`, `runner.py`, `store.py`에 승인된 수평 BH 목표별 거리/support/부족 평가와 집중·미조사 후보 선정, 참조 위치 선정/지속/종료 분리, 방향·step·정체/중복 전환과 결정적 checkpoint를 연결한다. 단일 parent 교체를 강제하지 않고 face 반대 변화나 새 bin 미발견만으로 거부·차단하지 않으며 승인 범위에서 다음 batch를 자동 실행한다.
+- [ ] T011 [Plan:5.2] **파일럿 이후 정책 승인 후 별도 착수.** `src/rqd_exploration/design.py`, `analysis.py`, `runner.py`, `store.py`에 승인된 수평 BH 목표별 거리/support/부족 평가와 집중·미조사 후보 선정, 참조 위치 선정/지속/종료 분리, 방향·step·정체/중복 전환과 결정적 checkpoint를 연결한다. 단일 parent 교체를 강제하지 않고 face 반대 변화나 새 bin 미발견만으로 거부·차단하지 않으며 승인된 예산 내에서 다음 batch를 자동 실행한다. 충분성·적격성·후보 배분 등 미결 정책을 기본값으로 추정하지 않는다.
 
-### P6.1 검토·사용자 검증·인계 — REQ-003,004,005,006,007,008,009,010,011,012,013
+### P6.1 파일럿 검토·사용자 검증·인계 — REQ-003,004,005,006,007,008,009,010,011
 
-- [ ] T010 [Plan:6.1] `Specification/RQDExplorationStrategy_20261026/plan.md`의 승인·검증 기록과 `Analysis/README.md`, `readme.md`에 새 모드 의미·사용자 실행 명령·기존 Euler와의 차이·제한을 기록한다. 아래 수용 기준에 대한 사용자 검증 결과 확인 전 G3/G4 통과를 선언하지 않는다.
+- [ ] T010 [Plan:6.1] **파일럿 기반 구현 인계.** `Specification/RQDExplorationStrategy_20261026/plan.md`의 승인·검증 기록과 `readme.md`에 파일럿 새 모드 의미·사용자 실행 명령·기존 Euler와의 차이·제한 및 미결 후속 결정을 기록한다. `obsolete/Analysis/README.md`는 과거 분석 근거로 참조만 한다. 이 작업은 pilot 준비·실행 및 pilot 산출물 검토를 인계하며 자동 batch controller의 구현을 포함하지 않는다. 아래 파일럿 수용 기준에 대한 사용자 검증 결과 확인 전 G3/G4 통과를 선언하지 않는다.
 
-의존관계: T001 → T002 → T003/T004; T004 → T005; T002 → T006;
+파일럿 의존관계: T001 → T002 → T003; T001 → T004 → T005; T002 → T006;
 T003/T005/T006 → T007; T002/T005 → T008 → T009;
-T003/T007/T009 → T011 → T010.
-T001의 미승인 실행 수치는 수치 독립 구현을 막지 않지만 simulation 승인을 대신하지 않는다.
+T007/T009 → T010. T004와 T006은 계약이 확정된 뒤 병렬 진행할 수 있다.
+T011은 T003/T007/T009 및 파일럿 결과 검토에 더해 미결 정책의 별도 승인을 요구하는
+후속 단계이며, pilot T010의 선행조건이 아니다. T001의 미승인 실행 수치는 수치 독립
+구현을 막지 않지만 simulation 승인을 대신하지 않는다.
 
 ## 7. 예정 파일 구조
 
 ```text
 run_rqd_exploration.py
+config/rqd_exploration_pilot.yml    # 검토 대상 초안; 사용자 확인 후에만 사용
 src/rqd_exploration/
   __init__.py
+  records.py
   config.py
   design.py
+  measurement.py
   runner.py
   store.py
   analysis.py
+  cli.py
 src/euler_campaign/profiles.py   # 공통 측정 계산만 추출; 기존 API 보존
-tools/tabulate_qprime_scores.py  # 기존 전수표 계약 보존하며 점수 기준 공유
+obsolete/tools/tabulate_qprime_scores.py  # 기존 전수표 계약 보존하며 점수 기준 공유
+src/test/test_rqd_exploration_*.py # 신규 모듈 검증; 기존 unittest 흐름 사용
+results/rqd_exploration/<run_id>/ # 제안 출력 root; G0/T002에서 확정
 ```
 
 최종 manifest/DB/CSV 출력 경로는 새 run namespace에서 정하며 기존
-`cases/euler/results/euler_campaigns/`를 재사용하거나 덮어쓰지 않는다.
+`obsolete/cases/euler/results/euler_campaigns/`를 재사용하거나 덮어쓰지 않는다.
+폴더·파일별 책임과 데이터 흐름도는 [ImplementationPlan_v4.md](../ImplementationPlan_v4.md)의
+§3.1–3.2를 기준으로 한다.
 
 ## 8. 수용 기준과 검증 인계
 
@@ -963,8 +1193,8 @@ Implementation Evidence는 예정 증거이며 현재 구현 완료를 의미하
 | REQ-009 | 계층·독립성·provenance | P2.1,P4.1,P5.1,P5.2,P6.1 | T003,T006,T007,T008,T009,T011,T010 | manifest, raw records, reporting |
 | REQ-010 | 사용자 승인/실행 경계 | P1.1,P4.1,P6.1 | T001,T002,T006,T007,T010 | approval records, CLI validation, documentation |
 | REQ-011 | inverse 기반 목표·초기 배분 | P2.1,P5.2,P6.1 | T003,T011,T010 | target ledger, design.py, inverse audit |
-| REQ-012 | BH 우선 관측 기반 자동 후보 갱신 | P5.2,P6.1 | T011,T010 | design.py, analysis.py, runner.py, batch manifest |
-| REQ-013 | 참조 위치 선정·지속·종료 분리 | P5.2,P6.1 | T011,T010 | runner.py, store.py, decision history |
+| REQ-012 | BH 우선 관측 기반 자동 후보 갱신 | P5.2 | T011 | design.py, analysis.py, runner.py, batch manifest |
+| REQ-013 | 참조 위치 선정·지속·종료 분리 | P5.2 | T011 | runner.py, store.py, decision history |
 
 ## 10. 현재 완료 범위
 
@@ -986,13 +1216,336 @@ manifest·저장·재개에 관한 원칙은 기존 절에 기록되어 있으�
 fingerprint 구성·직렬화 및 후보 선정·step·배분·종료의 상세 정책도 계속 미결이다.
 이번 검토에서는 구현·테스트·simulation을 수행하지 않았다.
 
+### 10.2 자료 계약 논의 기록 (2026-10-28)
+
+- **기록 방식 정정 (2026-10-28 08:45:57 +09:00):** 논의 기록에 날짜·시간(timestamp)을 함께 남긴다. 앞서 언급한 “fingerprint”는 timestamp를 뜻한 표현상의 착오이며, 이 요청으로 기술적 실행/분석 fingerprint의 새 요구나 변경을 추가하지 않는다.
+- **기록 시각:** 2026-10-28 08:50:27 +09:00
+- **합의:** 신규 탐색 자료의 저장 단위는 관측별 행으로 한다. realization마다 BH 목표 또는 face station 관측을 별도 기록하여 관측별 상태를 표현한다.
+- **기존 내용과의 관계:** 기존 계획의 BH 목표·face 대응 관측 및 realization 계층과 일치한다. 저장 단위의 구체화이며 기존 합의와 상충하지 않는다.
+- **범위:** 저장 단위만 합의했다. 상세 schema/API, 오류·결측·재시도 표현 및 G0·기반 구현 승인은 미결이며, 구현·테스트·simulation은 수행하거나 승인하지 않았다.
+
+### 10.3 예정 위치와 실제 관측의 기록 구분
+
+- **기록 시각:** 2026-10-28 08:52:02 +09:00
+- **합의:** 예정된 BH 목표·face station에 유효한 관측값이 없더라도 예정 위치와 그 상태를 별도로 기록한다. 실제 관측 자료에는 실제 측정값을 기록하며, 측정값이 없다는 이유만으로 `raw_RQD=null`인 관측 행을 만들지 않는다. 실행 오류는 기존 합의대로 실행 시도에 연결하고 관측 상태와 혼합하지 않는다.
+- **기존 내용과의 관계:** 4.16의 관측 상태와 실행 시도 상태 분리 원칙을 자료 기록 방식으로 구체화한다. 기존 상태 의미와 상충하지 않는다.
+- **범위:** 상태 코드·구체 schema/API, 오류·결측 세부 처리 및 G0·기반 구현 승인은 미결이다. 구현·테스트·simulation은 수행하거나 승인하지 않았다.
+
+### 10.4 BH 원시 관측의 세부 단위
+
+- **기록 시각:** 2026-10-28 08:55:46 +09:00
+- **합의:** BH raw RQD는 각 원시 측정 interval마다 별도 관측 행으로 보존하고, 해당 BH 목표·station에 연결한다. face station 관측은 BH interval과 합치지 않고 별도 관측 행으로 둔다.
+- **기존 내용과의 관계:** 한 raw interval당 Jr/Ja 66개 파생 결과를 보존한다는 수용 기준 및 1m 측정·비교 단위 원칙과 일치한다. 기존 계약과 상충하지 않는다.
+- **범위:** 구체 필드·ID·schema/API, 상태·support 표현과 G0·기반 구현 승인은 미결이다. 구현·테스트·simulation은 수행하거나 승인하지 않았다.
+
+### 10.5 예정 support와 실제 유효 support
+
+- **기록 시각:** 2026-10-28 08:56:48 +09:00
+- **최초 합의:** 계획·geometry가 정한 예정 측정 길이와 측정 후 실제 유효 support를 구분하여 둘 다 보존한다. 예정 길이를 실제 support의 대체값으로 취급하지 않는다.
+- **Modality별 구체화 (2026-10-28 10:04:05 +09:00):** BH는 예정 interval 길이와 clipping 후 실제 유효 interval support 길이를 구분한다. Face는 station 위치/간격을 support와 구분하고, geometry상 전체 face 면적 및 scanline 길이와 경계 처리 후 실제 유효 face 면적 및 scanline 길이를 각각 보존한다. Station 간격은 위치 계획으로만 기록하며 RQD support로 해석하지 않는다.
+- **기존 내용과의 관계:** 실제 support 및 실제 유효 구간 기반 비교 원칙과 일치한다. 측정 길이 감소·경계 처리에 관한 기존 원칙을 바꾸지 않는다.
+- **범위:** 정확한 schema 필드, 단위·좌표 참조 및 exclusion reason은 별도 자료 계약에서 구체화한다. G0·기반 구현 승인은 아니며, 구현·테스트·simulation은 수행하거나 승인하지 않았다.
+
+### 10.6 원시 관측과 실행 시도 연결
+
+- **기록 시각:** 2026-10-28 09:02:17 +09:00
+- **최초 합의:** 각 실제 원시 관측을 생성한 성공 attempt에 연결하고 실패 attempt에는 관측을 연결하지 않는 것으로 기록했다.
+- **정정 시각:** 2026-10-28 09:26:53 +09:00
+- **정정된 합의:** 각 실제 원시 관측은 이를 생성한 attempt에 연결한다. attempt 전체가 실패·불완료여도 그 안에서 정상 산출된 개별 관측은 보존하고, 관측 상태와 attempt 전체 상태를 독립적으로 기록한다. 실패 attempt 이력도 별도로 보존하며 재시도에서 생성된 관측은 해당 재시도 attempt에 연결한다.
+- **기존 내용과의 관계:** 정정된 규칙은 4.16의 작업/시도 상태와 관측 상태 분리 원칙을 따른다. 재시도는 새 realization seed 증거가 아니라는 원칙도 유지한다. 최초의 “실패 attempt에 관측을 연결하지 않는다”는 제한은 이 정정으로 대체한다.
+- **범위:** ID·foreign key·schema/API 및 시도별 재시도·실패 후 진행 정책은 미결이다. G0·기반 구현 승인은 아니며, 구현·테스트·simulation은 수행하거나 승인하지 않았다.
+
+### 10.7 논의 단계와 구현 착수 순서
+
+- **기록 시각:** 2026-10-28 09:06:42 +09:00
+- **합의:** 대화에서 “2단계”, “3단계” 등으로 부르는 순서는 11.2의 논의 안건 순서를 뜻한다. 기능 구현은 11.2의 모든 논의가 완료된 뒤 시작한다. 개별 안건의 완료나 G0 자료 계약 일부의 구체화만으로 구현을 시작하지 않는다.
+- **기존 내용과의 관계:** 11.2의 권장 논의 순서와 11.3의 코드화 경로를 명확히 연결한다. 구현·실행 승인을 앞당기지 않으며 기존 제한과 상충하지 않는다.
+- **유사 사례에 대한 기존 합의 적용 (2026-10-28 10:26:27):** 이미 합의한 원칙이 유사 상황에 명확히 적용되면 그 원칙을 적용하고 같은 선택을 다시 질문하지 않는다. 실제로 구별되는 새 선택이나 기존 원칙과의 충돌이 있을 때만 차이를 설명하고 상의한다.
+- **연구용 소프트웨어 범위 원칙 (2026-10-28 10:42:25 +09:00):** 이 소프트웨어는 상용 시스템이 아니라 학술적 발견과 PR/TR/POST guideline 제공을 위한 연구용 소프트웨어다. 자료 계약·설계·구현 논의에서는 연구 질문에 필요한 자료의 재현성·해석 가능성을 우선하고, 상용 운영·감사·확장성 등을 전제로 한 불필요한 필드, 계층, 자동화, 복잡한 식별·상태 체계를 추가하지 않는다. 제안하는 요소가 연구 목적에 왜 필요한지 설명하고, 필요성이 분명하지 않거나 범위를 크게 늘리는 선택은 임의로 포함하지 않고 사용자와 상의한다. 사용자가 검증·simulation을 실행하고 결과를 검토한다는 기존 경계를 유지한다.
+
+### 10.8 RQD 측정 원자료 보존
+
+- **기록 시각:** 2026-10-28 09:10:19 +09:00
+- **합의:** BH interval 및 face station의 raw RQD·실제 support와 함께 RQD 산출을 재계산·검증할 수 있는 scanline 측정 원자료를 보존하고 해당 관측에 연결한다.
+- **기존 내용과의 관계:** 기존 raw RQD·scanline·support 보존 방향을 구체화하며 원자료 보존 원칙과 일치한다.
+- **범위:** 측정 원자료의 구체 표현·필드·저장 포맷, 세부 schema/API와 G0·기반 구현 승인은 미결이다. 구현·테스트·simulation은 수행하거나 승인하지 않았다.
+
+### 10.9 기술적 실행 fingerprint 저장 자료
+
+- **기록 시각:** 2026-10-28 09:12:17 +09:00
+- **합의:** 실행 fingerprint를 재현·감사할 수 있도록 정규화된 실행 입력 snapshot과 그 digest를 함께 저장한다. 이 기술적 fingerprint는 논의 기록용 timestamp와 별개다.
+- **기존 내용과의 관계:** 4.5의 정규화된 실제 입력에 기반한 fingerprint 및 실행·분석 fingerprint 분리 원칙과 일치한다.
+- **범위:** 입력 snapshot의 정확한 필드 구성, 정규화·직렬화 규칙, digest 알고리즘, analysis fingerprint의 저장 세부와 schema/API는 미결이다. G0·기반 구현 승인이 아니며, 구현·테스트·simulation은 수행하거나 승인하지 않았다.
+
+**기술 fingerprint 숫자 정규화 추가 합의 (2026-10-28 09:14:23 +09:00):** 실수 필드는 유효성 검사 후 실제 실행기에 전달되는 정규화 IEEE-754 값을 fingerprint 기준으로 한다. 동등한 입력 표기(예: `1`, `1.0`, `1e0`)는 같은 값으로 정규화하고, 임의 반올림·허용오차 비교는 하지 않는다. 정확한 십진수 의미를 별도 보존하지 않는다. 직렬화·digest 규칙은 여전히 미결이다.
+
+**기술 fingerprint 직렬화·digest 합의 (2026-10-28 09:18:02 +09:00):** 검증·정규화된 실행 입력 snapshot을 RFC 8785 JCS 규칙에 따라 canonical JSON으로 직렬화하고 UTF-8 바이트열에 SHA-256을 적용한다. 정규화 입력 snapshot과 digest를 함께 보존한다. 의미 있는 배열 순서는 입력 순서대로 유지한다. 실제 JSON schema/version 식별, 큰 정수 표현 등 구체적인 값 제약은 별도 자료 계약에서 확정하며, 본 합의만으로 범위를 추정하거나 임의 변환하지 않는다.
+
+**기술 fingerprint 정수 입력 범위 합의 (2026-10-28 09:19:31 +09:00):** seed를 포함한 fingerprint 대상 정수 입력은 RFC 8785 JSON 상호운용성을 위한 안전 정수 범위 `−(2^53−1)`부터 `2^53−1`까지로 제한한다. 범위를 벗어난 값은 문자열·실수로 변환하거나 반올림하지 않고 명시적 입력 오류로 처리한다. 이 제한은 검증된 실제 정수 입력에 적용한다.
+
+**원 설정 파일의 provenance 보존 (2026-10-28 09:20:25 +09:00):** 정규화 입력 snapshot·digest는 fingerprint 규칙에 따라 저장하고, 사용자가 제공한 원 설정 자료는 fingerprint 계산과 별개의 provenance 자료로 함께 보존한다. 원 설정의 표기 차이는 fingerprint를 변경하지 않는다. 보존 형식과 민감정보 제외·저장 위치 등 세부 사항은 미결이다.
+
+**원 설정 파일 보존 형식 합의 (2026-10-28 09:22:28 +09:00):** 설정에 민감정보가 포함되지 않는다는 사용자 확인에 따라, 입력된 원 설정 파일을 주석·공백을 포함해 원본 바이트 그대로 별도 provenance 자료로 보존한다. 이는 정규화 fingerprint snapshot과 분리하며 fingerprint 계산에는 포함하지 않는다.
+
+**원 설정 provenance digest에 기존 SHA-256 규칙 적용 (2026-10-28 10:26:27 +09:00):** 원본 YAML의 provenance digest는 이미 합의한 SHA-256을 exact source bytes에 적용한다. YAML 파싱·정규화는 하지 않으며, 이 digest는 원본 파일 무결성 reference이고 실행 fingerprint와 목적이 다르다. 이는 새 알고리즘 선택이 아니라 기존 encoding/digest 규칙을 유사한 provenance 자료에 적용한 것이다.
+
+**기술 fingerprint schema version 합의 (2026-10-28 09:24:55 +09:00):** 정규화 실행 입력 snapshot에 `schema_version`을 포함하고 이 필드도 snapshot의 JCS 직렬화·SHA-256 digest 대상에 포함한다. Manifest는 사용된 canonicalization(`RFC 8785`)과 digest algorithm(`SHA-256`)을 식별한다. 버전 값과 변경 시 증가 규칙은 아직 정하지 않았다.
+
+**실행 시도 시각 형식 합의 (2026-10-28 09:25:46 +09:00):** 실행 attempt의 시작·종료 timestamp는 timezone-aware RFC 3339 형식의 UTC(`Z`)로 저장한다. 이 결정은 논의 기록의 현지 timestamp 표기와 별개다.
+
+**RQD 측정 evidence 상세도 합의 (2026-10-28 09:28:22 +09:00):** BH interval·face station별 raw RQD와 support에 연결하여, RQD를 재계산·검증하기에 충분한 최소 측정 evidence만 저장한다. 전체 clipped geometry나 모든 DFN 객체를 복제 저장하는 범위는 포함하지 않는다. 필요한 측정 evidence의 구체 레코드·좌표 필드와 포맷은 미결이다.
+
+**자료 계약 개념 구조 검토 (2026-10-28 09:30:58 +09:00):** 사용자는 아래 개념 구조에 동의했고, 현재 추가 수정·누락 사항은 모른다고 했다. 이는 현재 구조로 논의를 계속해도 된다는 뜻이며, 상세 schema/API 검토 완료나 G0·기능 구현 승인은 아니다. 아래의 “계획 위치”는 목표 Q′ bin 등 탐색 목표와 다른 물리 위치를 뜻하며, 이 구별은 2026-10-28 09:49:51의 보완 합의를 따른다.
+
+1. 원 설정 provenance는 원본 바이트 그대로 보존하며 fingerprint 계산과 분리한다.
+2. 설계/batch manifest는 실행 전 설계·조건군·표본(seed 포함)과 계획된 물리 BH/face 측정 위치를 고정하고, design/block/sample 식별은 실행 입력 fingerprint와 별도로 연결한다. 탐색 목표는 별도 ledger에 둔다.
+3. 실행 fingerprint는 정규화된 실제 적용값 snapshot을 사용한다. `schema_version`을 포함해 RFC 8785 JCS(UTF-8)+SHA-256을 적용하며, 정수 안전 범위·실수 IEEE-754 정규화 원칙을 따른다.
+4. 실행 작업과 각 attempt를 구분한다. attempt 상태와 관측 상태는 독립이며, 부분 실패에서도 산출된 유효 관측을 보존하고 생성 attempt에 연결한다. attempt 시작·종료 시각은 UTC RFC 3339다.
+5. 계획 물리 위치/예정 support와 실제 관측을 분리한다. 미관측 위치에는 상태를 남기되 `raw_RQD=null` 관측 행은 만들지 않는다. BH는 raw interval별, face는 station별 실제 관측 행에 raw RQD·실제 유효 support·재계산 가능한 최소 측정 evidence를 보존한다.
+6. 후처리는 raw RQD를 변경하지 않고 계산용 하한 적용 및 Jr/Ja 조합별 Q′·bin 결과를 별도 파생 자료로 연결한다. analysis fingerprint는 실행 fingerprint와 분리한다.
+
+**목표 ledger와 측정 위치 분리 (2026-10-28 09:49:51):** 목표 Q′ bin·고정 Jn·Jr/Ja scenario·필요 RQD·도달성/부족은 탐색 목표 ledger에 기록하며 물리 위치와 혼합하지 않는다. Execution manifest는 실제로 측정할 BH/face 물리 위치와 예정 support를 기록한다. 실제 관측은 물리 위치 및 생성 attempt에 연결하고, 목표에 대한 기여는 별도 관계로 기록한다. 한 관측이 여러 목표에 기여할 수 있으며, 재분석은 실행의 원래 선정 목적을 변경하지 않는다. 이는 4.14의 목표·후보 의도와 실행 후 기여 분리 원칙을 따른다.
+
+**이전 실행 오류 진단자료 합의 (2026-10-28 09:50:30 +09:00, 10:40:12 결정으로 대체됨):** 당시에는 실행 attempt 오류에 종류/코드, 메시지, 발생 단계와 traceback을 보존하기로 했으나, 이후 진단자료를 저장하지 않기로 재합의했다.
+
+**Analysis fingerprint 범위 합의 (2026-10-28 09:51:42 +09:00):** 실행 fingerprint와 별도로 versioned analysis fingerprint를 둔다. Analysis snapshot은 적용된 불변 raw-observation 자료 집합의 식별자/digest와 분석 규칙·설정(공식 및 RQD 하한, Jr/Ja scenario set, bin/catalog와 경계 규칙, 분석 구현 버전)을 함께 식별한다. 원자료를 analysis snapshot에 복제하지 않는다. 동일 분석 규칙으로 다른 자료를 처리하거나 동일 자료에 다른 분석 규칙을 적용하는 경우 digest가 구별된다. 제안에 동의한 범위에는 versioned JCS UTF-8 + SHA-256도 포함한다.
+
+**Raw-observation dataset digest 범위 합의 (2026-10-28 10:04:58 +09:00):** Dataset digest는 canonical serialization한 분석 원자료 snapshot에 적용하며, snapshot에는 raw observation, 실제 support, BH interval/face scanline intersection evidence 및 planned location별 관측 상태를 포함한다. 결정적 식별자 순으로 정렬하고 SHA-256을 적용한다. Attempt metadata와 파생 Q′/bin 결과는 이 raw dataset digest에서 제외하고 각자의 자료/analysis fingerprint로 구분한다. 구체 record serialization·version 규칙은 미결이다.
+
+**Execution fingerprint와 attempt metadata 분리 (2026-10-28 10:05:21 +09:00):** Execution fingerprint에는 결과에 영향을 주는 정규화된 실제 실행 입력 및 generator/measurement/runtime 조건을 포함한다. Design/manifest/block/sample 식별자와 attempt 번호·시작/종료 시각·로그·output path는 별도 provenance/attempt 이력에 두고 실행 fingerprint에서 제외한다. 동일 입력·seed 재시도는 attempt ID와 시각이 달라도 같은 execution fingerprint를 유지하며, 실행 입력·seed·관련 버전이 달라지면 fingerprint가 달라진다.
+
+**Execution fingerprint schema version 정책 (2026-10-28 10:06:12 +09:00):** 최초 version은 정수 `1`로 한다. 필드의 의미·필수성 또는 정규화 규칙이 변경되어 동일 snapshot의 해석이 달라질 수 있는 경우 정수 version을 증가한다. 주석·공백 등 비의미적 원 설정 표기나 문서만의 수정은 version 변경 사유가 아니다.
+
+**Manifest 범위 기록 ID 합의 (2026-10-28 09:52:27 +09:00):** 같은 고정 manifest 안의 설계·block·sample index·realization seed 등 구성 식별자를 기반으로 execution job 및 계획 위치 ID를 결정적으로 부여하여 재개 시 동일 대상을 식별한다. attempt와 관측은 각 작업·시도에 연결되는 고유 ID를 갖는다. 새 설계나 batch는 새 manifest로 분리한다. 구체 ID 문자열/복합 키 schema는 미결이다.
+
+**관측 위치 표현 합의 (2026-10-28 09:53:14 +09:00):** BH interval은 해당 borehole 시작점부터의 chainage 구간(m), face 관측은 터널 polyline 시작점부터의 chainage(m)로 식별하고, 각 관측의 absolute ENU 좌표도 함께 보존한다. Chainage·ENU 좌표는 해당 작업의 불변 geometry 입력과 일관되어야 한다. 정확한 interval endpoint/face point 필드는 schema 설계에서 정의한다.
+
+**RQD line-intersection evidence 합의 (2026-10-28 09:56:31 +09:00):** 각 BH interval 및 face scanline에 대해 중복·endpoint 규칙을 적용한 내부 절리 교차의 line-relative 위치(m)를 정렬된 목록으로 보존하고, 해당 측정 line의 실제 유효 길이와 연결한다. BH 목록은 interval 길이와 Deere의 0.1m piece 기준을 이용한 raw RQD 재계산에, face 목록은 scanline 교차 수·길이 및 Priest–Hudson 규칙을 이용한 raw RQD 재계산에 사용한다. 전체 clipped geometry/joint 객체는 저장하지 않는다.
+
+**Face station·scanline 자료 관계 합의 (2026-10-28 10:03:11 +09:00):** Face station의 raw RQD와 실제 유효 face support는 station-level 관측에 저장한다. 그 하위 evidence로 scanline별 시작점·방향·실제 유효 길이·line-relative 내부 교차 위치를 보존한다. Scanline별 교차 수·Priest–Hudson RQD와 station 평균은 evidence에서 재계산하며 중복 파생값으로 별도 저장하지 않는다.
+
+**Attempt·계획 위치·원시 관측 상태 분리 (2026-10-28 10:18:04):** Attempt 전체 상태, 계획 측정 위치의 관측 상태, 실제 raw observation 자료를 서로 별도 차원으로 기록한다. 계획 위치는 아직 결과가 없음(planned), 유효 관측이 있음(observed), 정상 계산했으나 유효 support가 없음(unavailable), 필수 자료가 누락됨(missing)을 구별한다. 실행 오류는 attempt 상태에 반영하고 위치 관측 상태와 혼합하지 않는다. Raw observation 행은 실제 raw RQD가 산출된 경우에만 만들며 null RQD 행은 만들지 않는다. Attempt가 실패해도 이미 산출된 유효 관측은 보존한다. 정확한 상태 코드 문자열과 상태 전이 schema는 미결이다.
+
+**Attempt 전체 상태 모델 합의 (2026-10-28 10:36:27 +09:00):** Attempt 상태는 `running`/`succeeded`/`failed`만 사용하며 별도 `partial` 상태는 두지 않는다. 계산이 정상 완료되면 일부 계획 위치가 `unavailable`이어도 attempt는 `succeeded`다. 오류로 중단되어 일부 위치 결과만 있으면 attempt는 `failed`이고, 이미 산출된 유효 observation과 위치별 상태를 보존한다. 부분 coverage는 attempt 상태에 합치지 않고 계획 위치별 상태로 표현한다.
+
+**계획 위치 상태값·기본 전이 합의 (2026-10-28 10:37:56 +09:00):** 상태값은 `planned`, `observed`, `unavailable`, `missing`으로 한다. 위치 처리가 시작되지 않은 채 attempt 오류가 나면 해당 위치는 `planned`로 남고 오류는 attempt에 기록한다. 정상 측정으로 유효 raw RQD가 생성되면 `observed`, 정상 계산했으나 유효 support가 없으면 `unavailable`, 측정에 필요한 입력자료 자체가 없으면 `missing`이다. Retry에 따른 동일 위치의 상태·관측 선정 규칙은 11.2 안건 2에서 정한다.
+
+**오류 진단자료 저장 범위 재합의 (2026-10-28 10:40:12 +09:00):** 상세 오류 진단자료는 저장하지 않는다. Attempt의 `failed` 상태만 기록하며, 오류 종류/code·message·발생 단계·traceback은 저장하지 않는다. 실패한 attempt에서 이미 생성된 유효 관측은 별도 보존한다. 이는 오류 진단자료의 보존 범위만 변경하며, 실행 오류의 의미·재시도 정책은 4.16을 따른다.
+
+**Raw dataset digest encoding 합의 (2026-10-28 10:19:29 +09:00):** Raw-observation dataset snapshot은 `schema_version`을 포함하고 결정적 ID 순서로 정렬한 뒤 RFC 8785 JCS UTF-8 + SHA-256을 적용한다. 이는 execution fingerprint와 동일한 encoding/digest 방식이나, 해시 대상 payload는 별개의 raw-data snapshot이므로 digest 값과 의미도 별개다. Dataset schema version은 자료 필드나 해석 규칙이 바뀌면 증가한다.
+
+**Dataset schema version 시작값 적용 (2026-10-28 10:24:35 +09:00):** 이미 합의한 정수 schema version 규칙을 raw dataset schema에도 적용한다. 최초 값은 `1`이며, 자료 필드·해석 또는 canonical serialization 의미가 달라질 때 증가한다. 이 적용은 새 정책을 추가하는 것이 아니라 앞선 versioning 합의를 dataset schema에 일관되게 적용한 것이다.
+
+**Analysis fingerprint versioning 합의 (2026-10-28 10:20:02 +09:00):** Analysis fingerprint는 execution fingerprint와 별도의 정수 `schema_version`을 사용하며 최초 값은 `1`이다. 의미·필드 해석이 변경되면 해당 analysis version을 증가한다. Analysis snapshot은 versioned RFC 8785 JCS UTF-8 + SHA-256으로 식별한다.
+
+**불변 raw dataset 보정 합의 (2026-10-28 10:20:22 +09:00):** 원자료 snapshot/digest는 덮어쓰지 않는다. 계산·측정 데이터 보정은 새 raw dataset revision과 digest로 추가하고 수정 사유·시각 및 이전 revision과의 관계를 보존한다. 이전 analysis 결과는 원래 dataset revision에 계속 연결하고, 새 분석은 새 revision을 식별한다. 실행 재시도는 자료 보정과 구별한다.
+
+**입력·manifest·결과 저장 형식 합의 (2026-10-28 10:21:09 +09:00):** 사용자 입력은 원본 YAML로 보존한다. 실행 전 고정 design/batch manifest는 versioned JSON으로 생성하여 설계·작업·계획 물리 위치를 담는다. 실행 후 attempt·상태·관측·evidence·analysis 결과는 SQLite 자료 저장소에서 관리한다. Manifest는 원 설정 provenance와 normalized execution fingerprint snapshot/digest를 연결한다. Manifest JSON과 fingerprint JCS JSON은 서로 역할이 다른 자료다.
+
+**기술 fingerprint 단위·좌표 정규화 정책 (2026-10-28 09:33:18 +09:00):** 필드별 허용 단위와 좌표 convention을 자료 계약에서 명시하고, 검증된 실제값을 필드별 canonical unit/convention으로 변환한 결과를 실행 입력 snapshot과 fingerprint에 사용한다.
+
+**새 모드 canonical 단위·좌표계 합의 (2026-10-28 09:34:42 +09:00):** 길이는 m, P32는 m²/m³, 방향 각도는 degree를 canonical 단위로 사용한다. 위치·방향 벡터는 East-North-Up(ENU) 좌표계에 둔다. 터널 경로는 ENU상의 polyline이며 +X를 진행축으로 강제하지 않는다.
+
+**새 모드 입력 단위 합의 (2026-10-28 09:36:04 +09:00):** 입력은 schema에 지정한 canonical 단위만 허용한다(길이 m, P32 m²/m³, 각도 degree, ENU coordinates). 값은 별도의 단위 태그 없이 해당 schema 단위로 해석한다. cm 등 대체 단위 입력이나 자동 변환은 기본 계약에 포함하지 않으며, 이를 추후 허용하려면 명시적 사용자 합의와 schema 변경이 필요하다.
+
+**미결:** 세부 필드·ID·schema/API, 상태 코드와 상태 전이 schema, 정확한 endpoint 및 interval/face 좌표 필드, manifest·계획 물리 위치·목표 ledger의 정확한 구조, 실행 fingerprint의 완전한 필드 목록, 오류 자료의 정확한 필드, 불변 raw-observation dataset ID/digest의 record serialization·version 규칙, analysis fingerprint schema/version의 구체 형식. 11.2 안건 1의 자료 계약·G0 검토는 이 항목들을 추가 검토한 뒤에만 완료 여부를 판단한다.
+
+**자료군·연결 관계 field-group 검토 (2026-10-28 10:22:48 +09:00):** 사용자는 아래 자료군 및 관계 초안에 동의했고 수정·누락 사항은 제시하지 않았다. 이 합의는 11.2 안건 1의 자료 계약 방향을 확인한 것이며, 상세 schema/API 승인이나 G0·기능 구현 승인은 아니다.
+
+1. **원 설정 provenance:** 원본 YAML bytes 및 source reference/digest를 정규화 execution snapshot과 분리해 보존.
+2. **Design/batch manifest:** immutable, versioned JSON에 design/block/sample 식별자, 실제 signature 입력, 고정 Jn/realization seed, 작업별 execution fingerprint snapshot/digest, 계획 물리 BH/face 위치와 예정 support를 기록. Manifest 내 자식 ID는 결정적.
+3. **Target-goal ledger:** 목표 bin·Jn·Jr/Ja scenario·필요 RQD·도달성/부족을 물리 위치와 분리해 기록.
+4. **Execution job/attempt:** SQLite에 고정 입력 작업과 각 attempt를 분리. Attempt마다 UTC 시작/종료와 상태/runtime을 기록하고, 재시도는 동일 job/fingerprint에 연결. 오류 진단자료는 저장하지 않는다. Attempt 상태와 위치 관측 상태는 독립.
+5. **Planned location/raw observation:** planned location마다 상태를 기록. BH raw interval별 및 face station별로 실제 raw RQD가 산출된 observation만 생성해 해당 위치·생성 attempt에 연결. 목표 기여는 별도 다대다 relation으로 기록.
+6. **Measurement evidence:** BH interval·face scanline별 내부 교차 위치 목록(m)과 유효 길이를 보존. Face station observation에는 station-level raw RQD와 실제 유효 face area를 두고, 하위 scanline evidence에는 시작점·방향·길이·교차 위치를 둔다. Raw RQD를 재계산할 수 있어야 함.
+7. **Dataset revision/digest:** raw observation·support·evidence·planned-location 상태를 담는 불변 snapshot. Attempt/error 및 파생 결과는 제외. 결정적 ID 순서, schema version, JCS UTF-8/SHA-256 사용. 보정은 새 revision으로 추가하며 이전 digest/analysis 결과 보존.
+8. **Analysis run/derived results:** 별도 versioned JCS/SHA-256 fingerprint에 dataset ID/digest와 analysis 규칙·설정·구현 버전을 포함. 계산용 `max(raw_RQD,10)`, Jr/Ja별 Q′·bin 결과는 원자료를 변경하지 않는 파생 결과로 연결.
+
+**Execution fingerprint field-group 합의 (2026-10-28 10:23:43):** Snapshot은 schema metadata(`schema_version`, canonicalization/digest algorithm 식별), 고정 Jn·joint-set별 DFN 생성 입력, domain/BH/tunnel geometry, realization seed, BH·face measurement 설정/경계 규칙, 실제 generator·measurement 버전 및 backend/device/runtime를 포함한다. 실제 default resolution 후 실행기에 전달되는 값을 사용한다. Jr/Ja scenario·Q′/bin은 analysis fingerprint에 둔다. Design/manifest/block/sample ID, target-goal 목적, attempt 번호/시각·오류·output path는 execution fingerprint에서 제외한다. 사용자는 빠진 범주가 없다고 확인했다.
+
+**Manifest/SQLite field-group 합의 (2026-10-28 10:27:14):** 사용자는 아래 manifest/result-store field-group에 동의했고 수정 사항은 제시하지 않았다. 아래 property 명칭은 초안상 식별자이며 최종 API spelling/type을 확정하지 않는다.
+
+- Frozen manifest JSON: root schema version, manifest ID, source YAML reference/exact-byte SHA-256, canonical unit/frame identifiers; `designs`에는 design/block/sample, LHS N·design seed·ordered axes·canonical bounds·분포/좌표변환/size 제약, signature inputs, fixed Jn, realization seed, execution fingerprint snapshot/digest; `target_goals`에는 target bin/catalog, Jn, Jr/Ja scenario, required RQD/feasibility; `jobs`와 `planned_locations`에는 job·modality(BH/face)·geometry reference·planned chainage/ENU·modality별 planned support를 별도 연결.
+- SQLite result store: `attempts`는 job·attempt 순번·상태·UTC 시작/종료·runtime; `location_status`는 위치별 관측 상태; `observations`는 실제 raw RQD·method/version·actual support·zero-cross provenance를 위치 및 생성 attempt에 연결; `measurement_evidence`는 BH interval 교차 위치와 face station 하위 scanline evidence; `goal_contributions`는 목표와 execution/관측 간 다대다 기여; `dataset_revisions`는 불변 revision·schema version·이전 revision/수정 사유·digest; `analysis_runs/derived_scores`는 dataset revision/digest, analysis fingerprint, 계산용 RQD, Jr/Ja별 Q′·bin 결과를 연결한다. Attempt 오류는 `failed` 상태로만 기록하며 상세 진단자료는 저장하지 않는다.
+- Target-goal ledger와 계획 물리 위치는 manifest 안에서 별도 자료로 유지한다. 분석 후 contribution 연결은 실행의 원래 선정 의도를 바꾸지 않는다.
+
+**Manifest 설계 재현 입력 누락 보완 (2026-10-28 10:27:39):** 위 field-group의 `designs`/manifest에는 기존 4.1의 LHS 재현 자료도 포함한다: 표본 수 N, design seed, block별 ordered axis 목록, canonical 단위의 bounds, 분포·좌표변환·size 제약 및 선택된 축 설정. 이는 10:27 field-group에서 누락된 기존 합의의 추가 반영이며 새로운 탐색 정책 결정이 아니다.
+
+**Deterministic composite-key 관계 합의 (2026-10-28 10:28:54):** Design sample=`(manifest_id, design_id, block_id, sample_index)`; execution job=`(design_sample_key, realization_seed, execution_fingerprint_digest)`; planned location=`(job_key, modality, profile_id, location_index)`; attempt=`(job_key, attempt_index)`; observation=`(attempt_key, planned_location_key)`; evidence=`(observation_key, scanline_index)`; goal contribution=`(analysis_run_id, goal_id, observation_id)`. 이 튜플들은 manifest 범위 내 고유 식별을 위한 key 관계다. 동일 위치의 재시도 관측을 분석 dataset에 포함/선정하는 규칙은 11.2 안건 2에서 결정한다.
+
+**Composite key 저장 표현 합의 (2026-10-28 10:34:26):** SQLite에서는 composite key 구성 필드를 직접 `PRIMARY KEY`/`FOREIGN KEY`로 사용하고, manifest JSON에서도 key 구성요소를 명시한다. 별도 hash/opaque ID 문자열은 생성하지 않는다.
+
+**상세 미결:** 구현 property 이름·자료형, measurement evidence의 정확한 endpoint/좌표 필드, manifest와 target-goal ledger의 정확한 JSON 구조, fingerprint의 정확한 property/type 목록, dataset revision composite key와 canonical record serialization 세부. 이 항목은 후속 schema/API 제안에서 검토하며, 기능 구현은 모든 11.2 안건 논의 후에만 시작한다.
+
+**11.2 안건 2와의 경계 쟁점 (2026-10-28 10:28:19):** Raw observations는 원천 attempt에 연결해 provenance를 보존하지만 attempt 식별자와 시각 등 attempt metadata는 raw dataset digest에서 제외하기로 했다. Retry 또는 partial attempt에서 같은 planned location의 관측이 여러 번 생길 때 어떤 결과를 analysis dataset에 포함하고 중복을 어떻게 다룰지는 결정하지 않았다. 이는 11.2 안건 2의 retry·partial result·비교 적격성 논의에서 결정한다. 그때까지 임의의 deduplication/선정 규칙을 두지 않는다.
+
+**11.2 안건 2 논의 원칙 (2026-10-28 10:45:27 +09:00):** 연구 목적은 학술적 발견과 PR/TR/POST guideline 제공이며, v4 update rule을 갖추되 복잡한 상용 운영 체계를 만들지 않는다. 실행 오류는 연구 증거가 아니며, 오류 수정 후 실행을 다시 할 수 있다. 어느 정도 준비되면 실제 실행을 통한 시행착오로 update rule을 개선한다. 오류 복구 절차는 시그니처 공간을 탐색하기 위한 v4 자동 후보 선택·후속 시도와 구분한다.
+
+**오류 수정 후 재실행 결과 사용 (2026-10-28 10:46:16 +09:00):** 실패한 이전 attempt와 그 안에서 정상 산출된 관측은 이력으로 보존한다. 오류를 수정한 뒤 동일 연구 작업을 다시 실행해 정상 완료하면, seed 비교·연구 요약에는 수정 후 정상 완료한 결과만 사용하고 이전 부분 결과는 분석에 합치지 않는다. 두 attempt는 독립 seed 증거로 세지 않는다. 이는 부분 실패 결과 보존 원칙을 유지하면서 분석용 동일 위치 중복을 막는 단순 규칙이다. 이 규칙은 시그니처 공간 탐색을 위한 automatic candidate selection/next-batch attempts를 제한하거나 대체하지 않는다.
+
+**자동 탐색과 오류 복구의 구분 정정 (2026-10-28 10:48:10):** “오류를 수정하고 다시 실행할 수 있다”는 발언을 자동 재시도/후속 시도 제거로 해석한 것은 잘못이다. v4의 핵심인 자동 시그니처 후보 선정과 탐색 공간 내 후속 시도는 유지한다. 사용자의 오류 수정 후 재실행은 실패한 계산의 복구이며, 알고리즘의 자동 후보 선택·탐색 시도와 다른 개념이다. 4.16의 오류 복구 세부는 이 구분에 따라 검토하고, 자동 탐색 동작을 삭제하거나 약화하는 근거로 사용하지 않는다.
+
+**11.2 안건 2 정리 및 안건 3 시작 (2026-10-28 10:50:19 +09:00):** 안건 2는 오류가 연구 증거가 아니라는 원칙, 오류 복구와 자동 시그니처 탐색의 구분, 오류 수정 후 정상 완료한 same-seed 결과의 분석 우선 원칙까지 합의하여 현재 논의를 마친다. 아직 발생하지 않은 모든 경계 사례에 복잡한 규칙을 미리 추가하지 않고, 실제 시행착오에서 필요한 구체 사례가 나오면 다시 상의한다. 이어서 안건 3의 참조 후보 동률·갱신을 논의한다.
+
+**11.2 안건 3 참조 갱신 시점 합의 (2026-10-28 10:55:51 +09:00):** 유효한 결과를 반영한 활성 거리 최선·support 최선 참조는 batch 종료 시 다시 선정하고, batch 도중에는 갱신하지 않는다. 활성 참조가 바뀌어도 4.11의 누적 진전 비교 기준은 자동 초기화하지 않는다. 이전 후보·관측·선정 이력은 보존한다. 여러 목표 간 실행 선택·예산 배분 및 동률 참조 간 실제 실행 기회 배분은 미결이며, 구현·테스트·simulation은 수행하거나 승인하지 않았다.
+
+**11.2 안건 3의 참조 원칙 논의 범위 정리 (2026-10-28 10:55:51 +09:00):** 4.17의 최선 참조 유지, 정확한 동률의 co-best 유지, batch 종료 시 활성 참조 갱신 및 4.11 누적 진전 기준의 비초기화를 현재 원칙으로 확정한다. 실제 실행 기회·예산 배분은 참조 갱신 원칙과 분리해 후보 생성·전환 및 예산 안건에서 다루며, 여기서 세부를 앞당겨 정하지 않는다.
+
+**11.2 안건 4 후보 step 좌표계 합의 (2026-10-28 10:57:43 +09:00):** 각 탐색 축의 후보 step은 그 축의 원래 설정 단위로 표현하고, bounds 기준 정규화 좌표계는 두지 않는다. 이 합의는 step 크기나 작은/큰 step 적용 순서를 정하지 않는다.
+
+**11.2 안건 4 step 크기 표현 합의 (2026-10-28 10:58:34 +09:00):** 작은/큰 step은 축별 원래 설정 단위 값으로 지정하며 공통 비율은 강제하지 않는다. 수치는 실험 설정·bounds 논의 시 정하고, 적용 순서는 미결로 둔다.
+
+**11.2 안건 4 bounds 밖 후보 처리 합의 (2026-10-28 11:01:23 +09:00):** 설정 bounds 밖으로 나가는 탐색 후보는 생략하고 clamp하지 않는다. 4.1의 LHS 표본 검증 규칙과는 별개의 후보 탐색 규칙이다.
+
+**11.2 안건 4 batch 내 중복 후보 처리 합의 (2026-10-28 11:02:54 +09:00):** 동일 signature의 후보는 같은 batch에서 한 번만 실행 대상으로 두고, 모든 생성 근거를 보존한다. 별도 seed 반복은 중복 후보가 아니다.
+
+**11.2 안건 4 작은/큰 step 후보 활성화 합의 (2026-10-28 11:05:15 +09:00):** 두 step 크기를 처음부터 후보군에 포함하며, 큰 step을 작은 step의 정체 후에만 활성화하지 않는다. 실행 배분은 별도 미결이다.
+
+**11.2 안건 4 활성 참조별 후보 제안 합의 (2026-10-28 11:22:03 +09:00):** 모든 활성 참조에서 후보를 제안하고, 동일 signature는 batch 내에서 중복 제거한다. 후보를 제안하는 것과 실제 batch에 편성·실행하는 것은 구별하며, 실행 배분은 미결이다.
+
+**11.2 안건 4 이전 관측 signature 재제안 합의 (2026-10-28 11:23:08 +09:00):** 이미 유효하게 관측된 동일 signature·seed 결과는 재실행하지 않고 재사용한다. 추가 독립 seed가 필요하면 같은 signature를 새 seed로 제안할 수 있다. 오류 수정 후 같은 seed 재실행은 기존 복구 규칙을 따른다.
+
+**11.2 안건 4 축·방향 전환 원칙 합의 (2026-10-28 11:23:58 +09:00):** 진전된 축·방향을 후보 생성에 유지하며, 한 차례 진전 없음으로 다른 축·방향을 영구 제외하지 않는다. 다른 축과 복수 축 조합도 후보군에 남기되, 우선순위·실행량은 미결이다.
+
+**11.2 안건 4 신규 후보가 없는 활성 참조 처리 합의 (2026-10-28 11:25:47 +09:00):** bounds 및 기존 유효 signature·seed 결과 때문에 새 후보가 없으면 참조를 유지하고 해당 후보 생성 회차의 신규 후보 없음만 기록한다. clamp·동일 seed 재실행·참조 폐기는 하지 않고 다른 활성 참조의 후보 생성을 계속한다.
+
+**11.2 안건 4 복수 축 진전 귀속 합의 (2026-10-28 11:28:01 +09:00):** 복수 축 변경 후보의 진전은 조합 전체에 귀속하고, 개별 축 효과를 주장하지 않는다. 개별 축 효과는 단일 축 후보로 별도 확인하며 단일 축 탐색을 계속 유지한다.
+
+**11.2 안건 4 타겟 빈별 탐색 근거 분리 합의 (2026-10-28 11:29:23 +09:00):** 축·방향·조합의 효과는 타겟 빈별로 판단하고 다른 빈에 성공·실패를 자동 전이하지 않는다. 다중 빈에 기여하는 관측은 빈별로 각각 평가한다.
+
+**11.2 안건 4 원칙 수준 정리 및 안건 5 이동 (2026-10-28 11:30:18 +09:00):** 안건 4는 현재 합의된 후보 생성·중복·bounds·축/방향·효과 귀속 원칙 수준에서 정리하고 안건 5로 이동한다. 축별 step 실제 값은 안건 6의 축·bounds 설정과 함께, 실제 batch 실행 배분은 안건 7의 예산 논의와 함께 정한다. 위치 전환과 혼재 재검토의 세부 기준은 미결로 보존하며, 이번 이동은 해당 규칙의 승인이나 구현 착수가 아니다.
+
+**11.2 안건 5 논의 시작 (2026-10-28 11:30:58 +09:00):** 기존 기준 방법을 신규 longitudinal 자료에 적용하는 논의를 시작한다. 4.13의 출발점은 profile별 PR/TR/POST 변화·안정성 검토와 profile 경계의 잠정 결합이며, 고정된 표본 수나 수치 문턱을 미리 가정하지 않는다. profile 결합에 필요한 최소 profile 수 등 미결 사항을 순서대로 검토한다.
+
+**11.2 안건 5 최소 profile 수 유보 합의 (2026-10-28 11:32:36 +09:00):** 경계 결합에 필요한 고정 최소 profile 수를 두지 않는다. 식별 가능한 profile이 하나뿐이면 경계를 추정하되 잠정으로 표시하고 실제 batch 자료를 본 뒤 충분성을 판단한다.
+
+**11.2 안건 5 초기 분석·경향 확정 순서 합의 (2026-10-28 11:37:34 +09:00):** 고정 coverage 비율을 두지 않는다. 일부 target bin이 비어 있더라도 긍정적 경향이 관찰되면 PR/TR/POST를 잠정 분류할 수 있으며, 미관측 bin을 명시하고 최종 상·하한으로 확정하지 않는다. 모든 target bin이 관측된 뒤 경향성을 최종 확인한다. 이 순서는 표본 충분성이나 최종 경계 확정을 자동으로 보장하지 않는다.
+
+**11.2 안건 5 coverage와 근거 충분성 구분 합의 (2026-10-28 11:38:53 +09:00):** 모든 target bin의 관측은 coverage 조건이지 충분성 보장이 아니다. profile별 Q′ 분포·support·독립 seed 반복성·시그니처 다양성을 검토하고, 식별 근거가 부족한 profile은 미식별로 보존하여 경계 결합에서 제외한다.
+
+**11.2 안건 5 원칙 수준 정리 및 안건 6 이동 (2026-10-28 11:40:46 +09:00):** profile별 PR/TR/POST 변화·안정성 검토, 고정 최소 profile 수·coverage 비율 없이 잠정 결과를 보존하는 방식, coverage와 근거 충분성의 분리, 미식별 profile 제외 및 사유 보존, 보수적 `min(Lᵢ)/max(Uᵢ)` 초기 결합, 겹치는 경계의 사례별 검토를 현재 원칙 수준에서 정리한다. 실제 충분성·경계 승격 판단과 수치 기준은 실제 batch 자료를 본 뒤 검토한다. 이어 안건 6의 실제 실험 설정 논의로 이동하며, 이는 구현 승인이 아니다.
+
+**11.2 안건 6 크기 범위 충돌 결정 (2026-10-28 11:56:26 +09:00):** v4의 `size_r_min`·`size_r_max` 반경 상한을 모두 150 m로 통일하고, 하한 0.05 m 및 `size_r_min < size_r_max`를 유지한다. v3의 100 m 상한은 역사적 계약으로 남기되 v4에 적용하지 않는다. 이 결정은 v4의 size range를 정하며 다른 파라미터의 bounds, block별 값·분포, step 크기 또는 구현 승인을 정하지 않는다.
+
+**11.2 안건 6 P32 상한 결정 (2026-10-28 12:15:01 +09:00):** 저장소 generator에서 P32는 각 joint set마다 별도로 적용됨을 확인했다. v4에서 각 joint set의 P32 상한을 100 m²/m³로 정하며, 이는 block 전체 합계 상한이 아니다. 여러 set의 총 P32와 선밀도 기여는 각 set별 값·방향에 따라 합산한다. 100은 탐색 상한이지 물리적 한계 주장이 아니다.
+
+**11.2 안건 6 P32 하한 결정 (2026-10-28 12:16:21 +09:00):** 각 joint set의 P32 하한을 0.01 m²/m³로 정한다. 따라서 v4 joint-set별 P32 범위는 `[0.01,100] m²/m³`이며 0은 포함하지 않는다. 이는 탐색 범위이고 물리적 적용성 한계 주장이 아니다.
+
+**11.2 안건 6 분포 형상 파라미터 고정 결정 (2026-10-28 12:24:39 +09:00, 이후 정정):** 당시 `size_alpha`와 `fisher_kappa`를 block 내 고정값으로 두기로 했으나, signature별 난수화로 정정했다. 과거 high-Q catalog의 `fisher_kappa` 변경 제안은 v4 일반 규칙으로 자동 채택하지 않는다.
+
+**11.2 안건 6 평균 방향 탐색 bounds 결정 (2026-10-28 12:26:13 +09:00, 이후 정정):** 당시 schema의 전역 유효 각도 범위를 v4 탐색 범위로 자동 사용하지 않기로 했으나, 13:36의 전체 유효 범위 결정으로 정정했다. `orientation_beta` 상대각 sweep은 dip/dip direction bounds와 별도다.
+
+**11.2 안건 6 평균 방향 bounds 적용 단위 결정 (2026-10-28 13:11:45 +09:00, 범위는 이후 정정):** 방향 bounds는 block별이며 해당 block의 모든 joint set에 공통 적용한다. 각 set의 평균 방향은 서로 다를 수 있다.
+
+**11.2 안건 6 전체 유효 방향 bounds 결정 (2026-10-28 13:36:12 +09:00):** v4는 `mean_dip` `[0, 90]°`, `mean_dip_dir` `[0, 360]°`(360° ≡ 0°)의 전체 입력 유효 범위를 탐색 bounds로 사용하며 더 좁은 각도 제한을 두지 않는다. 사잇각 `orientation_beta`는 관측공 축과 절리면 사이의 파생 각도이므로 입력 방향 bounds와 구분한다.
+
+**11.2 안건 6 BH·터널 사잇각 역할 결정 (2026-10-28 13:48:05 +09:00):** 방향 갱신 좌표는 관측공별 실제 축–절리면 사잇각 `β`로 한다. 터널 사잇각은 각 polyline segment 진행방향에 대해 산출해 결과 해석용으로 기록하되, 후보 생성·방향 갱신에는 사용하지 않는다. 두 사잇각은 법선 `n`과 선형 방향 단위벡터 `d`로 `β = asin(|n·d|)`이며 범위는 0–90°이다.
+
+**11.2 안건 6 신규 조건군 설계 결정 (2026-10-28 12:28:51 +09:00):** 기존 case/portfolio는 v4 승인 조건군으로 재사용하지 않고 참고 자료로만 본다. v4 조건군 목록은 새로 설계하며 각 block의 절리군 구성·Jn·geometry 및 승인 값은 추후 정한다.
+
+**11.2 안건 6 Jn 목표 범위 결정 (2026-10-28 12:30:40 +09:00):** 새 v4 condition-group 설계는 기존 Q′ 격자의 Jn 10개 값 `{0.5, 1, 2, 3, 4, 6, 9, 12, 15, 20}`을 모두 목표로 포함한다. 각 값에 대한 block 수와 구체 DFN 구성은 아직 미정이며 Jn을 절리군 수에서 자동 도출하지 않는다.
+
+**11.2 안건 6 Jn별 복수 block 허용 결정 (2026-10-28 12:31:36 +09:00):** 같은 Jn 값에 서로 다른 DFN condition block을 둘 수 있도록 한다. block 수·각 block의 지질·기하 구성은 미정이며 별도 설정 논의에서 결정한다.
+
+**11.2 안건 6 복수 block의 역할 결정 (2026-10-28 12:32:17 +09:00):** 같은 Jn 내 복수 block은 서로 다른 절리 구조·기하 condition family를 표현한다. family 구성 차원과 실제 block 목록은 미정이다.
+
+**11.2 안건 6 family 구분 차원 초기 논의 (2026-10-28 12:33:27 +09:00, 이후 세부 결정):** 절리군 수, 상호관계, 방향, shape parameter, set별 P32, geometry를 고려 대상으로 처음 열거했다. 이후 상호관계·방향의 별도 family 유형은 두지 않고, geometry는 공통 적용하며, α/κ는 signature별 공통 난수값으로 적용하고, set별 P32 추가 배분 제약은 두지 않기로 정리했다.
+
+**11.2 안건 6 절리군 수 후보 결정 (2026-10-28 12:35:06 +09:00):** 신규 structural family의 set-count 후보는 1–5개(각각 1, 2, 3, 4, 5)로 정한다. Jn과 절리군 수는 자동 연계하지 않는다. 1–5 set counts와 Jn 10개 목표 간의 pairing·block 수는 미정이다.
+
+**11.2 안건 6 후보 공간과 실행 수 구분 결정 (2026-10-28 12:41:27 +09:00):** Jn 10개 × set-count 1–5 × structural-family 차원의 조합은 탐색 후보 공간이지 전수 실행 목록이 아니다. 업데이트 룰이 후보 공간에서 실제 실행 대상을 선택한다. 후보 유효성, family 목록, 초기·후속 batch별 표본수와 배분은 미정이다.
+
+**11.2 안건 6 Jn 평가 용어 및 적용 방식 정정 (2026-10-28 12:47:15 +09:00):** “Jn 평가값”은 절리군 수가 아니라 명시적 평가 목표를 뜻한다. 기존 Q′ 격자의 Jn 10개 값은 모두 목표이며, 각 DFN condition block은 해당 Jn을 고정해 그 Jn에 대한 목표·필요 RQD를 탐색한다. 한 DFN의 동일 관측 RQD에 10개 Jn을 모두 후처리 적용하는 것은 아니다. 이 정정은 “Jn 평가값은 점수 격자에만 쓰인다”는 해석을 바로잡는다.
+
+**11.2 안건 6 Jn 평가값·절리군 수 전체 pairing 후보 허용 (2026-10-28 12:48:29 +09:00):** Jn 평가 목표 10개 각각과 절리군 수 후보 1–5개의 모든 pairing을 조건군 후보 공간에 허용한다. 각 pairing의 유효성은 별도 검토하며 전 조합 실행을 뜻하지 않는다.
+
+**11.2 안건 6 초기 block 구성 및 타겟 빈 순차 진행 결정 (2026-10-28 13:55:17 +09:00):** 실제 탐색은 소수의 parameter block으로 시작하며, 가능한 50개 Jn×절리군 수 조합의 block 정의나 실행 목록을 미리 만들지 않는다. 필요한 실제 block·signature는 관측과 탐색 진행에 따라 선정·추가한다. 최고 Q′ target bin부터 가능한 한 낮은 bin으로 순차 진행하고, 현재 bin의 자료·support를 고려해 signature를 선정한다. 사전에 알 수 없는 signature–Q′ 관계를 가정해 파라미터를 역산하지 않는다. 모든 목표 bin 및 전환의 완료 기준과 실제 초기 block 수는 미정이다.
+
+**11.2 안건 6 초기 Jn 범위 결정 (2026-10-28 13:56:44 +09:00):** 첫 block 묶음은 최고 Q′ target bin 조사에 필요한 소수 Jn 목표만 포함한다. 낮은 target bin으로 이동할 때 필요한 Jn block을 추가하며, Jn 10개 모두는 최종 평가 목표로 유지한다. 초기 block의 Jn 값과 추가 시점은 아직 미정이다.
+
+**11.2 안건 6 최고 타겟 구간 결정 (2026-10-28 13:57:39 +09:00):** 별도 집계 구간 `Q′ > 400`을 첫 타겟으로 두고, 이후 기존 10개 주 bin을 높은 값에서 낮은 값 순으로 탐색한다. 10개 주 bin의 경계와 정의는 변경하지 않는다.
+
+**11.2 안건 6 초기 Jn block 목표 결정 (2026-10-28 13:59:47 +09:00):** 초기 block은 Jn 0.5와 1을 대상으로 한다. `raw_RQD ≤ 100`, `Jr ≤ 4`, `Ja ≥ 0.75`에서 `Jn ≥ 2`는 `Q′ > 400`에 산술상 도달할 수 없으나, Jn 0.5·1의 도달 가능성도 실제 DFN RQD를 보장하지 않는다. set-count와 상세 block 설정은 미정이다.
+
+**11.2 안건 6 초기 `Q′ > 400` scenario 도달성 결정 (2026-10-28 14:40:00 +09:00):** 66개 Jr/Ja 파생 결과는 모두 유지하되, 초기 high-bin 목표 우선순위는 산술상 도달 가능한 조합에 둔다. Jn 0.5에서는 5개 조합, Jn 1에서는 `(Jr,Ja)=(4,0.75)` 1개 조합이 가능하다. 나머지는 최대 계산용 RQD 100으로도 해당 target에 비도달로 표시한다. 이는 관측 보장이나 일반 bin 분석에서의 제외가 아니다.
+
+**11.2 안건 6 초기 block 절리군 수 결정 (2026-10-28 14:01:22 +09:00):** 초기 block은 Jn 0.5와 Jn 1에 각각 절리군 1개를 둔다. 초기 block 2개 구성만 정했으며, 후속 set-count·block은 관측 근거에 따라 추가할 수 있다.
+
+**11.2 안건 6 초기 LHS 표본 수 결정 (2026-10-28 14:05:13 +09:00):** 초기 2개 block에 각 N=5 LHS signatures(총 10개)를 두며 각 signature는 당초 시드 1개로 평가한다. 이 시작 표본은 충분성이나 최종 경계 식별을 뜻하지 않는다.
+
+**11.2 안건 6 초기 pilot seed 값 결정 (2026-10-28 14:36:40 +09:00):** Jn 0.5 block design seed=`39`, Jn 1 block design seed=`36`; 두 block 총 10개 signature의 공통 당초 realization seed=`43`으로 한다.
+
+**11.2 안건 6 `Q′ > 400` scenario 도달성 반영 결정 (2026-10-28 14:40:00 +09:00):** 원자료별 66개 Jr/Ja 파생점수는 모두 계산·보존한다. 초기 `Q′ > 400` 우선순위에는 Jn 0.5의 산술상 도달 가능한 5개 조합과 Jn 1의 `(Jr,Ja)=(4,0.75)` 조합을 반영하고, 나머지는 이 타겟의 비도달로 기록한다. 이는 관측 보장이나 일반 bin 분석 제외가 아니다.
+
+**11.2 안건 6 초기 pilot face 범위 결정 (2026-10-28 14:41:34 +09:00):** 초기 10개 signature 모두에서 BH와 함께 전체 tunnel face profile을 1 m 평가 간격으로 산출한다. Face는 BH 우선 탐색을 대체하지 않는 대응 분석자료다.
+
+**11.2 안건 6 P32 step 결정 시점 합의 (2026-10-28 14:11:43 +09:00):** 후속 작은/큰 P32 step 수치는 초기 10 signatures의 관측 결과를 검토한 뒤 정한다. 다른 축의 step 결정 시점은 별도로 둔다.
+
+**11.2 안건 6 반경 step 결정 시점 합의 (2026-10-28 14:12:07 +09:00):** `size_r_min`·`size_r_max` 각 축의 작은/큰 step 값은 초기 batch 자료를 본 뒤 정하며, step을 서로 같게 두지 않는다.
+
+**11.2 안건 6 방향 step 결정 시점 합의 (2026-10-28 14:12:31 +09:00):** 관측공 사잇각 `β`의 작은/큰 step은 초기 batch 관측 후 정한다. 과거 5° 제안은 확정값으로 채택하지 않는다.
+
+**11.2 안건 6 최고 타겟 구간 전환 검토 시점 결정 (2026-10-28 14:13:01 +09:00):** 초기 `Q′ > 400` batch 결과를 검토한 뒤 high-bin 추가 탐색 또는 다음 낮은 bin으로의 전환을 결정한다. 초기 N=5/block이나 관측 support만으로 충분성을 선언하거나 자동 전환하지 않는다.
+
+**11.2 안건 7 실행별 시뮬레이션 상한과 후보 소진 처리 결정 (2026-10-28 18:51:18 +09:00):** 각 실행은 사용자가 입력하는 최대 simulation 수를 가져야 하며 전역 기본 수치는 두지 않는다. 상한 도달 시 실행을 멈추고 미완료 목표는 `unresolved_at_budget`으로 남긴다. 적격 후보가 없으면 `no_eligible_candidate`라는 별도 종료 사유로 기록하며 충분성·성공으로 간주하지 않는다. face 부족분은 자동 배정하지 않고 보고 후 사용자 검토에 맡긴다. 정량 충분성 기준, 상한 수치, 비용/시간 집계, 목표별 실제 배분 및 bin 전환·기타 조기 종료 규칙은 미결이며, 본 결정은 자동 탐색 구현 승인이 아니다.
+
+**11.2 안건 8 weight 자동 조정 보류 결정 (2026-10-28 18:51:18 +09:00):** weight 산식·감소량·하한·회복 규칙이 승인되기 전에는 weight를 자동 변경하지 않고, 4.18의 경계에 따라 타겟 bin × signature별 유효 미달·거리·도달 support 근거만 기록한다. 서로 다른 유효 realization seed의 해당 bin 미달만 새 증거로 세며 같은 seed 재시도, 실행 오류 및 비교 불가 결과는 새 미달 증거로 세지 않는다. 이 결정은 증거 기록 범위만 확정하며 weight 조정 구현이나 자동 탐색 승인이 아니다.
+
+**최초 10-signature pilot 제한 예외 승인 (2026-10-28 14:15:07 +09:00):** 남은 자동 탐색 정책 논의에 앞서, 최초 pilot(Jn 0.5·1, 각 1 set, N=5/block)의 준비와 검증을 허용한다. pilot 자료 계약 G0는 선행 검토한다. 실제 simulation은 사용자가 설정과 manifest를 확인한 뒤 직접 실행한다. 예외는 일반 자동 탐색기·후속 batch 구현 또는 simulation 실행을 승인하지 않는다.
+
+**11.2 안건 6 P32 LHS 좌표 결정 (2026-10-28 14:08:42 +09:00):** joint set별 P32를 로그 좌표로 LHS 표본화한다. 이는 탐색 좌표이며 물리적 P32 분포를 가정하지 않는다.
+
+**11.2 안건 6 방향 LHS 좌표 결정 (2026-10-28 14:09:45 +09:00):** `mean_dip`·`mean_dip_dir`를 입력 각도 좌표 그대로 LHS 표본화한다. 이는 equal-area 방향 표본이나 물리적 사전분포가 아니다. 방향방위 `mean_dip_dir`는 [0,360)°로 표현해 360°와 0°의 중복을 피한다.
+
+**11.2 안건 6 반경 LHS 순서 제약 변환 결정 (2026-10-28 14:07:53 +09:00):** 로그 반경 표본쌍을 오름차순으로 정렬해 `size_r_min < size_r_max`를 보장한다. 표본 수 감소·clamp는 하지 않으며, 변환된 주변분포를 manifest에 남긴다.
+
+**11.2 안건 6 절리군 간 상호관계의 표현 방식 결정 (2026-10-28 12:57:04 +09:00):** 절리군 상호관계별 family 유형을 미리 나누지 않고, set별 방향 등 파라미터 설정으로 구조적 차이를 표현한다. 구체 설정과 bounds는 미정이다.
+
+**11.2 안건 6 방향 regime의 표현 방식 결정 (2026-10-28 12:57:38 +09:00):** 별도의 방향 family 유형을 미리 정하지 않고 set별 `mean_dip`·`mean_dip_dir`와 block별 bounds로 표현한다. 실제 범위·값은 미정이다.
+
+**11.2 안건 6 `size_alpha`·`fisher_kappa`의 block 간 적용 범위 초기 결정 (2026-10-28 12:59:17 +09:00, 이후 정정):** 당시 두 파라미터를 모든 block에서 공통 고정값으로 두기로 했으나, signature별 난수화 결정으로 대체되었다.
+
+**11.2 안건 6 분포 형상 파라미터의 signature별 난수화 단위 정정 (2026-10-28 13:05:32 +09:00):** 앞선 block 간 공통 고정 합의를 정정한다. `size_alpha`·`fisher_kappa`는 승인될 범위에서 signature별로 난수 생성하고 같은 signature의 seed 반복에서는 고정한다. 유효 후보 범위, 난수분포, 파라미터 간 추출 관계 및 재현성 규칙은 미정이다.
+
+**11.2 안건 6 분포 형상 파라미터 탐색 범위 결정 (2026-10-28 13:06:31 +09:00):** `size_alpha` 후보 범위는 `[2.5, 4.0]`, `fisher_kappa` 후보 범위는 `[0, 50]`이다. 이는 연구용 탐색 범위이며 물리적 한계나 코드상 허용범위를 뜻하지 않는다. 난수분포·상호 추출 관계·재현성 규칙은 미정이다.
+
+**11.2 안건 6 분포 형상 파라미터 난수분포 결정 (2026-10-28 13:07:01 +09:00):** 두 파라미터를 각 승인 범위에서 독립 균등분포로 signature마다 한 번 추출하고, 같은 signature의 seed 반복에는 같은 값을 사용한다. 난수 seed·추출값 기록 규칙은 미정이다.
+
+**11.2 안건 6 분포 형상 파라미터와 LHS의 분리 결정 (2026-10-28 13:08:02 +09:00):** 두 파라미터는 LHS에서 제외하고 signature별 독립 균등 추출로 둔다. 다른 연속축은 LHS로 설계한다. 난수 seed 및 추출값 기록 규칙은 미정이다.
+
+**11.2 안건 6 분포 형상 파라미터 난수 재현성 결정 (2026-10-28 13:09:10 +09:00):** manifest의 design seed에서 LHS와 분리된 RNG stream을 사용하고, signature별 실제 추출값도 manifest에 기록한다. 같은 manifest는 동일 추출값을 재현하며 LHS 표본열은 바뀌지 않는다.
+
+**11.2 안건 6 분포 형상 파라미터의 signature 내 공유 결정 (2026-10-28 13:10:12 +09:00):** 각 signature에서 α 하나와 κ 하나를 추출해 모든 joint set에 공통 적용한다. α와 κ는 서로 독립 추출하며 signature의 seed 반복 간 값은 같다.
+
+**11.2 안건 6 초기 LHS 표본 수의 block별 적용 원칙 (2026-10-28 13:14:30 +09:00):** N은 block마다 다를 수 있으며 공통값을 강제하지 않는다. N은 실제 LHS 표본 수이지 가능한 조합 총수가 아니며, block별 수치와 산정 기준은 미정이다.
+
+**11.2 안건 6 초기 LHS 표본 수의 block별 산정 원칙 (2026-10-28 13:16:28 +09:00):** block별 연속축 구성·범위와 초기 탐색 목적을 고려해 N을 정하며, 이산 pairing 개수와 분리한다. 자동 산식·최소값은 정하지 않고 실제 N은 설계 전에 승인해 manifest에 기록한다.
+
+**11.2 안건 6 당초 시드와 검증 시드의 구분 (2026-10-28 13:20:33 +09:00, 용어 정정 13:24:04):** 초기 signature는 당초 시드 하나로 평가하고 전부 반복 실행하지 않는다. 효과 가능성이 보인 후보만 별도 검증 시드로 기준점과 paired 확인하며, 확인 수·추가 절차는 4.10–4.12를 따른다. 당초 시드는 검증 시드 수에 포함하지 않는다.
+
+**11.2 안건 6 시드 용어 합의 (2026-10-28 13:24:04 +09:00):** 초기 평가 seed는 “당초 시드”, 후보 효과를 paired 비교로 확인하는 추가 seed는 “검증 시드”라고 한다. “탐색 시드” 표현은 사용하지 않는다.
+
+**11.2 안건 6 새 모드 face 평가 간격·굴진장 결정 (2026-10-28 13:26:45 +09:00):** 기존 Q′Face로 다음 굴진장을 정하는 동작은 보존한다. 새 모드는 Q′와 무관하게 1 m 전진하고 그 위치에서 Q′Face를 재산정한다. Segment 끝·vertex의 잔여 구간과 유효 경계에서는 실제 전진거리가 1 m보다 짧을 수 있으며, support는 실제 직전 전진거리로 기록한다.
+
+**11.2 안건 6 새 모드 BH RQD interval 길이 결정 (2026-10-28 13:29:25 +09:00):** 각 BH raw RQD interval은 1 m로 한다. Deere 직접법 및 clipping·tail 규칙은 유지하며 기존 모드 설정은 변경하지 않는다.
+
+**11.2 안건 6 set별 P32 배분 추가 제약 없음 (2026-10-28 13:00:41 +09:00):** 각 set의 P32를 기존 범위 안에서 별도로 설정하며 set 간 동일값·비율 제약이나 block 합계 상한을 추가하지 않는다.
+
+**11.2 안건 6 geometry block 간 공통 적용 결정 (2026-10-28 13:01:34 +09:00):** domain·터널·BH geometry는 모든 block에 공통 적용하고 family 차이로 두지 않는다.
+
+**11.2 안건 6 v4 공통 geometry 출발점 채택 (2026-10-28 13:30:42 +09:00):** domain은 `60×30×30 m`, grid spacing `1 m`; tunnel은 x축 직선 `[0,15,15]`→`[60,15,15]`, radius `5 m`; borehole은 중앙선상 x방향 길이 `60 m`로 둔다. 모든 block에 공통 적용하며, 이는 v4의 출발 형상이지 다른 기존 case 설정 전부의 채택은 아니다.
+
+**11.2 안건 5 결합 경계가 겹치거나 교차할 때의 처리 합의 (2026-10-28 11:33:55 +09:00):** 최종 하한이 최종 상한 이상이어도 중간값 단일 경계를 자동 적용하지 않는다. profile별 경계와 실제 자료를 사례별로 검토하고, 적용 가능한 경우에만 TR 없는 판정을 고려한다.
+
 ## 11. 다음 작업 재개 메모 (2026-10-26 종료 시점)
 
 ### 11.1 현재 위치와 반드시 유지할 결정
 
 전략 방향과 기본 진전 판정은 합의되었으나 자동 탐색기의 상세 정책은 미완성이다.
-코드 구현·테스트·simulation 실행은 승인되지 않았다. 본 메모는 기존 T001–T011의
-재개 안내이며 별도 구현 작업 목록이나 실행 승인을 추가하는 것이 아니다.
+일반 자동 탐색기의 구현·실행은 승인되지 않았다. 단, 2026-10-28 14:15:07 결정에 따라
+G0 자료 계약 검토 후 최초 10-signature pilot에 한정한 준비·검증은 허용한다. pilot
+simulation은 사용자가 설정·manifest 확인 후 실행한다. 본 메모의 예외는 후속 자동 탐색,
+추가 batch, 또는 사용자 simulation 실행을 대신하는 승인이 아니다.
 
 - **연구 목적:** 굴착 전 수평 BH Q′로 굴착 후 face 상태를 얼마나 판단할 수 있는지 조사.
   높은 Q′ 자체를 최대화하거나 BH·face 값을 일치시키는 것이 아니다.
@@ -1020,20 +1573,57 @@ fingerprint 구성·직렬화 및 후보 선정·step·배분·종료의 상세 
 ### 11.2 남은 결정과 관련 작업
 
 아래 표의 순서는 권장 논의 순서이며 새 정책의 승인이나 기본값 지정이 아니다.
+현재는 6번 안건에 속한 최초 pilot의 설정·manifest 준비 단계다. 최초 pilot의 block 구성,
+block별 `N=5`, seeds, randomized LHS 생성 방식과 좌표·변환, geometry, 측정 간격 및
+high-bin 목표 목록은 결정되었고, 이 pilot에 한정한 G0 자료 계약은 승인되었다. 전체
+전략의 block별 N·배분과 세부 실행 정책은 여전히 미결이다. 안건 7의 실행별 상한·후보
+소진·face 보강 경계와 안건 8의 근거만 기록하는 원칙은 정리했으나, 각각의 충분성·예산
+배분과 weight 조정 산식은 미결이다. 초기 10 signatures의 simulation은 사용자가 설정과
+manifest를 확인한 뒤 직접 실행한다.
 
 | 순서 | 미결 항목 | 다음에 결정할 내용 | 연결 작업 |
 |---|---|---|---|
 | 1 | 자료 계약·G0 | BH 목표와 face 대응 관측, raw/계산용 RQD, support·측정법·시도/seed·오류/결측·fingerprint의 입력/저장 계약 검토; 기반 구현 승인 범위 | T001,T002 |
 | 2 | 비교·실패 처리의 경계 사례 | 4.15의 공통 유효 범위 비교와 범위 감소 단독 불이익 금지 원칙을 전제로, 결측·오류·재시도와 비교 불가가 seed 증거·후속 선정에 미치는 상호작용 | T002,T011 |
-| 3 | 탐색 참조 위치 | 4.17의 거리 접근 최선·도달 support 최선 참조와 같은 signature의 중복 통합 원칙, 4.11의 고정 참조 대비 누적 진전 원칙을 전제로 동률 처리 및 참조 갱신 시점·규칙 | T003,T011 |
-| 4 | 후보 생성과 전환 | 4.8의 한 축 우선, 가능한 양방향·작은/큰 이동 폭 및 간헐적 2·3축 조합 원칙을 전제로 좌표계·step 값·시도 비율, 방향·축·위치 전환, bounds·중복 회피, 혼재 재검토 근거와 상한 | T003,T011 |
-| 5 | 기존 기준 방법의 새 자료 적용 | 기존 3단계 판정 의미와 PR/TR/POST 분석을 출발점으로, 새 longitudinal 자료의 관측 단위·support·seed 의존성, 참조 profile 및 PR/TR/POST 계산법을 별도 정의한다. 처음에는 고정 수치 문턱 없이 Q′BH 구간별 분포·중앙값/범위·유효 support·독립 seed 반복성을 보고 상태를 판별하고, 실제 batch 자료로 기준을 다듬는다. 초기 결합 규칙은 profile별 `Lᵢ/Uᵢ`에서 최종 `min(Lᵢ)/max(Uᵢ)`를 산정하는 보수적 방식으로 시작해 시행착오로 개선한다. 경계를 식별하지 못한 profile은 우선 결합에서 제외해 식별 가능한 profile로 경계 식별을 시도하고, 제외 사유를 보존한다. 식별 가능한 profile이 하나뿐이면 경계를 시도하되 잠정 경계로 표시한다. 둘 이상의 profile 결합 결과도 초기 결합법을 실제 자료로 검토하는 동안 잠정 경계로 표시한다. 잠정 경계의 최종 승격에는 고정·자동 기준을 두지 않고, 실제 자료에서 어느 정도 경향성이 확인된 뒤 사용자가 상황별로 판단한다. 최종 하한이 최종 상한 이상이면 상황을 검토하고, 적용 가능한 경우 두 값의 중간값을 단일 경계로 삼으며 TR은 없는 것으로 다룬다. 이때 중간값 미만은 비굴착, 중간값 이상은 굴착으로 나누며, 단일 경계 처리의 적용 조건은 미결이다. 그래도 최종 경계를 식별하지 못하면 원인을 조사한다. 결합에 필요한 최소 profile 수는 미결이다. 그 분류 논리로 전체 자료를 분석한 뒤 부족 근거·추가 수집을 정하고, 높은 Q′부터 낮은 Q′까지 순차 진행·거의 모든 bin에서의 첫 전체 분석·충분성·checkpoint 규칙을 구체화한다. | T003,T011 |
-| 6 | 실제 실험 설정·G1/G2 | Jn-DFN 조건군별 절리군 구성·Jn·geometry·고정값과 승인 조건군 목록, 탐색 축/bounds·분포·size 제약, fisher_kappa 포함 여부, 초기 N·설계/realization seed와 재사용, BH 간격·face 고정 간격 | T001,T002,T003,T005,T007 |
-| 7 | 충분성·예산·종료 | 총예산/비용 집계, 목표별 충분성·조기 종료 여부, 최종 상태와 미달 원인; face 부족의 별도 보강을 허용할지 | T001,T007,T011 |
-| 8 | 타겟 빈별 시그니처 우선순위 | 4.18의 타겟 빈 × 시그니처 적용 원칙을 전제로 weight 산식·감소량·하한 및 성공 근거에 따른 회복 규칙 | T003,T011 |
+| 3 | 탐색 참조 위치 | 현재 원칙 합의: 4.17의 거리 접근 최선·도달 support 최선 참조, 동률 co-best, batch 종료 시 활성 참조 갱신 및 4.11 누적 진전 기준 비초기화. 실행 기회·예산 배분은 후보 생성·전환 및 예산 안건에서 별도로 논의한다. | T003,T011 |
+| 4 | 후보 생성과 전환 | 원칙 수준 정리: 4.8의 한 축 우선·가능한 양방향·작은/큰 step·간헐적 2·3축 조합, 모든 활성 참조에서 후보 제안, bounds 밖 후보 생략, 동일 signature 중복 제거, 유효 signature·seed 결과 재사용 및 새 seed 반복, 진전 방향 유지, 복수 축 진전의 조합 귀속과 타겟 빈별 평가를 적용한다. 축별 step 실제 값은 안건 6, batch 실행 배분은 안건 7에서 논의한다. 위치 전환·혼재 재검토의 세부 기준은 미결이다. | T003,T011 |
+| 5 | 기존 기준 방법의 새 자료 적용 | 원칙 수준 정리: profile별 PR/TR/POST를 Q′BH 구간별 분포·중앙값/범위·유효 support·독립 seed 반복성으로 검토하고 실제 자료로 기준을 다듬는다. 고정 최소 profile 수·coverage 비율을 두지 않으며, 부분 coverage의 긍정 경향과 단일 profile 결과는 잠정으로 보존한다. 모든 target bin 관측은 충분성 보장이 아니며, 근거 부족 profile은 미식별로 보존해 사유와 함께 결합에서 제외한다. 초기 결합은 `min(Lᵢ)/max(Uᵢ)`이며 겹치는 경계는 midpoint를 자동 적용하지 않고 사례별 검토한다. 실제 충분성·경계 승격 기준과 추가 수집/checkpoint 세부는 batch 자료를 본 뒤 검토한다. | T003,T011 |
+| 6 | 실제 실험 설정·G1/G2 | v4 공통 geometry 출발점은 domain `60×30×30 m`/grid 1 m, x축 직선 tunnel `[0,15,15]`→`[60,15,15]`/radius 5 m, 중앙선상 x방향 borehole 길이 60 m다. 각 block 공통 적용한다. 새 모드 BH raw RQD interval과 face 평가 간격은 각각 1 m이며 기존 Q′Face 기반 가변 굴진장 동작은 보존한다. v4 `size_r_min`·`size_r_max` 반경은 각각 0.05–150 m, joint set별 P32는 [0.01,100] m²/m³로 확정했다. 이는 탐색 범위이며 block 합계나 물리적 한계를 뜻하지 않는다. 각 set의 P32는 범위 안에서 별도로 설정하며 set 간 동일값·비율 등의 추가 배분 제약과 합계 상한은 없다. `size_alpha` `[2.5,4.0]`와 `fisher_kappa` `[0,50]`은 LHS에서 제외하고 signature마다 하나씩 독립 균등 추출해 모든 joint set에 공통 적용하며, 같은 signature의 seed 반복에서는 같은 값을 유지한다. 나머지 승인 연속축은 LHS를 사용한다. 형상 파라미터는 manifest design seed의 별도 RNG stream에서 추출하고 실제 signature별 값을 manifest에 기록한다. 초기 LHS 표본 수 N은 block별로 달라질 수 있으며, 실제 N과 산정 기준은 미정이다. 초기 signature는 당초 시드 하나로 평가하고, 효과 가능성이 보인 후보만 별도 검증 시드로 4.10–4.12의 paired 확인을 한다. `mean_dip`·`mean_dip_dir` bounds는 block별·block 내 공통 적용이며 각각 전체 유효 범위 [0,90]°·[0,360]°(360° ≡ 0°)다. 방향 갱신 좌표는 실제 관측공 축–절리면 사잇각이고, 터널 segment 사잇각은 결과 해석용으로만 기록한다. 기존 case/portfolio는 참고용으로만 두고 신규 조건군에서 기존 Q′ 격자의 Jn 10개 값을 모두 Jn 평가 목표로 한다. 각 DFN block에는 해당 Jn을 고정해 그 목표에 대한 필요 RQD를 탐색하며, 동일 DFN 관측 RQD에 10개 Jn을 모두 후처리 적용하지 않는다. 같은 Jn에 복수 block을 허용하며 서로 다른 절리 구조를 표현한다. Jn 10개 × 절리군 수 1–5개의 pairing은 가능한 후보 공간으로만 유지하고, 50개 조합의 실제 block 정의나 실행 목록을 미리 만들지 않는다. 소수의 실제 block으로 시작해 필요와 관측 근거에 따라 추가한다. 타겟 Q′ bin은 최고 bin부터 가능한 한 순차적으로 낮은 bin으로 진행하고, 현재 목표 bin의 자료·support를 고려해 signature를 선정하되 사전의 미지 관계를 역산하지 않는다. 절리군 간 상호관계와 방향 regime은 별도 family 유형으로 사전 분류하지 않고 set별 방향 등 파라미터 설정으로 표현한다. 실제 초기 block 수·roster·block별 N·표본 배분/예산은 미정이다. | T001,T002,T003,T005,T007 |
+| 7 | 충분성·예산·종료 | 실행별 최대 simulation 수를 필수 입력으로 하고 상한 도달 시 `unresolved_at_budget`; 후보 없음은 충분성과 별개의 `no_eligible_candidate`; face 부족은 자동 배정 없이 보고·사용자 검토. 정량 충분성, 수치, 비용/시간 집계, 목표별 배분·조기 종료는 미결 | T001,T007,T011 |
+| 8 | 타겟 빈별 시그니처 우선순위 | 4.18의 bin × signature별 유효 증거만 기록한다. weight 산식·감소량·하한·회복 규칙 승인 전까지 자동 조정하지 않음 | T003,T011 |
 
 기본 BH 진전 수치가 확정되어도 비교 적격성이나 충분성까지 확정된 것은 아니다.
-face 보강을 선택하지 않은 상태에서 face 부족을 자동 배분·종료 조건으로 넣지 않는다.
+face 부족은 자동 배분하거나 종료 조건으로 삼지 않고, 보고 후 사용자 검토에 맡긴다.
+
+### 11.2.1 파일럿 관측 후 검토·결정 항목
+
+초기 파일럿은 Jn 0.5·1의 두 block, 각 5 signatures, 공통 당초 realization seed 43으로
+한정된다. 파일럿 결과는 관측된 범위의 후속 설계를 돕는 자료이지, 전체 DFN–RQD 관계의
+규명·목표 충분성·독립 seed 반복성 또는 일반 전략 완료를 증명하지 않는다. 아래 항목은
+파일럿 결과와 산출물 검토 후 결정하며, 관측 전에는 값을 보충하거나 자동 규칙으로
+간주하지 않는다.
+
+| 검토 주제 | 파일럿에서 확인할 증거 | 파일럿 후 정할 사항 |
+|---|---|---|
+| 축별 step | signature별 승인 입력과 BH raw RQD·목표 거리·도달 support의 대응. 방향축에서는 관측공 축–절리면 사잇각 `β` 및 유효한 축별 차이 | `P32`, `size_r_min`, `size_r_max`, `β` 각각의 작은/큰 step 값과 적용 범위 |
+| 최고 target `Q′ > 400` | 여섯 동등 high-bin goal 각각의 산술 도달성, 실제 관측·유효 support, signature별 BH 결과. 여섯 목표 또는 한 bin이 충분하다고 미리 간주하지 않음 | 같은 high-bin에서 추가 탐색할지, 현재 근거를 사용자 검토 후 다음 낮은 bin으로 전환할지 |
+| 조건군·표본 배분 | 두 pilot block의 관측 분포와 자료 공백, Jn별/목표별 inverse 조건 및 실제 support | 추가 block/Jn/set-count의 필요성, block별 다음 N, 목표·후보 간 실제 배분 |
+| 반복 확인 | 당초 seed에서 나타난 후보 효과 가능성과 4.10–4.12의 비교 적격성·짝비교 가능 자료 | 검증 seed를 적용할 후보와 실행 범위. 당초 seed를 검증 seed 수에 포함하지 않음 |
+| 분석 profile·경계 | profile별 PR/TR/POST 근거, Q′BH 조건별 분포·범위·유효 support·독립 시그니처/realization 수, 식별·미식별 사유 | 자료 충분성 판단과 잠정 경계 해석·추가 수집 필요성. 고정 최소 profile 수, 자동 승격/충분성 규칙은 파일럿 전에 도입하지 않음 |
+| 운영 예산·종료 | 각 pilot 작업의 실제 simulation 수, 경과시간·실패/재시도 및 출력 규모 | 일반 실행의 상한 수치·비용/시간 집계·목표별 예산 배분·조기 종료 정책. 실행별 최대 simulation 수는 필수 입력이며 상한 도달 미완료 목표는 `unresolved_at_budget` |
+
+파일럿 자료를 토대로 weight 조정 산식을 검토할 수 있으나, 4.18에 따른 bin × signature
+weight는 산식·하한·회복 규칙이 별도 승인되기 전까지 변경하지 않는다. 유효한 서로 다른
+seed에서의 미달·거리·support 증거를 보존하는 것과 우선순위 weight를 변경하는 것은
+별개의 결정이다. Face 부족은 자동 추가 배정하지 않고 보고 후 사용자 검토에 맡긴다.
+
+### 11.2.2 파일럿 이후 자동 batch 구현 전 별도 승인
+
+파일럿 결과를 본 뒤에도 T011 착수에 필요한 정책이 모두 자동으로 확정되는 것은 아니다.
+비교 적격성·결측/실패/재시도 상호작용, 참조·후보 간 실행 기회 배분, 충분성·종료 및
+후보 소진의 전체 상태 전이, weight 정책은 관련 근거를 검토하고 사용자 승인을 받아야
+한다. 이 승인이 있기 전까지 pilot 데이터의 생성·재분석 기능과 자동 batch 갱신을
+구분하고, 파일럿 실행 완료를 자동 탐색 승인으로 해석하지 않는다.
 
 ### 11.3 단계별 코드화 경로
 
@@ -1044,19 +1634,76 @@ face 보강을 선택하지 않은 상태에서 face 부족을 자동 배분·�
    진전 판정 및 재개에 필요한 기반을 기존 작업의 의존관계에 따라 구현한다.
    구현 가능하다는 설명을 이미 구현되었다는 뜻으로 해석하지 않는다.
 3. **자동 탐색 연결:** 비교 적격성·참조 위치·후보 생성·배분·전환·종료의 상세 규칙을
-   승인한 뒤 T003/T011의 controller를 완성한다. 기반 구현과 정책 논의는 구분하여
-   진행할 수 있으나 미결 규칙을 숨은 기본값으로 채우지 않는다.
-4. **사용자 검증·실행:** G1/G2 승인 설정과 구현 후 검증 명령을 제공하고,
-   사용자가 소규모 검증을 실행한다. 결과 검토 후 G3/G4를 판단한다.
-   검증 전 자동 탐색 완성·대규모 실행 준비 완료를 선언하지 않는다.
+   승인한 뒤 T011의 자동 갱신 controller를 구현한다. T003의 초기 pilot 설계/manifest는
+   파일럿 준비 단계에서 별도로 구현한다. 기반 구현과 정책 논의는 구분하여 진행할 수
+   있으나 미결 규칙을 숨은 기본값으로 채우지 않는다.
+4. **파일럿 검증·인계:** 파일럿 실행 전 입력·manifest와 검증 명령을 제공하고,
+   사용자가 simulation을 직접 실행한다. 산출물 검토 후 11.2.1의 후속 결정을 기록한다.
+   이 단계의 완료는 자동 batch controller나 대규모 실행 준비 완료를 뜻하지 않는다.
+5. **후속 자동 탐색:** 11.2.2의 미결 정책을 승인한 뒤에만 T011의 controller 구현과
+   별도 검증 계획을 시작한다.
 
 표본 수·bounds·간격·예산은 설정으로 분리할 수 있어 실제 값 미정이 모든 기반 구현을
 막지는 않는다. 반면 참조 위치·후보 생성·배분·적격성은 동작 의미 자체이므로
 임의의 구현으로 대체할 수 없다. 설정 필수값 누락은 명시적 오류로 처리한다.
 
-### 11.4 내일 재개할 첫 지점
+### 11.4 재개 메모와 구현 준비 현황
 
-먼저 **4.13과 본 절을 확인한 뒤 T001/T002의 자료 계약·G0 검토부터** 시작한다.
-선생님께 선택지와 권고 이유를 제시하여 기반 구현 승인 범위를 확인하고,
-자동 탐색의 남은 정책은 11.2 순서로 확정한다.
-기존에 확정한 원칙을 다시 처음부터 논의하거나 코드·simulation을 자동으로 시작하지 않는다.
+**이전 재개 메모 (2026-10-28 14:58:51 +09:00):** 당시에는 planning/문서화만 진행했고,
+코드 구현·테스트·simulation은 수행하지 않았다. 당시 안내한 다음 작업은 아래 G0 상세 자료
+계약과 pilot 입력 초안 준비였다.
+
+1. 이 계획서의 4.1–4.2, 4.5, 4.16 및 11.2 안건 6을 먼저 확인한다. 이미 승인된 내용을
+   다시 논의하지 않는다.
+2. 최초 pilot G0의 최소 자료 계약을 마무리한다. 저장 형식은 YAML 입력 + 단일 신규 SQLite
+   DB이며 manifest는 DB 안의 고정 JSON payload다(독립 manifest 파일은 두지 않음).
+   `schema_version: 1`, DB 내부 정수 row ID, manifest의 text 설계 ID, RQD/support/
+   위치/유효성/attempt/scanline 결정은 위 timestamped 결정에 따른다. 남은 최소 정의는
+   SQLite 테이블·열·FK/NULL/check 제약의 일관된 묶음과 execution fingerprint의 pilot
+   입력 필드·기록 범위다. 기존 RFC 8785 JCS + SHA-256 및 실행/분석 fingerprint 분리
+   합의를 유지하며 새 digest 정책을 만들지 않는다.
+3. 자료 계약과 필요한 pilot 입력 필드가 정리되면, YAML 입력 초안과 manifest JSON payload
+   미리보기를 사용자 검토용으로 제시한다. Manifest는 DB payload로 넣을 내용의 미리보기일
+   뿐 독립 `manifest.json` 파일을 만들지 않는다. SciPy randomized LHS는 실행 없이 생성
+   가능하지만, 이번 단계에서는 사용자가 설정·manifest를 확인하기 전 simulation을 돌리지
+   않는다. 자동 탐색 controller나 후속 batch도 구현·실행하지 않는다.
+4. 초안 검증은 승인 bounds/단위, block별 `N=5`, design seed 39/36, 공통 당초 seed 43,
+   P32·각도·정렬된 반경 LHS 변환, signature별 α/κ 추출, 전체 face profile/1 m 간격,
+   여섯 동등 high-bin 목표와 observation/score 관계를 대상으로 한다. 검증 결과와 남은
+   선택을 다시 기록한 뒤 사용자에게 검토용으로 넘긴다.
+
+**pilot 준비 범위와 일반 안건의 구분:** 최초 10-signature pilot의 준비·검증은 승인된
+예외다. pilot 뒤 정할 P32·`size_r_min`·`size_r_max`·관측공 사잇각 β의 step 값 및
+`Q′ > 400` 추가 탐색/하위 bin 전환은 pilot 관측 이후 결정한다. 전체 전략의 block 구성,
+일반 N·예산과 11.2 안건 1–8의 나머지 자동 탐색 정책은 미결이다. 안건 7·8의 제한된
+정책 경계만 정리되었으며 충분성·비용/시간·배분 및 weight 조정 규칙이나 자동 탐색 구현을
+승인한 것은 아니다.
+
+**구현 준비 갱신 (2026-10-28 19:15 +09:00):** 파일럿 결과를 본 뒤 검토할 축별 step,
+high-bin 지속/전환, 후속 block·N·배분, 검증 seed, 충분성/profile 경계 및 운영 예산
+결정은 11.2.1에 정리했다. 자동 batch controller의 별도 선행 승인 gate는 11.2.2를 따른다.
+파일럿 구현 순서·테스트 계획·task 의존성은
+[ImplementationPlan_v4.md](../ImplementationPlan_v4.md)를 주로 참조한다. 전략·요구사항·
+합의의 권위는 이 문서에 있으며, DesignSpec·분석 문서와 기존 소스/테스트는 구체 계약과
+재사용 동작을 확인하는 보조 근거다. 현재 T001–T011은 모두 미완료이며, 이 갱신으로 코드
+구현·테스트·simulation 승인이 발생하지 않는다.
+
+**상세 실행 계획 갱신 (2026-10-28 21:07 +09:00 사용자 요청):** 구현은 이 전략 plan과
+[ImplementationPlan_v4](../ImplementationPlan_v4.md)를 기준으로 진행한다. 기존 T001–T011을
+변경하지 않고 implementation plan §5.1에 7개 Phase(후속 deferred 포함),
+36개 Step으로 상세화했다. 폴더·CLI 오류 골격과 기존 계산 회귀 검증은 준비 상태이며
+파일럿 기능 완료가 아니다. T001–T011은 여전히 미완료다.
+
+상충·새 미정 사항은 implementation plan §1.1의 D-ID 대장에 근거·선택지·영향 Step을
+기록하고, 해당 Step만 보류한다. 최신 사용자 합의로 명확히 해소되는 차이는 재질문 없이
+정합화한다. 새로운 동작·범위 선택은 사용자 결정 후 이 전략 문서에 승인 시각·범위·대체
+결정을 기록하고 implementation plan·검증 조건·checkpoint를 함께 갱신한 다음 구현을
+재개한다. 기존 pilot G0 간소 계약 승인을 취소하거나 전체를 재논의하지 않는다.
+남은 통합 DDL/필드·fingerprint 묶음과 pilot 실패/재시도 세부는 필요 범위에서 확인한다.
+최초 simulation은 설정·manifest·예산 확인 후 사용자가 직접 실행하며, post-pilot의
+step·충분성·배분·weight·자동 batch(T011)는 별도 승인 전 구현하지 않는다.
+
+**실행 단위 단순화 (2026-10-28 21:14 +09:00 사용자 요청):** 별도 Stage 계층은 제거하고
+Phase와 Step만 관리한다. 7개 Phase·36개 Step의 작업 내용과 승인 경계는 유지하며,
+Step은 Phase 내 연속 번호 `P1.01`–`P1.08` 같은 형식으로 식별한다. T-ID/REQ 연결,
+결정 대장·선행 조건·실행 기록·checkpoint도 같은 식별자를 사용한다.

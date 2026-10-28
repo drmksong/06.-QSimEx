@@ -1,0 +1,44 @@
+[
+  {
+    "candidate_id": "r008-a-density-0.5x-s306",
+    "target_region": "A_density",
+    "generation_signature_hash": "58ec15dd5e4b554eaeb3403951195212e95f3dc5c37e87eb01a86b615cd93c74",
+    "domain_id": "82eeddfff1945e546434dc29cecde63f8328a9fc70a6d0ff596d12d6b3627796",
+    "expected_effect": "density_repeatability_0.5x"
+  },
+  {
+    "candidate_id": "r008-a-density-0.5x-s307",
+    "target_region": "A_density",
+    "generation_signature_hash": "58ec15dd5e4b554eaeb3403951195212e95f3dc5c37e87eb01a86b615cd93c74",
+    "domain_id": "95d7e3434d96fc15f5fa2489f094d4834a8681de90785f6628276ceeff300365",
+    "expected_effect": "density_repeatability_0.5x"
+  },
+  {
+    "candidate_id": "r008-a-density-0.5x-s308",
+    "target_region": "A_density",
+    "generation_signature_hash": "58ec15dd5e4b554eaeb3403951195212e95f3dc5c37e87eb01a86b615cd93c74",
+    "domain_id": "a1e66fd1aef877458e26f355563a336951e3d7bca4af2e33faf73129c7a6bb59",
+    "expected_effect": "density_repeatability_0.5x"
+  },
+  {
+    "candidate_id": "r008-a-density-2x-s306",
+    "target_region": "A_density",
+    "generation_signature_hash": "1f9bf083dc86e3e61ac5bed352213cdb7bb543ae12eceb339cf167948add0e92",
+    "domain_id": "0a1342b31e562b3b714caa6c735791426b248506260f448c90e7ab07c9574398",
+    "expected_effect": "density_repeatability_2x"
+  },
+  {
+    "candidate_id": "r008-a-density-2x-s307",
+    "target_region": "A_density",
+    "generation_signature_hash": "1f9bf083dc86e3e61ac5bed352213cdb7bb543ae12eceb339cf167948add0e92",
+    "domain_id": "21bc012ae42b1e526b8d2703eadcadd8e245a0a3a19b33cf72e0b8d666af8363",
+    "expected_effect": "density_repeatability_2x"
+  },
+  {
+    "candidate_id": "r008-a-density-2x-s308",
+    "target_region": "A_density",
+    "generation_signature_hash": "1f9bf083dc86e3e61ac5bed352213cdb7bb543ae12eceb339cf167948add0e92",
+    "domain_id": "a5799e066314f32eb0b273b546dd2c9d5044a0a9d8a577808ee81a11c6e8e38f",
+    "expected_effect": "density_repeatability_2x"
+  }
+]

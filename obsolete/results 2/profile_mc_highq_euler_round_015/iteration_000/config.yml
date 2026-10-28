@@ -1,0 +1,20 @@
+profile_mc_exploration:
+  case_paths:
+  - results/profile_mc_highq_euler_round_015/iteration_000/highq_euler_d20000_focused_large_base.yaml
+  seed_range:
+    start: 333
+    stop: 333
+    step: 1
+  face_positions:
+  - 10
+  - 20
+  - 30
+  borehole_window: 3
+  backend: mlx
+  batch_size: 100
+  correction_mode: pure
+  output_dir: results/profile_mc_highq_euler_round_015/iteration_000/simulation
+  save_each_case: true
+  save_combined: true
+  checkpoint_on_seed: true
+  verbose: true

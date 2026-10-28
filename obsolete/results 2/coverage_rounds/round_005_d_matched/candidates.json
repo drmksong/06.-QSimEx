@@ -1,0 +1,23 @@
+[
+  {
+    "candidate_id": "r005-d-1set",
+    "target_region": "D_joint_set_structure",
+    "generation_signature_hash": "40a1a3811c583a5c6a647f6e43c09e35afe515aa8ebfe22c7a4e1baabb521e76",
+    "domain_id": "a14a4a1ca93d174b897fc55a6f31c238fb89b3cf0d038595eb305c061f12c036",
+    "expected_effect": "joint_set_structure_1set"
+  },
+  {
+    "candidate_id": "r005-d-2set",
+    "target_region": "D_joint_set_structure",
+    "generation_signature_hash": "68df658b0baa2d08f63dc44b8609892ce98950b74ff41b74ab6cfffc5411b5fe",
+    "domain_id": "bd7c0509a23b792a9b2578fcf5c5e045d1952734ac7dffd972168caac3ceb0a6",
+    "expected_effect": "joint_set_structure_2set"
+  },
+  {
+    "candidate_id": "r005-d-3set",
+    "target_region": "D_joint_set_structure",
+    "generation_signature_hash": "42f56edeb81efa27dbc4a5b7d8a34404e3b2c43de92489835d280ff6f302fbac",
+    "domain_id": "b8bc549c383bf6e251fa602801dbf1ce6f31279e95669e4455fbb8801b6bf989",
+    "expected_effect": "joint_set_structure_3set"
+  }
+]

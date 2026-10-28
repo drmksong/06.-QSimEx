@@ -1,0 +1,14 @@
+[
+  {
+    "candidate_id": "r003-scenario_13_coverage_low_q_refined",
+    "target_region": "low_q_gap",
+    "generation_signature_hash": "3c34d6c604b19b8c11405f907a18d0d7715bc487328cd59b38ba9ab477f2d685",
+    "domain_id": "810d8517255cd2a0f010b4e9d715530f4a8d79cad1160fefcc0373cb259fa195"
+  },
+  {
+    "candidate_id": "r003-scenario_12_coverage_high_q",
+    "target_region": "high_q_gap",
+    "generation_signature_hash": "e930a37642f29f9fc97b936e5a56c39dc44d39b1ceb28821af40260df4e150f0",
+    "domain_id": "0f0cd5f4d723f3a4c4605b84560a01935cc2dd858e6c129e2ec37472180dd283"
+  }
+]

@@ -1,0 +1,129 @@
+{
+  "qprime_bh_key": "Qp_bh_mean",
+  "cutoffs": [
+    0.1,
+    0.22919545389923282,
+    0.5253055608807535,
+    1.203976464618554,
+    2.7594593229224307,
+    6.32455532033676,
+    14.495593273553926,
+    33.22324079870857,
+    76.14615754863519,
+    174.5235314204193,
+    400.0
+  ],
+  "observed_min": 1.8275035064741443,
+  "observed_max": 266.6666666666666,
+  "n_records": 1506,
+  "n_finite_records": 1506,
+  "bins": [
+    {
+      "bin_index": 0,
+      "qprime_bh_lower": 0.1,
+      "qprime_bh_upper": 0.22919545389923282,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 1,
+      "qprime_bh_lower": 0.22919545389923282,
+      "qprime_bh_upper": 0.5253055608807535,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 2,
+      "qprime_bh_lower": 0.5253055608807535,
+      "qprime_bh_upper": 1.203976464618554,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "status": "UNOBSERVED",
+      "recommendation": "test reachability with configuration expansion"
+    },
+    {
+      "bin_index": 3,
+      "qprime_bh_lower": 1.203976464618554,
+      "qprime_bh_upper": 2.7594593229224307,
+      "n_records": 3,
+      "n_domains": 1,
+      "n_cases": 1,
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 4,
+      "qprime_bh_lower": 2.7594593229224307,
+      "qprime_bh_upper": 6.32455532033676,
+      "n_records": 101,
+      "n_domains": 72,
+      "n_cases": 1,
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 5,
+      "qprime_bh_lower": 6.32455532033676,
+      "qprime_bh_upper": 14.495593273553926,
+      "n_records": 354,
+      "n_domains": 192,
+      "n_cases": 2,
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 6,
+      "qprime_bh_lower": 14.495593273553926,
+      "qprime_bh_upper": 33.22324079870857,
+      "n_records": 838,
+      "n_domains": 368,
+      "n_cases": 4,
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 7,
+      "qprime_bh_lower": 33.22324079870857,
+      "qprime_bh_upper": 76.14615754863519,
+      "n_records": 207,
+      "n_domains": 105,
+      "n_cases": 2,
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    },
+    {
+      "bin_index": 8,
+      "qprime_bh_lower": 76.14615754863519,
+      "qprime_bh_upper": 174.5235314204193,
+      "n_records": 0,
+      "n_domains": 0,
+      "n_cases": 0,
+      "status": "UNOBSERVED",
+      "recommendation": "add configurations to fill an internal coverage gap"
+    },
+    {
+      "bin_index": 9,
+      "qprime_bh_lower": 174.5235314204193,
+      "qprime_bh_upper": 400.0,
+      "n_records": 3,
+      "n_domains": 1,
+      "n_cases": 1,
+      "status": "observed",
+      "recommendation": "no coverage expansion required"
+    }
+  ],
+  "source_csv": "results/coverage_rounds/round_003_reachability/combined_borehole_rows.csv",
+  "domain_keys": [
+    "domain_id"
+  ],
+  "provenance_status": "complete",
+  "n_records_with_domain_id": 1506,
+  "n_records_with_generation_signature_hash": 1506
+}

@@ -1,0 +1,6 @@
+Scenario,Corr,Bias,RMSE,RQD dependency
+scenario_12_coverage_high_q,,-0.0054148017106592965,0.026208472992906788,Normal
+scenario_12_coverage_high_q,,-0.02452481834451481,0.026719442839490907,Normal
+scenario_12_coverage_high_q,,0.033869570372769754,0.05623704643042805,Normal
+scenario_12_coverage_high_q,,0.04071982659557934,0.05856735608345614,Normal
+scenario_12_coverage_high_q,,-0.00011875880051418856,0.018098441186918786,Normal

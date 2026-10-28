@@ -1,0 +1,16 @@
+[
+  {
+    "candidate_id": "r007-a-density-0.5x",
+    "target_region": "A_density",
+    "generation_signature_hash": "58ec15dd5e4b554eaeb3403951195212e95f3dc5c37e87eb01a86b615cd93c74",
+    "domain_id": "652e0105b59ddaca773937460928012427f5a0209b26bca97b89b08c50ec3fbd",
+    "expected_effect": "total_p32_half"
+  },
+  {
+    "candidate_id": "r007-a-density-2x",
+    "target_region": "A_density",
+    "generation_signature_hash": "1f9bf083dc86e3e61ac5bed352213cdb7bb543ae12eceb339cf167948add0e92",
+    "domain_id": "1691510d0dcdd9a8e4be5ea5a673a07042f2780a7bbecb0e2a236ffc85b377f8",
+    "expected_effect": "total_p32_double"
+  }
+]

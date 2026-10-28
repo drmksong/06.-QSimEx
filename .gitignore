@@ -20,6 +20,11 @@ legacy_results/
 output/
 outputs/
 results/
+!/results/
+/results/*
+!/results/rqd_exploration/
+/results/rqd_exploration/*
+!/results/rqd_exploration/.gitkeep
 dist/
 out/
 src_dlo/out/

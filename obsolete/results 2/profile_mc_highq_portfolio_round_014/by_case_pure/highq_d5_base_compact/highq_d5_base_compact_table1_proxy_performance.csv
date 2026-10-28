@@ -1,0 +1,5 @@
+Scenario,Corr,Bias,RMSE,RQD dependency
+highq_d5_base_compact,,-0.026100004642134245,0.026535433246758645,Normal
+highq_d5_base_compact,,0.06067673968383044,0.06254281988048294,Normal
+highq_d5_base_compact,,-0.008864224505028032,0.02632794810553815,Normal
+highq_d5_base_compact,,-0.0001042148932377529,0.03485881854625406,Normal

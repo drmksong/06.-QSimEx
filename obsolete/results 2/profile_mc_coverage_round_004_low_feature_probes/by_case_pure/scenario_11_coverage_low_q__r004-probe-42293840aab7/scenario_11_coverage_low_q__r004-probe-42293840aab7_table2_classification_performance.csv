@@ -1,0 +1,2 @@
+Scenario,Status,Lower cutoff,Upper cutoff,Reason
+scenario_11_coverage_low_q__r004-probe-42293840aab7,not_identifiable,,,insufficient coverage for profile state classification

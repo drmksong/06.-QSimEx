@@ -1,0 +1,493 @@
+{
+  "round_id": 2,
+  "round_type": "coverage_expansion",
+  "backend": "mlx",
+  "correction_mode": "pure",
+  "output_dir": "results/coverage_rounds/round_002_signature_screening/simulation",
+  "candidate_count": 48,
+  "seed_policy": "one common seed per screening iteration",
+  "candidates": [
+    {
+      "candidate_id": "r002-density_scale-1.25-4010667db7bf",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.25-4010667db7bf.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "4010667db7bf26668023d6f9317936ce0b9148de08316d681fae723d41a7bda1",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-density_scale-1.5-846a908af5b5",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.5-846a908af5b5.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "846a908af5b5ff06d72ad9aa3bda4d0e5d12d2ee4f088e2f6176da88e732157a",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-density_scale-2-fede4725ce6f",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2-fede4725ce6f.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "fede4725ce6f9802228780e2c2758b1c7219f949067dbb7dd62d8dc73a5aa670",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-density_scale-2.5-e81aadba2540",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2.5-e81aadba2540.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "e81aadba25401f26979fdf4d4600b0e10d63ee1a0fc1ae8f376c8fa1d0b85395",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-1.25-a4f890beb580",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.25-a4f890beb580.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "a4f890beb580574f1d1ec2510d228ef85527904bbbbb5cd2d6d2ff83fd5eeb6a",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-1.5-0f0cb81ecfc6",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.5-0f0cb81ecfc6.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "0f0cb81ecfc6754bb87259f6bc901a779f704fd6e24e7cba522b68b5dfceca71",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-2-43839a5ad060",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2-43839a5ad060.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "43839a5ad060dfefde4bc9c7281ebbf18f61558ffb0a4c600ea4a0f67238fc1a",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-2.5-7d698903bffc",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2.5-7d698903bffc.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "7d698903bffca49d0f56262a35c5faf272ce0a90eefadd508738d663f1f90814",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-1.25-0c15c00dbd21",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.25-0c15c00dbd21.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "0c15c00dbd215cef8676ed574677fe2e39308c1d34016f668463ffeb3c45bb1b",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-1.5-a0ac4b9c9258",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.5-a0ac4b9c9258.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "a0ac4b9c92587f9bb7dfab9f3f82aff7d5f03db328671f501f5873311aef6515",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-2-ab34262dcb92",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2-ab34262dcb92.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "ab34262dcb92210d54bd7976abacfbf0a4ad44797f3146d6f36cd627ae42e7e6",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-2.5-86e7bb640848",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2.5-86e7bb640848.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "86e7bb640848b120a8f72820579e75c7bb480214de25efd9d75a79d1439d9753",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-1.25-5451c4e78154",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.25-5451c4e78154.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "5451c4e781547e90bc640a96761eb89b3938b20933b03be937e3d7369e1776d2",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-1.5-be69c17a77c5",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.5-be69c17a77c5.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "be69c17a77c50d0dad162271f19bf18fc9d863411ea93345b5b4e872a104ab84",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-2-af9cf237227b",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2-af9cf237227b.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "af9cf237227baff9efde286e1a133ceb4ea1a7775f7e9e94c1034a4cf446884a",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-2.5-6542c4a81670",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2.5-6542c4a81670.yaml",
+      "parent_case_path": "cases/scenario_13_coverage_low_q_refined.yaml",
+      "target_region": "low_q_gap",
+      "generation_signature_hash": "6542c4a81670a444673dee9efca7f1025bbe34e9f944b751a21aca6ae20d6608",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-density_scale-1.25-13d0aec96c8f",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.25-13d0aec96c8f.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "13d0aec96c8f1f16253ac336b2af53742d37731e707a1f1efe3f72de7327a912",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-density_scale-1.5-293e68a8b498",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.5-293e68a8b498.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "293e68a8b498f8fbb11717c833da734c43361475567cf86e400073799ade5cd4",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-density_scale-2-e780526a1a81",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2-e780526a1a81.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "e780526a1a813489e6af7f28255bfbc3e162c040dcbc73539dd18f97e2d8c39a",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-density_scale-2.5-9abed83f060e",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2.5-9abed83f060e.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "9abed83f060ed46e9a207b29dabfbdb00eaee30aafb18056b1ec679badc5c023",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-1.25-b64ee417f1b0",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.25-b64ee417f1b0.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "b64ee417f1b0cbac9e1177afc39ce20db974167caefaa4a741f6359a761c4c64",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-1.5-bbf700625f42",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.5-bbf700625f42.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "bbf700625f424a215ed78f74251253fd5e7e50893960043c49408d5aa64f8a55",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-2-537f803cc7d1",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2-537f803cc7d1.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "537f803cc7d111f9ec1eead486b2e0bb5adee8f2b2180b557377bd34f0d8c3d7",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-2.5-4f8adec40787",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2.5-4f8adec40787.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "4f8adec40787a91d120c5718187126b9784593a4fadee57d1cefcf79f4793547",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-1.25-2acfc23e9453",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.25-2acfc23e9453.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "2acfc23e9453a0c062152492b3dbe7f78cfc450110480882b73f34d9d50d5a8d",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-1.5-626286cd8019",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.5-626286cd8019.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "626286cd8019b998c3752d7907dbfd6388bdf88ab887bcf3d92014a18becafce",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-2-269a9c42c2fb",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2-269a9c42c2fb.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "269a9c42c2fbf8f845e099b59b454427db00f55847beba36442bbae09f236e14",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-2.5-ab92e51ed5e5",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2.5-ab92e51ed5e5.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "ab92e51ed5e5cdd0b8ac5e2965f480293cb78ff85789854ed284ba2ca8dd2b9b",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-1.25-5b3f554e4c02",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.25-5b3f554e4c02.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "5b3f554e4c028314c24aced270631ad3993e317397ec65eaa8a094ca43b35cc3",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-1.5-3e7343c2445d",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.5-3e7343c2445d.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "3e7343c2445d505cd1dc5f33cf357dfaca52a598b79313c1dd729d328b9d0a83",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-2-ad624248eac2",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2-ad624248eac2.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "ad624248eac2bbe52c8d77399f39d9adaada499d45aca2331259f30b7c9cb145",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-2.5-d2e5ab2ad340",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2.5-d2e5ab2ad340.yaml",
+      "parent_case_path": "cases/scenario_12_coverage_high_q.yaml",
+      "target_region": "high_q_gap",
+      "generation_signature_hash": "d2e5ab2ad3402a818c760c616b6e8b2e14af2ed0e6168582f0abf154e8824900",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-density_scale-1.25-e6e437057ee8",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.25-e6e437057ee8.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "e6e437057ee8142c6258072cb5de01c92380413977831b11423a134b0f24c198",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-density_scale-1.5-181d943ec73d",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-1.5-181d943ec73d.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "181d943ec73d140c9f7cfa3a90fffdd6ef294f7c1de5bd58b53858e288239a0e",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-density_scale-2-c166f11a9e64",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2-c166f11a9e64.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "c166f11a9e64bc332b65122e75eb24fdaeb84f0ce7311883bddedc302a957e46",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-density_scale-2.5-22881738775d",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-density_scale-2.5-22881738775d.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "22881738775d6306afa4e60db06870e23a9f85dfde6e763fdfb3815a91223d7f",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-1.25-5377ebea4002",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.25-5377ebea4002.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "5377ebea40027bfc02266d2eaf4429d1af30b2ec855c1fc92e774bdc8d4115f5",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-1.5-f0fc4fc81a38",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-1.5-f0fc4fc81a38.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "f0fc4fc81a38002fc01dc8bed64bf85586b5dc14715783caa1773120978088c3",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-2-45a840cc930e",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2-45a840cc930e.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "45a840cc930e7555ef370e26b07626c6e74e49f2e909e114d47829289ea8c016",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-roughness_scale-2.5-6070fbcf16bd",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-roughness_scale-2.5-6070fbcf16bd.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "6070fbcf16bdaee3632e0932961c9a02a78af2f066e95c91aaba550656115066",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-1.25-4765e31f7b96",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.25-4765e31f7b96.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "4765e31f7b9630a56f8d4ddacb723c270803f161f692748664ce45b6d43e5e21",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-1.5-9d416042ac44",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-1.5-9d416042ac44.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "9d416042ac44ac43553bcac5d6149b121a5f26d5cb0a0c3a5bb0fe0a1b1ac145",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-2-0c06a01a2938",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2-0c06a01a2938.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "0c06a01a2938dd8adb1ca26d9bc4cb09d1d68098c3563d7d49fa5da2e750a9af",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-orientation_spread-2.5-be20c5169045",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-orientation_spread-2.5-be20c5169045.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "be20c51690451d975b065cf78c85391266103de9491f05f2e09d3c2027ec0ca4",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-1.25-34508f201d47",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.25-34508f201d47.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "34508f201d477a8a8151623baa95c9a32ad82ccfab6cad0b0e737c38fcda7029",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-1.5-4f0967cc3407",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-1.5-4f0967cc3407.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "4f0967cc34077acf5171c19b14fa54f2efe33645551bb4f31199f922a7121a20",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-2-a7a8c3ad0fb5",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2-a7a8c3ad0fb5.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "a7a8c3ad0fb5a1c2f4e0096e603105c422478a8501670f4f11ce98b0c56ce0d8",
+      "seed_values": [
+        300
+      ]
+    },
+    {
+      "candidate_id": "r002-size_envelope-2.5-65a09eb0ecc3",
+      "case_path": "results/coverage_rounds/round_002_signature_screening/candidates/r002-size_envelope-2.5-65a09eb0ecc3.yaml",
+      "parent_case_path": "cases/scenario_06_layered_density.yaml",
+      "target_region": "middle_gap",
+      "generation_signature_hash": "65a09eb0ecc367d7bed61fea8b778e0e30f88322f953705861d63686bb62a4a5",
+      "seed_values": [
+        300
+      ]
+    }
+  ],
+  "approval_required": true,
+  "screening_seed": 300
+}
