@@ -2,143 +2,18 @@ import hashlib
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+import yaml
 
 from src.rqd_exploration.config import load_config, parse_config_bytes
 
 
-VALID_YAML = b"""\
-schema_version: 1
-geometry:
-  coordinate_frame: ENU
-  domain_size_m: [60, 30, 30]
-  grid_spacing_m: [1, 1, 1]
-  tunnel_vertices_m: [[0, 15, 15], [60, 15, 15]]
-  tunnel_radius_m: 5
-  borehole:
-    start_m: [0, 15, 15]
-    direction_enu: [2, 0, 0]
-    length_m: 60
-measurements:
-  bh_interval_m: 1
-  face_advance_m: 1
-designs:
-  - design_id: jn-half
-    block_id: block-half
-    fixed_jn: 0.5
-    sample_count: 5
-    design_seed: 39
-    realization_seed: 43
-    orientation_bounds:
-      mean_dip_deg:
-        lower: 0
-        upper: 90
-        unit: degree
-        coordinate: linear
-        upper_inclusive: true
-      mean_dip_dir_deg:
-        lower: 0
-        upper: 360
-        unit: degree
-        coordinate: linear
-        upper_inclusive: false
-    shape_randomization:
-      size_alpha:
-        bounds: [2.5, 4]
-        unit: "1"
-        distribution: uniform
-        rng_stream: separate_from_lhs
-      fisher_kappa:
-        bounds: [0, 50]
-        unit: "1"
-        distribution: uniform
-        rng_stream: separate_from_lhs
-    joint_sets:
-      - joint_set_id: set-1
-        p32:
-          lower: 0.01
-          upper: 100
-          unit: m^2/m^3
-          coordinate: log
-          upper_inclusive: true
-        size_r_min_m:
-          lower: 0.05
-          upper: 150
-          unit: m
-          coordinate: log
-          upper_inclusive: true
-        size_r_max_m:
-          lower: 0.05
-          upper: 150
-          unit: m
-          coordinate: log
-          upper_inclusive: true
-        size_radius_transform: ordered_log_pair
-target_goals:
-  - goal_id: high-jn-half-jr-4-ja-075
-    target_bin_id: qprime_gt_400
-    catalog_id: primary_profile_10bin_v1
-    fixed_jn: 0.5
-    jr_scenario_id: jr-4
-    jr_value: 4
-    ja_scenario_id: ja-075
-    ja_value: 0.75
-  - goal_id: high-jn-half-jr-4-ja-1
-    target_bin_id: qprime_gt_400
-    catalog_id: primary_profile_10bin_v1
-    fixed_jn: 0.5
-    jr_scenario_id: jr-4
-    jr_value: 4
-    ja_scenario_id: ja-1
-    ja_value: 1
-  - goal_id: high-jn-half-jr-3-ja-075
-    target_bin_id: qprime_gt_400
-    catalog_id: primary_profile_10bin_v1
-    fixed_jn: 0.5
-    jr_scenario_id: jr-3
-    jr_value: 3
-    ja_scenario_id: ja-075
-    ja_value: 0.75
-  - goal_id: high-jn-half-jr-3-ja-1
-    target_bin_id: qprime_gt_400
-    catalog_id: primary_profile_10bin_v1
-    fixed_jn: 0.5
-    jr_scenario_id: jr-3
-    jr_value: 3
-    ja_scenario_id: ja-1
-    ja_value: 1
-  - goal_id: high-jn-half-jr-2-ja-075
-    target_bin_id: qprime_gt_400
-    catalog_id: primary_profile_10bin_v1
-    fixed_jn: 0.5
-    jr_scenario_id: jr-2
-    jr_value: 2
-    ja_scenario_id: ja-075
-    ja_value: 0.75
-  - goal_id: high-jn-1-jr-4-ja-075
-    target_bin_id: qprime_gt_400
-    catalog_id: primary_profile_10bin_v1
-    fixed_jn: 1
-    jr_scenario_id: jr-4
-    jr_value: 4
-    ja_scenario_id: ja-075
-    ja_value: 0.75
-"""
-
-_pilot_input, _goal_input = VALID_YAML.split(b"target_goals:\n", 1)
-_first_design = _pilot_input.split(b"designs:\n", 1)[1]
-_second_design = (
-    _first_design
-    .replace(b"jn-half", b"jn-one", 1)
-    .replace(b"block-half", b"block-one", 1)
-    .replace(b"fixed_jn: 0.5", b"fixed_jn: 1", 1)
-    .replace(b"design_seed: 39", b"design_seed: 36", 1)
-)
-VALID_YAML = _pilot_input + _second_design + b"target_goals:\n" + _goal_input
+PILOT2_PATH = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
+VALID_YAML = PILOT2_PATH.read_bytes()
 
 
 class TestRQDExplorationConfig(unittest.TestCase):
     def test_pilot_review_yaml_matches_approved_values(self) -> None:
-        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot.yml"
+        path = PILOT2_PATH
         config = load_config(path)
 
         self.assertEqual(config.source_yaml_bytes, path.read_bytes())
@@ -157,7 +32,7 @@ class TestRQDExplorationConfig(unittest.TestCase):
         self.assertEqual(
             [(d.fixed_jn, d.sample_count, d.design_seed, d.realization_seed,
               len(d.joint_sets)) for d in config.designs],
-            [(0.5, 5, 39, 43, 1), (1.0, 5, 36, 43, 1)],
+            [(2.0, 5, 39, 43, 1), (4.0, 5, 36, 43, 2)],
         )
         for design in config.designs:
             self.assertEqual((design.mean_dip_deg.lower, design.mean_dip_deg.upper), (0, 90))
@@ -174,11 +49,10 @@ class TestRQDExplorationConfig(unittest.TestCase):
                 (design.fisher_kappa.bounds.lower, design.fisher_kappa.bounds.upper),
                 (0, 50),
             )
-            joint_set = design.joint_sets[0]
-            self.assertEqual((joint_set.p32.lower, joint_set.p32.upper), (0.01, 100))
-            for bounds in (joint_set.size_r_min_m, joint_set.size_r_max_m):
-                self.assertEqual((bounds.lower, bounds.upper), (0.05, 150))
-        self.assertEqual(len(config.target_goals), 6)
+            for joint_set in design.joint_sets:
+                self.assertEqual((joint_set.p32.lower, joint_set.p32.upper), (0.01, 100))
+                for bounds in (joint_set.size_r_min_m, joint_set.size_r_max_m):
+                    self.assertEqual((bounds.lower, bounds.upper), (0.05, 150))
 
     def test_normalizes_values_and_preserves_exact_source_bytes(self) -> None:
         config = parse_config_bytes(VALID_YAML, "pilot.yml")
@@ -193,7 +67,7 @@ class TestRQDExplorationConfig(unittest.TestCase):
         self.assertEqual(config.designs[0].design_seed, 39)
         self.assertEqual(config.designs[0].joint_sets[0].p32.coordinate, "log")
         self.assertFalse(config.designs[0].mean_dip_dir_deg.upper_inclusive)
-        self.assertEqual(len(config.target_goals), 6)
+        self.assertEqual([len(d.joint_sets) for d in config.designs], [1, 2])
 
     def test_loads_exact_bytes_from_a_file(self) -> None:
         with TemporaryDirectory() as directory:
@@ -311,71 +185,52 @@ class TestRQDExplorationConfig(unittest.TestCase):
             ))
 
     def test_rejects_empty_joint_sets(self) -> None:
-        before_joint_sets, after_joint_sets = VALID_YAML.split(
-            b"    joint_sets:\n", 1,
-        )
-        _, target_goals = after_joint_sets.split(b"target_goals:\n", 1)
-        no_joint_sets = (
-            before_joint_sets
-            + b"    joint_sets: []\n"
-            + b"target_goals:\n"
-            + target_goals
-        )
-        with self.assertRaisesRegex(ValueError, "between 1 and 5"):
+        data = yaml.safe_load(VALID_YAML)
+        data["designs"][0]["joint_sets"] = []
+        no_joint_sets = yaml.safe_dump(data).encode()
+        with self.assertRaisesRegex(ValueError, "requires exactly 1 joint_sets"):
             parse_config_bytes(no_joint_sets)
 
-    def test_requires_explicit_complete_target_goal_list(self) -> None:
-        without_goals = VALID_YAML.split(b"target_goals:\n", 1)[0]
-        with self.assertRaisesRegex(ValueError, "missing required fields.*target_goals"):
-            parse_config_bytes(without_goals)
-
-        unsupported_goal = VALID_YAML.replace(
-            b"    ja_scenario_id: ja-1\n",
-            b"    ja_scenario_id: ja-2\n",
-            1,
-        ).replace(
-            b"    ja_value: 1\n",
-            b"    ja_value: 2\n",
-            1,
-        )
-        with self.assertRaisesRegex(ValueError, "six approved reachable"):
-            parse_config_bytes(unsupported_goal)
-
-        duplicate_goal_id = VALID_YAML.replace(
-            b"  - goal_id: high-jn-half-jr-4-ja-1\n",
-            b"  - goal_id: high-jn-half-jr-4-ja-075\n",
-            1,
-        )
-        with self.assertRaisesRegex(ValueError, "duplicate goal_id"):
-            parse_config_bytes(duplicate_goal_id)
-
-        missing_goal_design = VALID_YAML.replace(
-            b"    fixed_jn: 1\n",
-            b"    fixed_jn: 0.5\n",
-            1,
-        )
-        with self.assertRaisesRegex(ValueError, "without a design block"):
-            parse_config_bytes(missing_goal_design)
+    def test_rejects_deprecated_target_goals_field(self) -> None:
+        deprecated_field = VALID_YAML + b"\ntarget_goals: []\n"
+        with self.assertRaisesRegex(ValueError, "unknown fields.*target_goals"):
+            parse_config_bytes(deprecated_field)
 
     def test_rejects_unapproved_jn_and_duplicate_design_ids(self) -> None:
-        with self.assertRaisesRegex(ValueError, "fixed_jn must be one of"):
+        with self.assertRaisesRegex(ValueError, "executable Barton values"):
             parse_config_bytes(VALID_YAML.replace(
-                b"    fixed_jn: 0.5\n",
-                b"    fixed_jn: 0.75\n",
+                b"    fixed_jn: 2\n",
+                b"    fixed_jn: 3\n",
                 1,
             ))
 
-        anchored = VALID_YAML.replace(
-            b"  - design_id: jn-half\n",
-            b"  - &first_design\n    design_id: jn-half\n",
-            1,
-        ).replace(
-            b"target_goals:\n",
-            b"  - *first_design\ntarget_goals:\n",
+        duplicate_design = VALID_YAML.replace(
+            b"design_id: jn-four",
+            b"design_id: jn-two",
             1,
         )
         with self.assertRaisesRegex(ValueError, "duplicate design_id"):
-            parse_config_bytes(anchored)
+            parse_config_bytes(duplicate_design)
+
+    def test_validates_jn_to_joint_set_count_mapping(self) -> None:
+        config_data = yaml.safe_load(VALID_YAML)
+        base_set = config_data["designs"][0]["joint_sets"][0]
+        for fixed_jn, expected_count in ((2, 1), (4, 2), (9, 3), (15, 4), (20, 5)):
+            design = dict(config_data["designs"][0])
+            design["fixed_jn"] = fixed_jn
+            design["joint_sets"] = [
+                {**base_set, "joint_set_id": f"set-{index + 1}"}
+                for index in range(expected_count)
+            ]
+            candidate = dict(config_data)
+            candidate["designs"] = [design]
+            parsed = parse_config_bytes(yaml.safe_dump(candidate).encode())
+            self.assertEqual(len(parsed.designs[0].joint_sets), expected_count)
+
+        invalid = yaml.safe_load(VALID_YAML)
+        invalid["designs"][0]["fixed_jn"] = 4
+        with self.assertRaisesRegex(ValueError, "requires exactly 2 joint_sets"):
+            parse_config_bytes(yaml.safe_dump(invalid).encode())
 
 
 if __name__ == "__main__":

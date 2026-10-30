@@ -1,0 +1,116 @@
+# Review draft of approved pilot inputs; not authorization to run simulations.
+schema_version: 1
+geometry:
+  coordinate_frame: ENU
+  domain_size_m: [60, 30, 30]
+  grid_spacing_m: [1, 1, 1]
+  tunnel_vertices_m: [[0, 15, 15], [60, 15, 15]]
+  tunnel_radius_m: 5
+  borehole:
+    start_m: [0, 15, 15]
+    direction_enu: [1, 0, 0]
+    length_m: 60
+measurements:
+  bh_interval_m: 1
+  face_advance_m: 1
+designs:
+  - design_id: jn-two
+    block_id: block-two
+    fixed_jn: 2
+    sample_count: 5
+    design_seed: 39
+    realization_seed: 43
+    orientation_bounds: &orientation_bounds
+      mean_dip_deg:
+        lower: 0
+        upper: 90
+        unit: degree
+        coordinate: linear
+        upper_inclusive: true
+      mean_dip_dir_deg:
+        lower: 0
+        upper: 360
+        unit: degree
+        coordinate: linear
+        upper_inclusive: false
+    shape_randomization: &shape_randomization
+      size_alpha:
+        bounds: [2.5, 4]
+        unit: "1"
+        distribution: uniform
+        rng_stream: separate_from_lhs
+      fisher_kappa:
+        bounds: [0, 50]
+        unit: "1"
+        distribution: uniform
+        rng_stream: separate_from_lhs
+    joint_sets: &joint_sets
+      - joint_set_id: set-1
+        p32:
+          lower: 0.01
+          upper: 100
+          unit: m^2/m^3
+          coordinate: log
+          upper_inclusive: true
+        size_r_min_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_r_max_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_radius_transform: ordered_log_pair
+  - design_id: jn-four
+    block_id: block-four
+    fixed_jn: 4
+    sample_count: 5
+    design_seed: 36
+    realization_seed: 43
+    orientation_bounds: *orientation_bounds
+    shape_randomization: *shape_randomization
+    joint_sets:
+      - joint_set_id: set-1
+        p32:
+          lower: 0.01
+          upper: 100
+          unit: m^2/m^3
+          coordinate: log
+          upper_inclusive: true
+        size_r_min_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_r_max_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_radius_transform: ordered_log_pair
+      - joint_set_id: set-2
+        p32:
+          lower: 0.01
+          upper: 100
+          unit: m^2/m^3
+          coordinate: log
+          upper_inclusive: true
+        size_r_min_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_r_max_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_radius_transform: ordered_log_pair

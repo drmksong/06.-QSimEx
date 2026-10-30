@@ -14,6 +14,7 @@ from src.euler_campaign.models import (
     LineIntersection,
     TunnelSpec,
 )
+from src.euler_campaign.progress import ProgressUpdate
 from src.rqd_exploration.measurement import (
     FACE_METHOD_ID,
     MEASUREMENT_VERSION,
@@ -155,6 +156,27 @@ class TestMeasurementPlanning(unittest.TestCase):
 
 
 class TestRawMeasurements(unittest.TestCase):
+    def test_progress_callback_reports_bh_interval_and_face_station_counts(self) -> None:
+        updates = []
+        measure_realization(
+            _case(),
+            FixtureGeometry(),
+            progress_callback=updates.append,
+        )
+
+        self.assertTrue(any(
+            update.stage == "BH intersection"
+            and update.completed == 3
+            and update.total == 3
+            for update in updates
+        ))
+        self.assertTrue(any(
+            update.stage == "Face measurement"
+            and update.completed == 5
+            and update.total == 5
+            for update in updates
+        ))
+
     def test_bh_evidence_preserves_sorted_hits_and_recomputable_raw_rqd(self) -> None:
         case = _case()
         geometry = FixtureGeometry((1.0, 0.05, 0.05, 0.0), joint=_joint())
@@ -270,20 +292,41 @@ class TestRawMeasurements(unittest.TestCase):
 
     def test_runner_generates_one_realization_then_measures_it(self) -> None:
         geometry = FixtureGeometry()
+        updates = []
 
         class Factory:
             calls = 0
 
-            def generate(self, case, seed):
+            def generate(self, case, seed, *, progress_callback=None):
                 self.calls += 1
                 self.asserted = (case.case_id, seed)
+                if progress_callback is not None:
+                    progress_callback(ProgressUpdate(
+                        "DFN generation",
+                        "fixture DFN ready",
+                    ))
                 return geometry
 
         factory = Factory()
-        result = generate_and_measure(_case(), factory, 43)
+        result = generate_and_measure(
+            _case(),
+            factory,
+            43,
+            progress_callback=updates.append,
+        )
         self.assertEqual(factory.calls, 1)
         self.assertEqual(factory.asserted, ("fixture-case", 43))
         self.assertEqual(len(result.observations), 8)
+        self.assertTrue(any(
+            update.stage == "BH intersection"
+            and update.completed == update.total
+            for update in updates
+        ))
+        self.assertTrue(any(
+            update.stage == "Face measurement"
+            and update.completed == update.total
+            for update in updates
+        ))
 
 
 if __name__ == "__main__":

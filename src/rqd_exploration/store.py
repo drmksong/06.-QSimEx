@@ -25,7 +25,7 @@ from .measurement import (
 )
 from .records import ExecutionJob, FrozenManifest
 
-STORE_SCHEMA_VERSION = 1
+STORE_SCHEMA_VERSION = 4
 
 
 @dataclass(frozen=True)
@@ -34,6 +34,40 @@ class ResumeAttemptState:
     location_states: tuple[PlannedLocationState, ...]
     accumulated_runtime_seconds: float
     runtime_is_lower_bound: bool
+
+
+_DATASET_REVISION_OBSERVATIONS_SCHEMA = """
+    CREATE TABLE dataset_revision_observations (
+        manifest_id TEXT NOT NULL,
+        revision_index INTEGER NOT NULL,
+        design_id TEXT NOT NULL,
+        block_id TEXT NOT NULL,
+        sample_index INTEGER NOT NULL,
+        realization_seed INTEGER NOT NULL,
+        execution_fingerprint_digest TEXT NOT NULL,
+        attempt_index INTEGER NOT NULL,
+        modality TEXT NOT NULL CHECK (modality IN ('BH', 'face')),
+        profile_id TEXT NOT NULL,
+        location_index INTEGER NOT NULL,
+        PRIMARY KEY (
+            manifest_id, revision_index, design_id, block_id, sample_index,
+            realization_seed, execution_fingerprint_digest, modality, profile_id,
+            location_index
+        ),
+        FOREIGN KEY (manifest_id, revision_index)
+            REFERENCES dataset_revisions (manifest_id, revision_index)
+            DEFERRABLE INITIALLY DEFERRED,
+        FOREIGN KEY (
+            manifest_id, design_id, block_id, sample_index, realization_seed,
+            execution_fingerprint_digest, attempt_index, modality, profile_id,
+            location_index
+        ) REFERENCES observations (
+            manifest_id, design_id, block_id, sample_index, realization_seed,
+            execution_fingerprint_digest, attempt_index, modality, profile_id,
+            location_index
+        )
+    )
+    """
 
 
 _SCHEMA = (
@@ -63,21 +97,6 @@ _SCHEMA = (
         sample_index INTEGER NOT NULL CHECK (sample_index >= 0),
         fixed_jn REAL NOT NULL CHECK (fixed_jn > 0),
         PRIMARY KEY (manifest_id, design_id, block_id, sample_index),
-        FOREIGN KEY (manifest_id) REFERENCES manifest (manifest_id)
-    )
-    """,
-    """
-    CREATE TABLE target_goals (
-        manifest_id TEXT NOT NULL,
-        goal_id TEXT NOT NULL,
-        target_bin_id TEXT NOT NULL,
-        catalog_id TEXT NOT NULL,
-        fixed_jn REAL NOT NULL CHECK (fixed_jn > 0),
-        jr_scenario_id TEXT NOT NULL,
-        jr_value REAL NOT NULL CHECK (jr_value > 0),
-        ja_scenario_id TEXT NOT NULL,
-        ja_value REAL NOT NULL CHECK (ja_value > 0),
-        PRIMARY KEY (manifest_id, goal_id),
         FOREIGN KEY (manifest_id) REFERENCES manifest (manifest_id)
     )
     """,
@@ -326,6 +345,97 @@ _SCHEMA = (
             REFERENCES dataset_revisions (manifest_id, revision_index)
     )
     """,
+    _DATASET_REVISION_OBSERVATIONS_SCHEMA,
+    """
+    CREATE TABLE cumulative_dataset_revisions (
+        revision_index INTEGER PRIMARY KEY CHECK (revision_index > 0),
+        previous_revision_index INTEGER,
+        schema_version INTEGER NOT NULL CHECK (schema_version = 1),
+        dataset_snapshot BLOB NOT NULL,
+        dataset_sha256 TEXT NOT NULL CHECK (
+            length(dataset_sha256) = 64 AND dataset_sha256 NOT GLOB '*[^0-9a-f]*'
+        ),
+        CHECK (
+            (revision_index = 1 AND previous_revision_index IS NULL)
+            OR (revision_index > 1 AND previous_revision_index = revision_index - 1)
+        ),
+        FOREIGN KEY (previous_revision_index)
+            REFERENCES cumulative_dataset_revisions (revision_index)
+    )
+    """,
+    """
+    CREATE TABLE cumulative_revision_manifests (
+        revision_index INTEGER NOT NULL,
+        manifest_id TEXT NOT NULL,
+        PRIMARY KEY (revision_index, manifest_id),
+        FOREIGN KEY (revision_index)
+            REFERENCES cumulative_dataset_revisions (revision_index)
+            DEFERRABLE INITIALLY DEFERRED,
+        FOREIGN KEY (manifest_id) REFERENCES manifest (manifest_id)
+    )
+    """,
+    """
+    CREATE TABLE cumulative_revision_attempts (
+        revision_index INTEGER NOT NULL,
+        manifest_id TEXT NOT NULL,
+        design_id TEXT NOT NULL,
+        block_id TEXT NOT NULL,
+        sample_index INTEGER NOT NULL,
+        realization_seed INTEGER NOT NULL,
+        execution_fingerprint_digest TEXT NOT NULL,
+        attempt_index INTEGER NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('running', 'succeeded', 'failed')),
+        selected_for_analysis INTEGER NOT NULL CHECK (selected_for_analysis IN (0, 1)),
+        PRIMARY KEY (
+            revision_index, manifest_id, design_id, block_id, sample_index,
+            realization_seed, execution_fingerprint_digest, attempt_index
+        ),
+        CHECK (selected_for_analysis = 0 OR status = 'succeeded'),
+        FOREIGN KEY (revision_index)
+            REFERENCES cumulative_dataset_revisions (revision_index)
+            DEFERRABLE INITIALLY DEFERRED,
+        FOREIGN KEY (
+            manifest_id, design_id, block_id, sample_index, realization_seed,
+            execution_fingerprint_digest, attempt_index
+        ) REFERENCES attempts (
+            manifest_id, design_id, block_id, sample_index, realization_seed,
+            execution_fingerprint_digest, attempt_index
+        )
+    )
+    """,
+    """
+    CREATE TABLE cumulative_revision_observations (
+        revision_index INTEGER NOT NULL,
+        manifest_id TEXT NOT NULL,
+        design_id TEXT NOT NULL,
+        block_id TEXT NOT NULL,
+        sample_index INTEGER NOT NULL,
+        realization_seed INTEGER NOT NULL,
+        execution_fingerprint_digest TEXT NOT NULL,
+        attempt_index INTEGER NOT NULL,
+        modality TEXT NOT NULL CHECK (modality IN ('BH', 'face')),
+        profile_id TEXT NOT NULL,
+        location_index INTEGER NOT NULL,
+        selected_for_analysis INTEGER NOT NULL CHECK (selected_for_analysis IN (0, 1)),
+        PRIMARY KEY (
+            revision_index, manifest_id, design_id, block_id, sample_index,
+            realization_seed, execution_fingerprint_digest, attempt_index,
+            modality, profile_id, location_index
+        ),
+        FOREIGN KEY (revision_index)
+            REFERENCES cumulative_dataset_revisions (revision_index)
+            DEFERRABLE INITIALLY DEFERRED,
+        FOREIGN KEY (
+            manifest_id, design_id, block_id, sample_index, realization_seed,
+            execution_fingerprint_digest, attempt_index, modality, profile_id,
+            location_index
+        ) REFERENCES observations (
+            manifest_id, design_id, block_id, sample_index, realization_seed,
+            execution_fingerprint_digest, attempt_index, modality, profile_id,
+            location_index
+        )
+    )
+    """,
     """
     CREATE TABLE analysis_runs (
         manifest_id TEXT NOT NULL,
@@ -377,44 +487,6 @@ _SCHEMA = (
             REFERENCES analysis_runs (
                 manifest_id, revision_index, analysis_fingerprint_digest
             ),
-        FOREIGN KEY (
-            manifest_id, design_id, block_id, sample_index, realization_seed,
-            execution_fingerprint_digest, attempt_index, modality, profile_id,
-            location_index
-        ) REFERENCES observations (
-            manifest_id, design_id, block_id, sample_index, realization_seed,
-            execution_fingerprint_digest, attempt_index, modality, profile_id,
-            location_index
-        )
-    )
-    """,
-    """
-    CREATE TABLE goal_contributions (
-        manifest_id TEXT NOT NULL,
-        revision_index INTEGER NOT NULL,
-        analysis_fingerprint_digest TEXT NOT NULL,
-        goal_id TEXT NOT NULL,
-        design_id TEXT NOT NULL,
-        block_id TEXT NOT NULL,
-        sample_index INTEGER NOT NULL,
-        realization_seed INTEGER NOT NULL,
-        execution_fingerprint_digest TEXT NOT NULL,
-        attempt_index INTEGER NOT NULL,
-        modality TEXT NOT NULL,
-        profile_id TEXT NOT NULL,
-        location_index INTEGER NOT NULL,
-        PRIMARY KEY (
-            manifest_id, revision_index, analysis_fingerprint_digest, goal_id,
-            design_id, block_id, sample_index, realization_seed,
-            execution_fingerprint_digest, attempt_index, modality, profile_id,
-            location_index
-        ),
-        FOREIGN KEY (manifest_id, revision_index, analysis_fingerprint_digest)
-            REFERENCES analysis_runs (
-                manifest_id, revision_index, analysis_fingerprint_digest
-            ),
-        FOREIGN KEY (manifest_id, goal_id)
-            REFERENCES target_goals (manifest_id, goal_id),
         FOREIGN KEY (
             manifest_id, design_id, block_id, sample_index, realization_seed,
             execution_fingerprint_digest, attempt_index, modality, profile_id,
@@ -513,25 +585,256 @@ _SCHEMA = (
           AND status = 'planned';
     END
     """,
+)
+
+_CUMULATIVE_ANALYSIS_SCHEMA = (
     """
-    CREATE TRIGGER observations_delete_preserves_status
-    BEFORE DELETE ON observations
+    CREATE TABLE IF NOT EXISTS cumulative_analysis_runs (
+        revision_index INTEGER NOT NULL,
+        analysis_fingerprint_digest TEXT NOT NULL CHECK (
+            length(analysis_fingerprint_digest) = 64
+            AND analysis_fingerprint_digest NOT GLOB '*[^0-9a-f]*'
+        ),
+        schema_version INTEGER NOT NULL CHECK (schema_version = 1),
+        analysis_snapshot BLOB NOT NULL,
+        analysis_sha256 TEXT NOT NULL CHECK (
+            length(analysis_sha256) = 64 AND analysis_sha256 NOT GLOB '*[^0-9a-f]*'
+        ),
+        dataset_sha256 TEXT NOT NULL CHECK (
+            length(dataset_sha256) = 64 AND dataset_sha256 NOT GLOB '*[^0-9a-f]*'
+        ),
+        PRIMARY KEY (revision_index, analysis_fingerprint_digest),
+        FOREIGN KEY (revision_index)
+            REFERENCES cumulative_dataset_revisions (revision_index)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS cumulative_derived_scores (
+        revision_index INTEGER NOT NULL,
+        analysis_fingerprint_digest TEXT NOT NULL,
+        manifest_id TEXT NOT NULL,
+        design_id TEXT NOT NULL,
+        block_id TEXT NOT NULL,
+        sample_index INTEGER NOT NULL,
+        realization_seed INTEGER NOT NULL,
+        execution_fingerprint_digest TEXT NOT NULL,
+        attempt_index INTEGER NOT NULL,
+        modality TEXT NOT NULL CHECK (modality IN ('BH', 'face')),
+        profile_id TEXT NOT NULL,
+        location_index INTEGER NOT NULL,
+        jr_value REAL NOT NULL CHECK (jr_value > 0),
+        ja_value REAL NOT NULL CHECK (ja_value > 0),
+        fixed_jn REAL NOT NULL CHECK (fixed_jn > 0),
+        calculation_rqd REAL NOT NULL CHECK (calculation_rqd BETWEEN 10 AND 100),
+        qprime REAL NOT NULL CHECK (qprime >= 0),
+        bin_id TEXT NOT NULL,
+        zero_cross_convention TEXT NOT NULL,
+        PRIMARY KEY (
+            revision_index, analysis_fingerprint_digest, manifest_id, design_id,
+            block_id, sample_index, realization_seed, execution_fingerprint_digest,
+            attempt_index, modality, profile_id, location_index, jr_value, ja_value
+        ),
+        FOREIGN KEY (revision_index, analysis_fingerprint_digest)
+            REFERENCES cumulative_analysis_runs (
+                revision_index, analysis_fingerprint_digest
+            ),
+        FOREIGN KEY (
+            revision_index, manifest_id, design_id, block_id, sample_index,
+            realization_seed, execution_fingerprint_digest, attempt_index,
+            modality, profile_id, location_index
+        ) REFERENCES cumulative_revision_observations (
+            revision_index, manifest_id, design_id, block_id, sample_index,
+            realization_seed, execution_fingerprint_digest, attempt_index,
+            modality, profile_id, location_index
+        )
+    )
+    """,
+)
+
+_APPEND_ONLY_TABLES = (
+    "manifest",
+    "input_provenance",
+    "design_samples",
+    "jobs",
+    "planned_locations",
+    "observations",
+    "measurement_evidence",
+)
+
+_IMMUTABILITY_TRIGGERS = tuple(
+    f"""
+    CREATE TRIGGER IF NOT EXISTS {table}_reject_update
+    BEFORE UPDATE ON {table}
+    BEGIN
+        SELECT RAISE(ABORT, '{table} rows are immutable');
+    END
+    """
+    for table in _APPEND_ONLY_TABLES
+) + tuple(
+    f"""
+    CREATE TRIGGER IF NOT EXISTS {table}_reject_delete
+    BEFORE DELETE ON {table}
+    BEGIN
+        SELECT RAISE(ABORT, '{table} rows are immutable');
+    END
+    """
+    for table in _APPEND_ONLY_TABLES
+) + (
+    """
+    CREATE TRIGGER IF NOT EXISTS dataset_revisions_reject_update
+    BEFORE UPDATE ON dataset_revisions
+    BEGIN
+        SELECT RAISE(ABORT, 'dataset revisions are immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS dataset_revisions_reject_delete
+    BEFORE DELETE ON dataset_revisions
+    BEGIN
+        SELECT RAISE(ABORT, 'dataset revisions are immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS dataset_revision_observations_reject_update
+    BEFORE UPDATE ON dataset_revision_observations
+    BEGIN
+        SELECT RAISE(ABORT, 'dataset revision observation provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS dataset_revision_observations_reject_insert_after_revision
+    BEFORE INSERT ON dataset_revision_observations
     WHEN EXISTS (
-        SELECT 1 FROM location_status AS status
-        WHERE status.manifest_id = OLD.manifest_id
-          AND status.design_id = OLD.design_id
-          AND status.block_id = OLD.block_id
-          AND status.sample_index = OLD.sample_index
-          AND status.realization_seed = OLD.realization_seed
-          AND status.execution_fingerprint_digest = OLD.execution_fingerprint_digest
-          AND status.attempt_index = OLD.attempt_index
-          AND status.modality = OLD.modality
-          AND status.profile_id = OLD.profile_id
-          AND status.location_index = OLD.location_index
-          AND status.status = 'observed'
+        SELECT 1 FROM dataset_revisions
+        WHERE manifest_id = NEW.manifest_id
+          AND revision_index = NEW.revision_index
     )
     BEGIN
-        SELECT RAISE(ABORT, 'delete observation only after changing its location status');
+        SELECT RAISE(ABORT, 'dataset revision observation provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS dataset_revision_observations_reject_delete
+    BEFORE DELETE ON dataset_revision_observations
+    BEGIN
+        SELECT RAISE(ABORT, 'dataset revision observation provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_dataset_revisions_reject_update
+    BEFORE UPDATE ON cumulative_dataset_revisions
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative dataset revisions are immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_dataset_revisions_reject_delete
+    BEFORE DELETE ON cumulative_dataset_revisions
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative dataset revisions are immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_revision_manifests_reject_update
+    BEFORE UPDATE ON cumulative_revision_manifests
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative revision manifest provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_revision_manifests_reject_insert_after_revision
+    BEFORE INSERT ON cumulative_revision_manifests
+    WHEN EXISTS (
+        SELECT 1 FROM cumulative_dataset_revisions
+        WHERE revision_index = NEW.revision_index
+    )
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative revision manifest provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_revision_manifests_reject_delete
+    BEFORE DELETE ON cumulative_revision_manifests
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative revision manifest provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_revision_attempts_reject_update
+    BEFORE UPDATE ON cumulative_revision_attempts
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative revision attempt provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_revision_attempts_reject_insert_after_revision
+    BEFORE INSERT ON cumulative_revision_attempts
+    WHEN EXISTS (
+        SELECT 1 FROM cumulative_dataset_revisions
+        WHERE revision_index = NEW.revision_index
+    )
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative revision attempt provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_revision_attempts_reject_delete
+    BEFORE DELETE ON cumulative_revision_attempts
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative revision attempt provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_revision_observations_reject_update
+    BEFORE UPDATE ON cumulative_revision_observations
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative revision observation provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_revision_observations_reject_insert_after_revision
+    BEFORE INSERT ON cumulative_revision_observations
+    WHEN EXISTS (
+        SELECT 1 FROM cumulative_dataset_revisions
+        WHERE revision_index = NEW.revision_index
+    )
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative revision observation provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_revision_observations_reject_delete
+    BEFORE DELETE ON cumulative_revision_observations
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative revision observation provenance is immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_analysis_runs_reject_update
+    BEFORE UPDATE ON cumulative_analysis_runs
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative analysis runs are immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_analysis_runs_reject_delete
+    BEFORE DELETE ON cumulative_analysis_runs
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative analysis runs are immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_derived_scores_reject_update
+    BEFORE UPDATE ON cumulative_derived_scores
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative derived scores are immutable');
+    END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS cumulative_derived_scores_reject_delete
+    BEFORE DELETE ON cumulative_derived_scores
+    BEGIN
+        SELECT RAISE(ABORT, 'cumulative derived scores are immutable');
     END
     """,
 )
@@ -551,7 +854,7 @@ def _atomic(connection: sqlite3.Connection) -> Generator[None, None, None]:
 
 
 def initialize_store(connection: sqlite3.Connection) -> None:
-    """Create the version-1 schema on an explicitly supplied SQLite connection."""
+    """Create version 4 or add cumulative-analysis tables to an existing v4 store."""
     if not isinstance(connection, sqlite3.Connection):
         raise TypeError("connection must be a sqlite3.Connection")
     if connection.in_transaction:
@@ -562,12 +865,16 @@ def initialize_store(connection: sqlite3.Connection) -> None:
     current_version = connection.execute("PRAGMA user_version").fetchone()[0]
     if current_version not in (0, STORE_SCHEMA_VERSION):
         raise ValueError(f"unsupported store schema version: {current_version}")
-    if current_version == STORE_SCHEMA_VERSION:
-        return
+    if current_version == 0:
+        with _atomic(connection):
+            for statement in _SCHEMA:
+                connection.execute(statement)
+            connection.execute(f"PRAGMA user_version = {STORE_SCHEMA_VERSION}")
     with _atomic(connection):
-        for statement in _SCHEMA:
+        for statement in _CUMULATIVE_ANALYSIS_SCHEMA:
             connection.execute(statement)
-        connection.execute(f"PRAGMA user_version = {STORE_SCHEMA_VERSION}")
+        for statement in _IMMUTABILITY_TRIGGERS:
+            connection.execute(statement)
 
 
 def _require_initialized_store(connection: sqlite3.Connection) -> None:
@@ -606,13 +913,17 @@ def store_manifest(connection: sqlite3.Connection, manifest: FrozenManifest) -> 
     ):
         raise ValueError("manifest provenance does not match the frozen payload")
 
-    collections = (
-        payload.get("design_samples"), payload.get("target_goals"),
-        payload.get("jobs"), payload.get("planned_locations"),
-    )
-    if not all(isinstance(value, list) for value in collections):
+    samples = payload.get("design_samples")
+    payload_jobs = payload.get("jobs")
+    locations = payload.get("planned_locations")
+    if not isinstance(samples, list):
+        raise ValueError("manifest design_samples must be a JSON array")
+    if "target_goals" in payload or "target_ledger" in payload:
+        raise ValueError("deprecated target-goal data must not be stored in a new manifest")
+    if not isinstance(payload_jobs, list):
+        raise ValueError("manifest jobs must be a JSON array")
+    if not isinstance(locations, list):
         raise ValueError("manifest projection collections must be JSON arrays")
-    samples, goals, payload_jobs, locations = collections
     typed_jobs = {
         (
             job.manifest_id, job.design_id, job.block_id, job.sample_index,
@@ -626,10 +937,26 @@ def store_manifest(connection: sqlite3.Connection, manifest: FrozenManifest) -> 
     for row in payload_jobs:
         if not isinstance(row, dict):
             raise ValueError("manifest job payload must be an object")
+        manifest_id = row.get("manifest_id")
+        design_id = row.get("design_id")
+        block_id = row.get("block_id")
+        sample_index = row.get("sample_index")
+        realization_seed = row.get("realization_seed")
+        execution_digest = row.get("execution_fingerprint_digest")
+        if (
+            not isinstance(manifest_id, str)
+            or not isinstance(design_id, str)
+            or not isinstance(block_id, str)
+            or isinstance(sample_index, bool)
+            or not isinstance(sample_index, int)
+            or isinstance(realization_seed, bool)
+            or not isinstance(realization_seed, int)
+            or not isinstance(execution_digest, str)
+        ):
+            raise ValueError("manifest job payload has invalid composite-key fields")
         key = (
-            row.get("manifest_id"), row.get("design_id"), row.get("block_id"),
-            row.get("sample_index"), row.get("realization_seed"),
-            row.get("execution_fingerprint_digest"),
+            manifest_id, design_id, block_id, sample_index, realization_seed,
+            execution_digest,
         )
         job = typed_jobs.get(key)
         if job is None or key in seen_job_keys:
@@ -663,17 +990,6 @@ def store_manifest(connection: sqlite3.Connection, manifest: FrozenManifest) -> 
                 (
                     sample["manifest_id"], sample["design_id"], sample["block_id"],
                     sample["sample_index"], sample["fixed_jn"],
-                ),
-            )
-        for item in goals:
-            if not isinstance(item, dict) or item.get("manifest_id") != manifest.manifest_id:
-                raise ValueError("target goal has an invalid manifest reference")
-            connection.execute(
-                "INSERT INTO target_goals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    item["manifest_id"], item["goal_id"], item["target_bin_id"],
-                    item["catalog_id"], item["fixed_jn"], item["jr_scenario_id"],
-                    item["jr_value"], item["ja_scenario_id"], item["ja_value"],
                 ),
             )
         for row in payload_jobs:

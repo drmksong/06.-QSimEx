@@ -5,7 +5,11 @@ import sqlite3
 import tempfile
 import unittest
 
-from src.rqd_exploration.config import load_config
+from src.rqd_exploration.config import (
+    NormalizedPilotInput,
+    load_config,
+    parse_config_bytes,
+)
 from src.rqd_exploration.design import build_frozen_manifest
 from src.rqd_exploration.fingerprint import (
     ExecutionRuntime,
@@ -19,6 +23,7 @@ from src.rqd_exploration.measurement import (
     RawBHObservation,
 )
 from src.rqd_exploration.records import (
+    FrozenManifest,
     PlannedBHInterval,
     PlannedFaceStation,
     PlannedScanline,
@@ -60,7 +65,65 @@ class TestExplorationStoreSchema(unittest.TestCase):
             "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
         ).fetchall()
         self.assertEqual(before, after)
-        self.assertEqual(len(before), 14)
+        self.assertEqual(len(before), 19)
+
+    def test_existing_v4_store_adds_cumulative_analysis_tables_without_version_change(
+        self,
+    ) -> None:
+        self.connection.execute("DROP TABLE cumulative_derived_scores")
+        self.connection.execute("DROP TABLE cumulative_analysis_runs")
+
+        initialize_store(self.connection)
+
+        tables = {
+            row[0]
+            for row in self.connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+        }
+        self.assertIn("cumulative_analysis_runs", tables)
+        self.assertIn("cumulative_derived_scores", tables)
+        self.assertEqual(
+            self.connection.execute("PRAGMA user_version").fetchone()[0],
+            STORE_SCHEMA_VERSION,
+        )
+
+    def test_rejects_schema_v2_without_migration(self) -> None:
+        self.connection.execute("DROP TABLE dataset_revision_observations")
+        self.connection.execute("PRAGMA user_version = 2")
+
+        with self.assertRaisesRegex(ValueError, "unsupported store schema version: 2"):
+            initialize_store(self.connection)
+
+        self.assertEqual(
+            self.connection.execute("PRAGMA user_version").fetchone()[0],
+            2,
+        )
+        self.assertIsNone(self.connection.execute(
+            """
+            SELECT 1 FROM sqlite_master
+            WHERE type = 'table' AND name = 'dataset_revision_observations'
+            """
+        ).fetchone())
+
+    def test_rejects_schema_v3_without_migration(self) -> None:
+        connection = sqlite3.connect(":memory:")
+        connection.execute("PRAGMA user_version = 3")
+
+        with self.assertRaisesRegex(ValueError, "unsupported store schema version: 3"):
+            initialize_store(connection)
+
+        self.assertEqual(
+            connection.execute("PRAGMA user_version").fetchone()[0],
+            3,
+        )
+        self.assertIsNone(connection.execute(
+            """
+            SELECT 1 FROM sqlite_master
+            WHERE type = 'table' AND name = 'cumulative_dataset_revisions'
+            """
+        ).fetchone())
+        connection.close()
 
     def test_rejects_unknown_schema_version_without_creating_tables(self) -> None:
         connection = sqlite3.connect(":memory:")
@@ -76,9 +139,9 @@ class TestExplorationStoreSchema(unittest.TestCase):
 
 class TestFrozenManifestPersistence(unittest.TestCase):
     def setUp(self) -> None:
-        config_path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot.yml"
-        config = load_config(config_path)
-        locations = (
+        config_path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
+        self.config = load_config(config_path)
+        self.locations = (
             PlannedBHInterval(
                 "fixture-bh", 0, 0.0, 1.0, (0.0, 15.0, 15.0),
                 (1.0, 0.0, 0.0), 1.0,
@@ -91,19 +154,34 @@ class TestFrozenManifestPersistence(unittest.TestCase):
                 ),),
             ),
         )
-        runtime = ExecutionRuntime(
+        self.runtime = ExecutionRuntime(
             "fixture-generator-v1", "fixture-measurement-v1",
             "fixture-backend", ("fixture-device", "fixture-runtime"),
         )
-        self.manifest = build_frozen_manifest(
-            config,
-            manifest_id="store-fixture",
-            runtime=runtime,
-            boundary_rules_version="fixture-boundary-v1",
-            planned_locations=locations,
-        )
+        self.manifest = self._build_manifest(self.config, "store-fixture")
         self.connection = sqlite3.connect(":memory:")
         initialize_store(self.connection)
+
+    def _build_manifest(
+        self,
+        config: NormalizedPilotInput,
+        manifest_id: str,
+    ) -> FrozenManifest:
+        return build_frozen_manifest(
+            config,
+            manifest_id=manifest_id,
+            runtime=self.runtime,
+            boundary_rules_version="fixture-boundary-v1",
+            planned_locations=self.locations,
+        )
+
+    def _distinct_config(self) -> NormalizedPilotInput:
+        changed_yaml = self.config.source_yaml_bytes.replace(
+            b"design_seed: 36",
+            b"design_seed: 37",
+            1,
+        )
+        return parse_config_bytes(changed_yaml)
 
     def tearDown(self) -> None:
         self.connection.close()
@@ -123,10 +201,7 @@ class TestFrozenManifestPersistence(unittest.TestCase):
             self.connection.execute("SELECT COUNT(*) FROM design_samples").fetchone()[0],
             len(payload["design_samples"]),
         )
-        self.assertEqual(
-            self.connection.execute("SELECT COUNT(*) FROM target_goals").fetchone()[0],
-            len(payload["target_goals"]),
-        )
+        self.assertNotIn("target_goals", payload)
         self.assertEqual(
             self.connection.execute("SELECT COUNT(*) FROM jobs").fetchone()[0],
             len(payload["jobs"]),
@@ -184,14 +259,142 @@ class TestFrozenManifestPersistence(unittest.TestCase):
             store_manifest(self.connection, broken)
 
         for table in (
-            "manifest", "input_provenance", "design_samples", "target_goals",
-            "jobs", "planned_locations",
+            "manifest", "input_provenance", "design_samples", "jobs",
+            "planned_locations",
         ):
             with self.subTest(table=table):
                 count = self.connection.execute(
                     f"SELECT COUNT(*) FROM {table}"
                 ).fetchone()[0]
                 self.assertEqual(count, 0)
+
+    def test_appends_distinct_batches_to_one_store_and_preserves_them_after_reopen(self) -> None:
+        second_manifest = self._build_manifest(
+            self._distinct_config(), "store-fixture-second",
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "cumulative.sqlite"
+            connection = sqlite3.connect(database_path)
+            initialize_store(connection)
+            store_manifest(connection, self.manifest)
+            first_manifest_json = connection.execute(
+                "SELECT manifest_json FROM manifest WHERE manifest_id = ?",
+                (self.manifest.manifest_id,),
+            ).fetchone()[0]
+            store_manifest(connection, second_manifest)
+            for batch_job in (self.manifest.jobs[0], second_manifest.jobs[0]):
+                begin_attempt(
+                    connection, batch_job, 0, "2026-10-29T11:00:00Z",
+                )
+                complete_attempt(
+                    connection,
+                    batch_job,
+                    0,
+                    self._complete_result(),
+                    finished_at_utc="2026-10-29T11:00:01Z",
+                    runtime_seconds=1.0,
+                )
+            raw_observations_before = connection.execute(
+                """
+                SELECT manifest_id, design_id, block_id, sample_index,
+                       realization_seed, execution_fingerprint_digest, attempt_index,
+                       modality, profile_id, location_index, raw_rqd, is_valid
+                FROM observations ORDER BY manifest_id, design_id, location_index
+                """
+            ).fetchall()
+            connection.close()
+
+            reopened = sqlite3.connect(database_path)
+            initialize_store(reopened)
+            self.assertEqual(
+                reopened.execute(
+                    "SELECT manifest_id FROM manifest ORDER BY manifest_id"
+                ).fetchall(),
+                [("store-fixture",), ("store-fixture-second",)],
+            )
+            self.assertEqual(
+                reopened.execute(
+                    "SELECT COUNT(*) FROM input_provenance"
+                ).fetchone()[0],
+                2,
+            )
+            self.assertEqual(
+                reopened.execute("SELECT COUNT(*) FROM jobs").fetchone()[0],
+                len(self.manifest.jobs) + len(second_manifest.jobs),
+            )
+            self.assertEqual(
+                reopened.execute(
+                    """
+                    SELECT manifest_id, design_id, block_id, sample_index,
+                           realization_seed, execution_fingerprint_digest, attempt_index,
+                           modality, profile_id, location_index, raw_rqd, is_valid
+                    FROM observations
+                    ORDER BY manifest_id, design_id, location_index
+                    """
+                ).fetchall(),
+                raw_observations_before,
+            )
+            self.assertEqual(
+                reopened.execute(
+                    "SELECT COUNT(*) FROM measurement_evidence"
+                ).fetchone()[0],
+                2,
+            )
+            self.assertEqual(
+                reopened.execute(
+                    "SELECT manifest_json FROM manifest WHERE manifest_id = ?",
+                    (self.manifest.manifest_id,),
+                ).fetchone()[0],
+                first_manifest_json,
+            )
+            reopened.close()
+
+    def test_failed_second_batch_append_rolls_back_without_changing_first_batch(self) -> None:
+        store_manifest(self.connection, self.manifest)
+        second_manifest = self._build_manifest(
+            self._distinct_config(), "broken-second-batch",
+        )
+        payload = json.loads(second_manifest.manifest_json)
+        payload["planned_locations"][-1]["design_id"] = "missing-design"
+        broken = replace(
+            second_manifest,
+            manifest_json=fingerprint_snapshot(payload).canonical_bytes.decode("utf-8"),
+        )
+        first_before = self.connection.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM manifest WHERE manifest_id = ?),
+                (SELECT COUNT(*) FROM input_provenance WHERE manifest_id = ?),
+                (SELECT COUNT(*) FROM design_samples WHERE manifest_id = ?),
+                (SELECT COUNT(*) FROM jobs WHERE manifest_id = ?),
+                (SELECT COUNT(*) FROM planned_locations WHERE manifest_id = ?)
+            """,
+            (self.manifest.manifest_id,) * 5,
+        ).fetchone()
+
+        with self.assertRaises(sqlite3.IntegrityError):
+            store_manifest(self.connection, broken)
+
+        first_after = self.connection.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM manifest WHERE manifest_id = ?),
+                (SELECT COUNT(*) FROM input_provenance WHERE manifest_id = ?),
+                (SELECT COUNT(*) FROM design_samples WHERE manifest_id = ?),
+                (SELECT COUNT(*) FROM jobs WHERE manifest_id = ?),
+                (SELECT COUNT(*) FROM planned_locations WHERE manifest_id = ?)
+            """,
+            (self.manifest.manifest_id,) * 5,
+        ).fetchone()
+        self.assertEqual(first_after, first_before)
+        self.assertEqual(
+            self.connection.execute(
+                "SELECT COUNT(*) FROM manifest WHERE manifest_id = ?",
+                (broken.manifest_id,),
+            ).fetchone()[0],
+            0,
+        )
 
     def test_rejects_mismatched_payload_and_yaml_provenance_before_write(self) -> None:
         broken = replace(self.manifest, source_yaml_sha256="0" * 64)
@@ -408,6 +611,83 @@ class TestFrozenManifestPersistence(unittest.TestCase):
             ).fetchone()[0],
             1,
         )
+
+    def test_batch_inputs_observations_and_evidence_are_database_immutable(self) -> None:
+        store_manifest(self.connection, self.manifest)
+        job = self.manifest.jobs[0]
+        begin_attempt(self.connection, job, 0, "2026-10-29T11:00:00Z")
+        complete_attempt(
+            self.connection,
+            job,
+            0,
+            self._complete_result(),
+            finished_at_utc="2026-10-29T11:00:01Z",
+            runtime_seconds=1.0,
+        )
+        immutable_tables = (
+            ("manifest", "manifest_json"),
+            ("input_provenance", "yaml_bytes"),
+            ("design_samples", "fixed_jn"),
+            ("jobs", "execution_snapshot"),
+            ("planned_locations", "location_json"),
+            ("observations", "raw_rqd"),
+            ("measurement_evidence", "measured_length_m"),
+        )
+
+        for table, column in immutable_tables:
+            with self.subTest(table=table, operation="update"):
+                with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
+                    self.connection.execute(
+                        f"UPDATE {table} SET {column} = {column} WHERE manifest_id = ?",
+                        (self.manifest.manifest_id,),
+                    )
+            with self.subTest(table=table, operation="delete"):
+                with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
+                    self.connection.execute(
+                        f"DELETE FROM {table} WHERE manifest_id = ?",
+                        (self.manifest.manifest_id,),
+                    )
+
+    def test_reinitializing_existing_v3_store_installs_immutability_guards(self) -> None:
+        store_manifest(self.connection, self.manifest)
+        job = self.manifest.jobs[0]
+        begin_attempt(self.connection, job, 0, "2026-10-29T11:00:00Z")
+        complete_attempt(
+            self.connection,
+            job,
+            0,
+            self._complete_result(),
+            finished_at_utc="2026-10-29T11:00:01Z",
+            runtime_seconds=1.0,
+        )
+        self.connection.execute("DROP TRIGGER manifest_reject_update")
+        self.connection.execute("DROP TRIGGER manifest_reject_delete")
+        self.connection.execute("DROP TRIGGER observations_reject_update")
+        self.connection.execute("DROP TRIGGER observations_reject_delete")
+
+        initialize_store(self.connection)
+
+        self.assertEqual(
+            self.connection.execute("PRAGMA user_version").fetchone()[0],
+            STORE_SCHEMA_VERSION,
+        )
+        self.assertEqual(
+            self.connection.execute(
+                "SELECT COUNT(*) FROM observations WHERE manifest_id = ?",
+                (self.manifest.manifest_id,),
+            ).fetchone()[0],
+            1,
+        )
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "manifest rows are immutable"):
+            self.connection.execute(
+                "UPDATE manifest SET manifest_json = manifest_json WHERE manifest_id = ?",
+                (self.manifest.manifest_id,),
+            )
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "observations rows are immutable"):
+            self.connection.execute(
+                "UPDATE observations SET raw_rqd = raw_rqd WHERE manifest_id = ?",
+                (self.manifest.manifest_id,),
+            )
 
     def test_resume_rejects_fingerprint_mismatch_without_mutation(self) -> None:
         store_manifest(self.connection, self.manifest)

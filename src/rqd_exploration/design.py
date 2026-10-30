@@ -1,9 +1,7 @@
 """Deterministic pilot target ledger, LHS design, and manifest generation."""
 
 from dataclasses import asdict, dataclass
-from fractions import Fraction
 from hashlib import sha256
-from itertools import product
 from math import exp, isclose, isfinite, log
 
 import numpy as np
@@ -11,13 +9,10 @@ import scipy
 from scipy.stats import qmc
 
 from .config import (
-    JA_VALUES,
-    JN_VALUES,
-    JR_VALUES,
+    EXECUTABLE_JN_SET_COUNTS,
     Bounds,
     DesignInput,
     NormalizedPilotInput,
-    TargetGoalInput,
 )
 from .fingerprint import (
     ExecutionGeometry,
@@ -73,91 +68,6 @@ class LHSDesign:
     radius_transform: str
 
 
-@dataclass(frozen=True)
-class HighBinReachability:
-    fixed_jn: float
-    jr_value: float
-    ja_value: float
-    required_calculation_rqd_lower_exclusive: float
-    max_qprime: float
-    reachable: bool
-
-
-@dataclass(frozen=True)
-class TargetGoalLedgerEntry:
-    goal: TargetGoalInput
-    reachability: HighBinReachability
-
-
-@dataclass(frozen=True)
-class BlockTargetLedger:
-    design_id: str
-    block_id: str
-    fixed_jn: float
-    scenarios: tuple[HighBinReachability, ...]
-    target_goals: tuple[TargetGoalLedgerEntry, ...]
-
-
-def high_bin_reachability(
-    fixed_jn: float, jr_value: float, ja_value: float,
-) -> HighBinReachability:
-    """Solve Q' > 400 over continuous calculation RQD in [10, 100]."""
-    for name, value, allowed in (
-        ("fixed_jn", fixed_jn, JN_VALUES),
-        ("jr_value", jr_value, JR_VALUES),
-        ("ja_value", ja_value, JA_VALUES),
-    ):
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            raise TypeError(f"{name} must be a number")
-        if value not in allowed:
-            raise ValueError(f"{name} must be one of {allowed}")
-    jn, jr, ja = (Fraction(value) for value in (fixed_jn, jr_value, ja_value))
-    threshold = 400 * jn * ja / jr
-    maximum = 100 * jr / (jn * ja)
-    return HighBinReachability(
-        float(jn), float(jr), float(ja), float(threshold), float(maximum),
-        threshold < 100,
-    )
-
-
-def build_target_ledger(config: NormalizedPilotInput) -> tuple[BlockTargetLedger, ...]:
-    """Retain all 66 scenarios per design, separately linking explicit pilot goals."""
-    if not isinstance(config, NormalizedPilotInput):
-        raise TypeError("config must be a NormalizedPilotInput")
-    ledgers: list[BlockTargetLedger] = []
-    linked_goals: set[str] = set()
-    for design in config.designs:
-        scenarios = tuple(
-            high_bin_reachability(design.fixed_jn, jr, ja)
-            for jr, ja in product(JR_VALUES, JA_VALUES)
-        )
-        by_scores = {(item.jr_value, item.ja_value): item for item in scenarios}
-        goals: list[TargetGoalLedgerEntry] = []
-        for goal in config.target_goals:
-            if goal.fixed_jn != design.fixed_jn:
-                continue
-            if (
-                goal.target_bin_id != "qprime_gt_400"
-                or goal.catalog_id != "primary_profile_10bin_v1"
-            ):
-                raise ValueError(f"unsupported target goal: {goal.goal_id}")
-            reachability = by_scores.get((goal.jr_value, goal.ja_value))
-            if reachability is None or not reachability.reachable:
-                raise ValueError(f"target goal is not arithmetically reachable: {goal.goal_id}")
-            goals.append(TargetGoalLedgerEntry(goal, reachability))
-            linked_goals.add(goal.goal_id)
-        ledgers.append(
-            BlockTargetLedger(
-                design.design_id, design.block_id, design.fixed_jn,
-                scenarios, tuple(goals),
-            )
-        )
-    unlinked = {goal.goal_id for goal in config.target_goals} - linked_goals
-    if unlinked:
-        raise ValueError(f"target goals have no matching design: {sorted(unlinked)}")
-    return tuple(ledgers)
-
-
 def _transform_coordinate(unit: float, bounds: Bounds, name: str) -> float:
     if not isfinite(unit) or not 0.0 <= unit < 1.0:
         raise ValueError(f"{name} LHS coordinate must be finite and in [0, 1)")
@@ -192,8 +102,17 @@ def generate_lhs_design(design: DesignInput) -> LHSDesign:
         or design.sample_count <= 0
     ):
         raise ValueError("sample_count must be a positive integer")
-    if not 1 <= len(design.joint_sets) <= 5:
-        raise ValueError("joint_sets must contain between 1 and 5 sets")
+    expected_set_count = EXECUTABLE_JN_SET_COUNTS.get(design.fixed_jn)
+    if expected_set_count is None:
+        raise ValueError(
+            "fixed_jn must be one of the executable Barton values "
+            f"{tuple(EXECUTABLE_JN_SET_COUNTS)}"
+        )
+    if len(design.joint_sets) != expected_set_count:
+        raise ValueError(
+            f"fixed_jn={design.fixed_jn:g} requires exactly "
+            f"{expected_set_count} joint_sets; got {len(design.joint_sets)}"
+        )
     if len({item.joint_set_id for item in design.joint_sets}) != len(design.joint_sets):
         raise ValueError("joint_set_id values must be unique")
     axes: list[LHSAxis] = []
@@ -399,7 +318,6 @@ def build_frozen_manifest(
         config.measurements.bh_interval_m, config.measurements.face_advance_m,
         boundary_rules_version,
     )
-    ledgers = build_target_ledger(config)
     designs: list[JsonValue] = []
     samples: list[JsonValue] = []
     jobs_payload: list[JsonValue] = []
@@ -459,10 +377,6 @@ def build_frozen_manifest(
         },
         "designs": designs,
         "design_samples": samples,
-        "target_goals": [
-            {"manifest_id": manifest_id, **asdict(goal)} for goal in config.target_goals
-        ],
-        "target_ledger": [asdict(ledger) for ledger in ledgers],
         "jobs": jobs_payload,
         "planned_locations": all_locations,
     }

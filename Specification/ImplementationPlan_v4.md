@@ -1,39 +1,331 @@
-# Implementation Plan v4: RQD Exploration Pilot
+# Implementation Plan v4: RQD Exploration and Cumulative Batch Workflow
 
 - 작성일: 2026-10-28
-- 상태: 파일럿 기반 구현 준비 계획. 코드 구현·simulation 실행 승인이 아님.
+- 상태 (2026-10-30 22:30 +09:00): 초기 고정 10-signature pilot과 P6.04 분석 완료.
+  누적 workflow CUM.01–CUM.07 구현·검증 완료. 다음은 CUM.08 통합 회귀·설정 준비·문서화다.
+  CUM.04는 exact YAML bytes와 실행 runtime을 batch identity로 사용한다. Schema v4를 유지하며
+  v2/v3 DB는 거부한다. CUM.06 분석 테이블은 v4 store 초기화 시 additive하게 생성한다.
 - 전략·요구사항 기준: [RQDExplorationStrategy_20261026/plan.md](RQDExplorationStrategy_20261026/plan.md)
-- 범위: 최초 10-signature pilot의 입력·설계·RQD 측정·저장/재개·후처리/보고 준비와 사용자 검토 인계.
-- 제외: 자동 batch controller(T011), 미승인 충분성·예산 배분·weight 정책, 사용자 확인 없는 simulation 실행.
+- 범위: 최초 10-signature pilot의 이력과 §5.2의 조건 변경형 append-only 누적 batch workflow. 누적 workflow는 T011 자동 후보 선택과 분리한다.
+- 초기 pilot에서 제외: 자동 batch controller(T011). 후속 구현 범위는 2026-10-30 19:11 사용자 재확인에 따라 모든 새 batch를 기존 원자료와 누적 분석에 추가하는 workflow로 재검토한다. 미승인 충분성·예산 배분·weight 정책 및 사용자 확인 없는 simulation 실행은 계속 제외한다.
 - 상세화: 2026-10-28 사용자 요청에 따라 §5의 T001–T011을 §5.1의 Phase/Step으로 분해했다.
   실행 중 충돌·미정 사항은 §1.1의 결정 절차를 따르며, 본 갱신은 기능 구현이나 실행이 아니다.
+- **Deprecated (2026-10-30 20:02 +09:00):** 기존 pilot의 `target_goals` / 목표 bin 도달성 장부는
+  새 누적 workflow에서 폐기한다. 이것은 DFN 입력인 Jn을 선택하거나 검증하는 기능이 아니다.
+  신규 workflow는 Jn을 DFN 입력으로 받아 Jn/Jr/Ja 조건별 전체 bin support를 분석한다.
+  과거 pilot 계획·결과의 `Q′ > 400` 목표 기록은 역사적 기록으로만 보존하며 새 실행 계약에 적용하지 않는다.
+- 이 문서의 CUM.01–CUM.09가 현재 누적 workflow의 구현 계약이다. 그 이전 pilot 단계·테이블·manifest/
+  goal-ledger 설명은 당시 pilot의 역사적 설계 기록이며, CUM 결정과 충돌하면 적용하지 않는다.
 
-## 현재 상태 및 다음 재개 지점 (2026-10-29 22:01 +09:00)
+## 현재 상태 및 다음 재개 지점 (2026-10-30 20:02 +09:00)
+
+### 사용자 요청 결과 삭제 및 변경 계획 (2026-10-30 19:18 +09:00)
+
+사용자의 삭제 요청에 따라 기존 pilot DB `sqlite/qsimex-rqd-pilot.sqlite`와 해당 pilot report
+디렉터리 `results/rqd_exploration/qsimex-rqd-pilot-20261030-1535/reports/`를 제거했다.
+삭제 후 두 경로가 존재하지 않음을 확인했다. 원본 설정 YAML, pilot2 설정, 코드 및 문서는 보존했다.
+이는 과거 pilot 실행/분석의 기록은 남기되 결과 데이터 산출물은 제거한 것이다.
+
+사용자가 원하는 다음 실행은 Jn/Jr/Ja 등 조건을 단계적으로 바꾸면서 원관측을 append-only로 누적하고,
+bin coverage를 계속 확인하는 것이다. 기존 pilot의 목표 bin 장부/`target_goals` 기능은 이 목적에
+필요하지 않으며 신규 누적 workflow에서 폐기한다. 과거 pilot에 대한 기술·결과 기록은 당시 실행의
+역사적 설명으로 남기되, 현재 설정/구현 계약과 혼동되지 않도록 deprecated로 표시한다.
+
+1. **설정 계약과 validation 일반화**
+   - Q′ 후처리용 Jn grid는 기존 값들을 보존하되, 신규 DFN 실행 `fixed_jn`은 사용자 선택에 따라
+     `{2, 4, 9, 15, 20}`만 허용한다: 2→1 set, 4→2, 9→3, 15→4, 20→5.
+     무작위 절리 성분이 필요한 3/6/12는 해당 DFN 모델링 기능이 구현되기 전 실행 입력에서 거부한다.
+     15→4와 20→5는 사용자가 선택한 대표/근사 구성임을 manifest와 보고서에 표시한다.
+     과거 pilot의 Jn 0.5/1 데이터는 신규 실행 조건에서 제외한다.
+     현재 design validation은 점수 grid의 Jn 값을 DFN 입력으로 받아들이지만, 신규 누적 실행은
+     확정한 DFN 실행용 Jn 집합과 set-count 매핑만 허용한다. 기존 target-goal validation 및
+     `target_goals` 필드는 새 누적 workflow에서 제거한다. Bin coverage는 goal 목록 없이
+     관측의 전체 Jr/Ja score grid에서 계산한다.
+   - Jn/Jr/Ja의 역할을 분리한다: Jn 및 set 구성은 DFN 생성조건, Jr/Ja는 현재 구현상 사후 점수화 조건.
+     Jr/Ja 값이나 조합이 변해도 DFN을 재생성하지 않고 보존된 원관측을 재분석한다.
+   - Barton mapping을 검증 가능한 조건 입력으로 반영한다. 3/6/12 random-joint categories는 현재
+     후속 범위로 제외한다. 별도 random-joint DFN 모델을 나중에 구현하려면 추가 성분의 orientation/
+     dispersion과 P32 배분을 명시하고 사용자와 다시 합의한다.
+   - 기존 pilot `target_goals`, high-bin goal ledger 및 목표 도달성 경로는 신규 누적 workflow에서
+     deprecated/제거한다. 이를 필수 설정·manifest·분석·보고 입력으로 요구하지 않는다.
+2. **동일 DB에 여러 batch append**
+   - 기존 저장소는 각 행을 manifest/batch 키로 분리하므로, 기존 데이터를 지우거나 덮어쓰지 않고
+     새 config/manifest batch를 같은 DB에 등록·실행하는 명시 경로를 추가한다.
+   - 기존 `resume`은 같은 batch의 중단 재개로 유지하고, 새 batch 추가는 별도 명령/옵션으로 구분한다.
+     내부 batch ID는 자동 생성·보존하여 사용자가 manifest 식별자를 수작업하지 않게 한다.
+   - transaction, 중복 설정/실행 방지, 새 batch 등록 후 중단/재개, 재시도 lineage 및 원자료 불변성을
+     검증한다. 기존 DB가 없을 때는 누적 DB를 초기 생성하는 흐름도 같은 계약으로 지원한다.
+3. **누적 분석·bin 중심 보고**
+   - 선택된 모든 성공 batch 원관측을 누적 analysis dataset revision으로 읽고, dataset provenance와
+     분석 조건/Jr/Ja catalog를 revision/fingerprint에 포함한다.
+   - 새 결과가 들어오면 이전 관측을 정확히 한 번 포함해 re-score하고, 구 revision/analysis 결과는
+     immutable하게 남긴다. 중복 seed·반복 실행은 provenance로 추적하고 independent signature/
+     realization 수를 과대계상하지 않는 정책을 테스트한다.
+   - 우선 보고서는 Jn × Jr × Ja × modality/profile × Q′ bin별 valid positive support, 점유 여부,
+     independent signature/realization 수, sample count를 중심으로 한다. BH 길이와 face 면적,
+     또는 상이한 Jr/Ja 파생 점수 support를 합산하지 않는다.
+   - 보고서에는 전체 누적 bin coverage와 batch별 유입/변화량을 나란히 표시해 “이번 추가분”과
+     “전체 누적분”을 혼동하지 않게 한다.
+4. **통합 검증 및 수동 실행 인계**
+   - pilot2를 포함해 config validation → memory-only preview → batch append/resume → cumulative analyze
+     경로를 테스트한다. `target_goals`가 없는 pilot2가 유효하고 전체 bin coverage를 수행할 수 있어야 한다.
+     기존 Jn 0.5/1 high-bin 목표는 신규 목표로 변환하지 않고 역사적 기록으로만 남긴다.
+   - regression tests로 여러 Jn batch 추가, 기존 데이터 불변, Jr/Ja 재분석의 DFN call 0회,
+     all-bin coverage totals, duplicate/retry/provenance, report cap 및 heartbeat를 확인한다.
+   - 구현·테스트와 사용자 승인 후에도 실제 DFN/simulation은 사용자가 직접 실행한다. 구현 단계에서는
+     pilot DB나 GPU simulation을 실행하지 않는다.
+
+**별도 후속 설계가 필요한 DFN 표현:** random-joint set의 방향 분포/κ 및 P32 배분; Jn 20 crushed/earthlike
+상태의 DFN 표현; 누적 revision에서 제외할 attempt/retry 및 동일 realization 처리 기준; 우선 보고서에서
+bin occupancy를 지원량 외에 어떤 측정 단위/최소 표본으로 표현할지. 이 값들은 이번 계획에서 임의로 확정하지 않는다.
+
+### 누적 탐색 요구사항 업데이트 (2026-10-30 19:11 +09:00)
+
+사용자의 핵심 목적은 실행 가능한 단위로 simulation을 나누어 수행하고, Jn/Jr/Ja 등 조건을 변경하면서
+기존 결과를 보존·누적해 bin coverage를 확장하는 것이다. `resume`은 동일 frozen manifest의 중단/미완료
+작업 재개이지 새 조건 추가가 아니며, 이 요구를 만족하지 않는다. 새 batch/manifest는 사용자 과학적
+워크플로에서 불필요한 수동 식별자 관리 부담이 되지 않도록 provenance 목적으로 내부 관리되어야 한다.
+
+- Append-only raw observation history: 설정, batch, attempt, 조건 및 provenance를 보존하고 기존 결과를
+  덮어쓰지 않는다. 조건별 적격성과 재시도 처리 정책은 설계 시 명시한다.
+- Jn은 DFN generation input이다. 기록된 Barton 대응에 따라 새 Jn/절리군 조합을 batch로 추가할 수 있어야
+  한다. Random-joint Jn 상태는 현재 모델에서 표현 지원 여부 확인/구현을 별도 표시한다.
+- Jr/Ja는 현재 post-processing scenario axes다. 이들의 분석 조합/범위를 바꾸는 것만으로 DFN을 재생성하지
+  않고 raw observations를 재점수화하며, analysis configuration/version을 분리 보존한다.
+- Cumulative analysis는 여러 batch의 원관측을 집계하되 Jn/Jr/Ja/modality/profile별 bin support와 독립
+  signature/realization을 구분한다. BH 길이/face 면적 및 파생 시나리오 점수를 독립 관측처럼 합산하지 않는다.
+- 현재 `run`은 기존 DB 경로를 거부하고, `resume`은 frozen manifest 일치를 요구하며, `analyze`는 단일
+  manifest revision 대상이다. 따라서 end-to-end 누적은 아직 지원되지 않는다. Pilot2는 Jn 2/4 설계와
+  0.5/1 target_goals가 불일치하므로 이 상태로 실행하지 않는다. **이것은 19:18 당시의 상태 기록이며,
+  20:02 결정으로 target_goals 기능은 신규 workflow에서 폐기되었다.**
+- 다음 기술 단계는 §5.2의 CUM.01 누적 workflow 계약 확정이다. 그 뒤 CUM 단계는 한 단계씩 순서대로
+  진행하고, 각 단계의 검증·기록·사용자 확인 후 다음 단계로 넘어간다. 사용자 검토 전에는 코드 구현을
+  시작하지 않으며, 실제 simulation은 구현·검증과 분리해 사용자가 직접 실행한다.
+
+- **최신 상태 — T010 pilot 및 P6.04 분석 완료 (2026-10-30 16:42 +09:00):**
+  사용자가 resume 실행 로그를 공유했다. Assistant는 16:32경
+  `sqlite/qsimex-rqd-pilot.sqlite`를 `mode=ro`/`query_only=ON`으로 확인했다.
+  10/10 jobs에 attempt 하나씩 있으며 전부 `succeeded`; failed/running 0, location status 1,210건은
+  전부 `observed` (BH 600, face 610), raw observation도 1,210건 모두 valid다. 각 job은 BH 60 +
+  face 61 observations를 저장했다. 새 resume invocation은 이미 완료된 8개를 skip하고, 기존 running
+  attempt sample 3을 재개 완료, sample 4를 새로 실행 완료해 invocation `simulation_count=2`,
+  `termination_reason=jobs_complete`로 정상 종료했다. 사용자 로그상 sample 3은 1,530.9초,
+  sample 4는 0.3초였다. DB attempts의 runtime 합은 약 2,178.97초이며 이는 stored attempt runtime 합,
+  전체 벽시계 시간을 뜻하지 않는다.
+  - Raw RQD 산술 평균(동일 weight의 개별 observations; support-weighted 분석 아님):
+    `jn-half` BH n=300 mean 90.56, range 39.31–100; face n=305 mean 93.67, range 68.08–100.
+    `jn-one` BH n=300 mean 90.48, range 10.17–100; face n=305 mean 80.44, range 1.58–100.
+  - 사용자의 `analyze` 승인 후 16:41 +09:00에 정식 분석을 실행했다. Dataset revision 1건
+    (SHA-256 `6d18312e975fbaf079d23916e93a7b5c4d8483e7e737a73f83f756cd983efd5e`),
+    analysis run 1건 (fingerprint `2a83f1755b1d9e1fc0c41a0024b79af6986c5f80c96fe6ee112e63f9a7ea23c3`),
+    derived score 79,860건이 생성됐다. 66 scenarios × 1,210 observations와 일치한다.
+    Raw observations는 변경되지 않았고 simulation은 시작하지 않았다.
+  - CSV 10개와 `report_summary.json`은
+    [pilot reports](results/rqd_exploration/qsimex-rqd-pilot-20261030-1535/reports/)에 생성됐다.
+    실제 CSV data rows 합계는 127,232건이며 각 파일 cap 이하이다.
+  - 여섯 BH target goal은 모두 `comparable`, 유효 support 300/300 m, signature/realization 각 5개다.
+    Reached support fractions: `high-jn-1-jr-4-ja-075` 82%;
+    `high-jn-half-jr-2-ja-075` 84.33%; `high-jn-half-jr-3-ja-075` 99%;
+    `high-jn-half-jr-3-ja-1` 91%; `high-jn-half-jr-4-ja-075` 100%;
+    `high-jn-half-jr-4-ja-1` 99%. 이는 관측 표본의 지지 길이 비율이지 통계적 보장은 아니다.
+  - 실행은 사전 고정된 10-job manifest를 모두 소진했다. 결과를 반영해 signature를 갱신하거나 다음 batch를
+    생성하지 않았다. 현재 구현 계획은 adaptive batch controller T011을 후속 정책 검토로 보류한다.
+    전략의 고수준 흐름은 관측 기반 다음 batch 갱신을 설명하므로 “초기 10개만 실행”과 “관측에 따라
+    signature를 갱신하며 반복” 중 pilot이 어느 범위여야 하는지 정책 차이가 남는다. 다음 batch/추가 DFN 실행 전
+    사용자의 의도를 확인해야 한다.
+  - 사용자 로그에서 sample 3은 25분 30.9초 동안 시작/완료 외 단계 로그가 없었다. 이는 새 계측 코드가
+    실행 전에 이미 시작한 프로세스에 소급 적용되지 않아 단계별 heartbeat를 남기지 못한 것과 일치한다.
+    구체적으로 DFN generation, BH intersection, face measurement 중 어느 단계가 시간을 사용했는지는
+    이번 실행 자료로 구분할 수 없다. 새 60초 heartbeat는 다음 invocation부터 적용된다.
+  - 실행 전 DB 확인은 read-only였다. 이후 `analyze`는 사용자 승인 범위에서 DB revision/analysis/score
+    및 report files를 생성했다. 추가 simulation 또는 다음 batch는 실행하지 않았다.
+    다음 단계는 signature update에 대한 전략-구현 범위 차이를 사용자와 합의하는 것이다.
 
 - **완료:** Phase 1–4 (T001–T007, P1.01–P4.07) 구현·검증. 특히 전체 175개 테스트 통과.
   이미 완료한 작업을 다시 시작하거나 재실행할 필요가 없다.
-- **현재 미착수:** Phase 5의 T008/P5.01–P5.02 (66개 Jr/Ja scenario 점수와 경계/fingerprint
-  검증), T009/P5.03–P5.05 (관측 진단, CSV 및 analyze CLI).
-- **선행 결정:** P5.03–P5.04에 들어가기 전에 D005의 참조 profile, 보고 field, support 대응 계산
-  범위를 승인된 전략 근거와 대조해 해결한다. T008/P5.01–P5.02 점수 계산은 먼저 독립적으로
-  진행 가능하다.
-- **그 후:** T010/P6.01–P6.02 실행 전 인계·승인 확인을 완료한다. 실제 pilot run은 사용자에게
-  config, manifest, maximum simulation과 실행 명령을 제시하고 별도 명시 승인을 받은 뒤에만
-  사용자가 실행한다. P6.03–P6.04는 실제 사용자 실행 결과가 있을 때만 기록한다.
+- **완료:** T008/P5.01–P5.02의 승인된 66-scenario 점수/bin/fingerprint 계산 및 검증.
+  Focused 10개, 연관 regression 47개, 전체 185개 테스트가 통과했다.
+- **완료:** T009/P5.03 분석 core. Profile별·scenario별 support weighted Q′ summaries,
+  BH–face 탐색적 비짝지음 대비, BH–P32 points, 목표 거리/도달 support, location status 및
+  자료 한계 표시를 구현했다. Focused 19개, 전체 194개 테스트 통과.
+- **완료:** T009/P5.04 계약 기반 report exporter와 bounded row-count preflight.
+  Focused report tests 6개와 전체 `dlo-cq` suite 200개가 통과했다. D012 승인은 11:02:44와
+  11:06:02 +09:00에 기록했다.
+- **완료:** T009/P5.05 SQLite raw dataset loader와 `analyze` CLI. `dlo-cq` 전체 207개
+  테스트가 통과했다. Schema v2는 v1 DB를 migration하고 revision별 원 observation attempt
+  provenance를 별도 immutable relation에 보존한다. Reanalysis는 66개 scenario score를
+  `derived_scores`에 idempotently 저장하며 CSV/summary도 재현한다.
+- **진행 중:** 2026-10-30 10:48:51 +09:00 사용자 지시에 따라 매 결과/진행을 timestamped로
+  기록한다. 10:49:39 +09:00에 P5.04 CSV 계약 검토를 시작하고, 10:51:36 +09:00에
+  산출물·열·정렬·단위·NULL·행수 제안을 문서화하고 11:02:44 및 11:06:02에 각각 형식 선택과
+  exact headers/row caps 승인을 받았다.
+- **결정:** D005의 P5.03 분석 범위는 사용자 승인·구현·검증했다. BH와 face는 서로 다른
+  분포이며 같은 값을 기대하지 않는다. Support는 BH 길이(m)와 face 면적(m²)를 각각 보존하고,
+  어떤 profile/scenario끼리도 support를 합산하지 않는다. 동일 scenario의 가중 중앙값·bin
+  support 비율 차이는 탐색적 기술 대비이며 관측 짝비교·유의성 검정이 아니다. Detection/miss
+  비율은 보류하며, 현재 evidence에 없는 face 총 교차 수·tunnel-axis 교차 수를 임의로 만들거나
+  수집 계약을 바꾸지 않는다. CSV 열·정렬·NULL·요약 계약은 P5.04에서 별도 확인·승인했다.
+- **완료:** T010/P6.01 config validation과 in-memory MLX manifest preview를 2026-10-30
+  15:07:50 +09:00에 수행했다. `dlo-cq`에서 config 검증이 통과했고, 임시 review ID 기준 manifest는
+  10 jobs, BH 600 locations, face 610 locations, 총 1,210 locations였다. runtime은 CPython 3.11.15,
+  macOS 27.0.1 arm64, NumPy 2.4.3, SciPy 1.17.1, MLX 0.31.1, `Device(gpu, 0)`이며 MLX GPU
+  preflight도 통과했다. config YAML SHA-256은 `33d1629f4cd8eead88920ae4b2d2c78ee5c01c734c4fb4401b0824a4f1959ada`,
+  review manifest ID는 `p6-01-review-20261030-1507`, preview manifest SHA-256은
+  `25975ab2b6eb76d4b402e4734cc034585aa2a73fed82fd2bc29e4f7fabf040d0`이다. ID와 hash는
+  해당 preview에만 해당하며 최종 실행 식별자로 승인·확정된 것이 아니다.
+- **완료:** T010/P6.02 pre-run 검토 자료와 설정 확인을 2026-10-30 15:44:36 +09:00에 마쳤다.
+  Acceptance criteria, D-ID, limitations/risks, report caps, run/resume 경계를 제시했고 사용자가
+  D002를 resolved로 선택했다. 사용자가 지정한 결과 디렉터리/파일명 `sqlite/qsimex-rqd-pilot.sqlite`,
+  명령당 상한 1000을 기록했다. 최종 manifest ID `qsimex-rqd-pilot-20261030-1535`의 preview도
+  통과했다. 이는 실행 준비 검토 완료이지 pilot 실행 승인이 아니다.
+- **완료:** D002는 2026-10-30 15:35:46 +09:00에 사용자 선택으로 `resolved` 처리했다. 사용자는
+  P1.05 자료 계약 승인 및 후속 T006/T008/T009 구현이 D002 범위를 충족한다고 판단했다.
+- **실행 중단/재개 상태 (2026-10-30 15:48 당시 기록; 아래 16:32 기록으로 대체):** 사용자가 pilot 실행을 명시 승인했으나 assistant 실행 요청은 사용자 지시에 따라
+  중단됐고 현재 process는 없다. DB와 manifest는 이미 생성됐다. 2026-10-30 15:48:09 +09:00의 읽기 전용
+  점검에서 schema v2, 선택 manifest ID, attempt 0의 첫 job(`jn-half`/`block-half`/sample 0/seed 43)이
+  `running`, runtime 0.0 sec, location state 121개 모두 `planned`, raw observations 0건으로 확인됐다.
+  이는 첫 job이 완료/commit되지 않았음을 뜻한다. 중단 시점에 in-memory DFN이 생성됐는지는 영속 자료에서
+  확인할 수 없으며, resume 때 이 job은 재생성될 수 있다. 이후 프로세스는 실행 중이지 않다.
+- **당시 다음 단계:** 사용자가 직접 아래 `resume` 명령을 실행한다. 기존 DB가 있으므로 `run`을 다시 쓰면 안 된다
+  (CLI가 기존 DB 경로를 거부함). 이번 assistant는 실행하지 않는다. 1000은 invocation별 최대 상한이며
+  preview의 전체 job 수는 10이므로 최대 10개 job이 실행된다; cap 1000이 1000회 실행을 뜻하지 않는다.
+- **과거 시뮬레이션 gate:** 첫 pilot 실행 전 config, manifest, DB path, cap 및 명령을 검토받았다.
+  이 gate는 사용자 승인과 실행으로 충족됐으며, 다음 추가 simulation에는 새 승인과 합의가 필요하다.
 - **별도 보류:** T011/Phase 7 adaptive batch controller는 pilot 결과 검토와 별도 정책 승인
   전까지 deferred이며, 현재 pilot 범위에 포함되지 않는다.
-- **다음 재개 위치:** T008 → P5.01. 이 인계 기록은 재개 지점을 지정할 뿐 다음 작업의 착수
-  승인은 아니다. 재개 시 이 현재 상태와 최신 시각 기록을 기준으로 삼고, 아래 과거 이력의
+- **실행 경계 (15:48 당시):** pilot DB와 manifest는 명시 승인된 실행 시도에서 생성됐다. 첫 job은
+  미완료였고 추가 실행 전 상태였다. 아래 16:32 기록에서 최종 실행 상태로 갱신했다.
+- **완료 범위:** P5.05는 job별 최고 `succeeded` attempt만 snapshot에 투영하고, 실패/partial
+  attempt 원자료는 보존하되 분석에서 제외한다. Immutable JCS/SHA-256 revision, analysis run,
+  attempt lineage와 FK를 통한 scenario score 적재, 저장 전 CSV row-count preflight를 연결했다.
+  같은 fingerprint 재실행 시 점수 행이 늘지 않으며 raw observation/status는 변경되지 않는다.
+  schema-v1 revision에 새 attempt provenance가 없는 경우 이를 추측해 채우지 않고 명시적 검증
+  오류로 처리한다.
+- **집 재개 checklist (당시 상태: 2026-10-30 11:33:57 +09:00; 아래 P6.01 기록이 이를 갱신):**
+  1. `ImplementationPlan_v4.md`, strategy plan, `tasks-to-impl.yaml`, `readme.md`의 최신 상태와
+     작업 트리 변경을 확인한다. 완료한 Phase 1–5/P5.05를 재수행하지 않는다.
+  2. conda `dlo-cq`만 사용한다. 삭제된 상위 `.venv`를 찾거나 만들지 않는다.
+  3. P6.01에서 config validate/manifest preview, environment/runtime, job/location/goal 수,
+     expected report row caps·output directory, DB schema v2 및 resume 명령을 실제 값으로 확인해
+     두 기준 문서와 README에 남긴다. 이 단계는 pilot DB/DFN/simulation을 만들지 않는다.
+  4. P6.02에서 acceptance criteria, D-ID, limitations, risks, config/manifest/budget/DB path와
+     실행 명령을 선생님께 제시한다. 명시 승인 전 실행하지 않는다.
+  5. 승인된 범위에서만 pilot을 실행한다. 중단되면 확인된 DB를 대상으로 `resume`하며, 매 invocation의
+     `maximum_simulations`는 별도 상한이다. 관측 데이터가 생기면 `analyze`를 수행하고 결과를 기록한다.
+  6. T011 adaptive batch controller와 추가/대규모 simulation은 별도 보류이며 자동으로 시작하지 않는다.
+- **P6.01 실제 확인 결과 (2026-10-30 15:07:50 +09:00):**
+  - `conda run -n dlo-cq python run_rqd_exploration.py validate --config config/rqd_exploration_pilot.yml`
+    통과: 2 designs, 10 samples, 6 target goals.
+  - `conda run -n dlo-cq python run_rqd_exploration.py preview --config config/rqd_exploration_pilot.yml --manifest-id p6-01-review-20261030-1507`
+    통과: 10 jobs, BH 600, face 610, total 1,210 planned locations. `simulation_started=false`,
+    `database_written=false`.
+  - runtime: CPython 3.11.15; macOS 27.0.1 arm64; NumPy 2.4.3; SciPy 1.17.1; MLX 0.31.1;
+    `Device(gpu, 0)`. MLX GPU operation preflight returned successfully.
+  - 승인된 CSV 파일별 최대 row cap: observation_scenarios 79,860; profile_summaries 264;
+    profile_bin_support 2,904; bh_face_distribution_contrasts 132; bh_face_bin_contrasts 1,452;
+    qprime_p32 39,600; target_observations 1,800; target_summaries 6; location_status 1,210;
+    unavailable_profiles 6. 합계 127,234 rows는 상한이며 실제 관측/생성 행수가 아니다.
+  - 기본 보고 경로 규칙은 `results/rqd_exploration/<manifest_id>/reports`다. 현재 결과 루트에는
+    `.gitkeep`만 있고 pilot DB 및 preview report directory는 없다. DB schema 구현 버전은 v2이며,
+    resume는 존재하는 DB와 저장 manifest가 필요하다. 이번 preview에서는 DB나 보고서를 만들지 않았다.
+  - DB path, simulation budget 및 최종 manifest ID는 사용자 검토 대상이라 미정이다. review ID/hash로
+    실제 run을 시작하지 않고, 최종 ID 선정 시 해당 ID로 preview를 다시 해야 한다.
+- **P6.02 최종 검토값 및 preview (2026-10-30 15:44:36 +09:00):**
+  - 사용자 선택: D002 `resolved`; 프로젝트 루트 `sqlite/` directory; DB filename `qsimex-rqd-pilot.sqlite`;
+    per-invocation `maximum_simulations=1000`. Assistant가 날짜 기반 manifest ID를 생성하도록 사용자가 허용했다.
+  - Final review ID `qsimex-rqd-pilot-20261030-1535`; `conda run -n dlo-cq python run_rqd_exploration.py preview --config config/rqd_exploration_pilot.yml --manifest-id qsimex-rqd-pilot-20261030-1535` 통과.
+    Manifest SHA-256 `9bc488720cbea5c8ba43b1e5fc0665327baaca0544a9e71911fb93dace834eea`;
+    config SHA-256은 앞서 확인한 동일 값 `33d1629f4cd8eead88920ae4b2d2c78ee5c01c734c4fb4401b0824a4f1959ada`.
+    10 jobs/600 BH/610 face/1,210 locations; `database_written=false`, `simulation_started=false`.
+  - 당시 preview 직후에는 DB file이 없었다. 이후 사용자는 실행을 명시 승인했고 assistant run tool 호출은
+    중단됐다. 현재 DB/attempt 상태와 그 다음 사용자 지시는 아래 15:48:09 기록을 따른다.
+  - P6.02 review materials/settings는 완료됐지만 pilot 실행은 중단 상태다. DB/manifest는 저장됐고,
+    완료된 simulation/관측 결과는 확인되지 않았다. 사용자가 직접 이어서 실행한다.
+- **중단된 실행 호출 및 읽기 전용 DB 확인 (2026-10-30 15:48:09 +09:00):**
+  - Assistant가 명시 승인된 `run` 명령을 호출했으나 도구 호출은 interrupted 상태로 끝났다. 사용자는
+    이후 “실행은 내가 할께. 명령어만 알려줘”라고 지시했으므로 assistant는 더 실행하지 않는다.
+  - Process 검사 결과 해당 명령은 현재 실행 중이지 않다. SQLite DB는
+    `sqlite/qsimex-rqd-pilot.sqlite`에 존재하며 1,789,952 bytes. `conda run -n dlo-cq`의 read-only
+    SQLite 조회 결과 schema version 2, 저장 manifest 1개, attempt 1개(`jn-half`, `block-half`,
+    sample 0, seed 43, attempt 0, status `running`), observation 0건, location status 121건 모두 `planned`.
+  - 첫 job attempt가 성공 commit 전 중단된 상태다. 미생성/미저장 DFN은 resume 시 다시 생성될 수 있다.
+    기존 DB가 있으므로 다음 CLI는 `resume`이어야 한다. 실행 재개는 사용자가 직접 하며 assistant가 실행하지 않는다.
+  - 10 jobs는 frozen manifest의 전체 job 수이며 한 job당 새 simulation 하나다. `maximum_simulations=1000`
+    은 각 CLI 호출에서 새로 시작할 수 있는 최대 수로, 현재 10 jobs를 초과하지 못하므로 상한으로 작동하지
+    않는다(이미 시작/완료한 job은 runner 상태에 따라 처리). 이는 1000개 실행 요청이 아니다.
+  - 사용자 직접 재개 명령:
+    `conda run -n dlo-cq python run_rqd_exploration.py resume --config config/rqd_exploration_pilot.yml --manifest-id qsimex-rqd-pilot-20261030-1535 --database sqlite/qsimex-rqd-pilot.sqlite --maximum-simulations 1000 --confirm-execution`
+- **터미널 진행 로그 구현·검증 (2026-10-30 15:58:19 +09:00):**
+  - `execute_frozen_jobs`에 optional progress callback을 연결해 job 시작/재개·완료·실패·중단,
+    완료/실패 job skip, simulation budget 종료를 알린다. CLI는 UTC timestamp와 함께 메시지를
+    stderr에 출력하고 즉시 flush한다. 실행 중인 프로세스에는 소급 적용되지 않는다.
+  - Runner/CLI focused tests 12개 통과; 변경 파일 `py_compile` 통과; `git diff --check` 통과.
+    Pylance signature compatibility 도구는 기존 callback 생략 호출부를 포함해 6개를
+    incompatible로 표시했으나, 새 인자는 `None` 기본값의 optional keyword-only parameter이며
+    기존 runner 테스트가 실제 생략 호출을 포함해 통과했다. 도구 결과는 false positive 가능성이 있어
+    별도 type-check는 수행하지 않았다.
+  - 로그는 job 경계 단위다. 단일 DFN 생성/측정 job 내부 heartbeat나 location별 progress는 없다.
+    다음 실행에서만 적용되며 이미 실행 중인 사용자 프로세스는 변경되지 않는다.
+  - 사용자는 `dlo-cq`를 활성화한 터미널에서 `python -u run_rqd_exploration.py resume ...`를
+    직접 실행할 수 있다. 이는 `conda run` 출력 캡처를 피하면서 같은 승인 환경을 사용한다.
+    Assistant는 재개·DB 조회/변경을 하지 않았고, 마지막 DB 확인(15:48) 이후 사용자가 실행했는지는
+    알 수 없다. 다음 단계는 사용자가 직접 resume한 뒤 상태를 공유하는 것이다.
+- **단계별 진행 관측성 추가 (2026-10-30 16:24:15 +09:00; 최종 검증 16:25:49):**
+  - 사용자는 job 시작/끝 로그만으로는 pilot의 장시간 계산을 판단할 수 없다고 지적하고, heartbeat 60초와
+    단계+BH interval/face station 카운터+DFN joint-set 상태를 선택했다.
+  - 실행 단계는 DFN joint-set 샘플링(queued set 카운터), GPU array materialization, BH interval
+    intersection query batches, face station iteration, persistence다. 긴 단계에는 60초마다 현재 단계,
+    최신 카운터/세부 상태, 단계 경과 시간을 stderr에 flush 출력한다.
+  - MLX DFN은 joint-set별 생성 연산이 지연 평가되므로 joint-set 카운터는 GPU 완료 퍼센트가 아니라
+    배열 생성이 준비된 set 수다. 별도 `DFN materialization` 단계는 `mx.eval` 완료 전까지 heartbeat한다.
+    Face station 카운터는 station 단위이며 한 station 내부 GPU 교차계산의 진행률은 제공하지 않는다.
+    로그는 성공 보장·GPU utilization·완료 ETA가 아니다.
+  - `conda run --no-capture-output -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -q`
+    전체 209개 통과. `py_compile` 및 `git diff --check` 통과; heartbeat timer, DFN materialization
+    status, backend query batch counts, BH/face counters를 포함한다.
+    Pilot DB는 조회·변경·실행하지 않았다. 이번 변경은 현재 실행 중인 프로세스에는 소급 적용되지 않는다.
+- **P6.02 사용자 검토 패키지 (2026-10-30 15:10:43 +09:00; 사용자 응답 대기):**
+  - Acceptance criteria §7.1: criteria 1–9에 구현/test evidence가 기존 P1–P5 기록에 있다. 이번 turn에서
+    전체 suite는 다시 실행하지 않았다. Criterion 10(파일럿으로 충분성·일반 자동 탐색 완료·현장 안전성을
+    선언하지 않음)은 pilot result review 이후에도 claim 금지 경계다. P6.01 preview 자체는 acceptance
+    runtime/manifest 확인이며 pilot scientific outcome 검증이나 G3/G4 통과가 아니다.
+  - Relevant D-ID: D004 resume policy verified; D005 analysis/profile scope verified (unavailable profiles,
+    no detection/miss inference); D006 post-pilot policy deferred; D012 report schema and row caps resolved.
+    D002 (Decision 002) concerns the integrated SQLite DDL, execution snapshot fields, and raw dataset serialization.
+    The historical register said `open`, while later P1.05/T006/T008/T009 records documented approval and implementation.
+    User selected `resolved` on 2026-10-30 15:35:46 +09:00, agreeing that the later contract approval and implementation
+    satisfy D002's scope. Historical work-log entries remain unchanged; current register is updated below.
+  - Risks/limitations: CPU fallback is unsupported; MLX GPU required. One invocation's simulation cap is not a
+    cumulative campaign cap; each resume receives a new cap and run-level goal status is not persisted.
+    An interrupted in-flight job before commit may regenerate its DFN on resume. The fixed 10-signature design
+    uses one common realization seed; it cannot establish independent-seed repeatability or general sufficiency.
+    Detection/miss, face areal density, and tunnel-axis intersection profiles are unavailable under current
+    measurement contract. Report row caps are ceilings, not predicted observed rows. T011 remains deferred.
+  - User review choices still open: final manifest ID (preview again using chosen ID), new DB file path, and
+    positive per-invocation `maximum_simulations`. No DB path or budget is proposed as an approved default.
+    `run` template:
+    `conda run -n dlo-cq python run_rqd_exploration.py run --config config/rqd_exploration_pilot.yml --manifest-id <user-selected-id> --database <user-selected-new-db-path> --maximum-simulations <user-selected-positive-integer> --confirm-execution`.
+    `resume` uses the same config/ID/database with a user-selected new positive per-invocation cap; it requires
+    an existing DB with an exactly matching stored manifest. These are command templates, not run authorization.
+  - P6.02 remains pending user review. No execution command was run; no DB, report, DFN, or simulation was created.
+- 재개 시 이 현재 상태와 최신 시각 기록을 기준으로 삼고, 아래 과거 이력의
   "다음 작업" 문구는 당시 상태 기록으로만 읽는다.
-- **실행 경계:** 실제 pilot DB/manifest 영속화, DFN generation, simulation은 아직 수행하지
-  않았다. `--confirm-execution`은 CLI 내부의 필수 안전 스위치이며 사용자 승인 자체가 아니다.
 - **복구 한계:** 저장 완료된 job은 재개 시 건너뛰지만, 결과 commit 전 중단된 in-flight job의
   DFN은 재생성될 수 있다. 예산은 명령별 상한이며 resume 명령마다 새 양수 상한을 받는다.
 - 실패 전 commit되지 않은 현재 job은 DFN 및 측정 결과를 메모리에만 보유하므로 재개 때
   해당 job의 DFN을 다시 생성할 수 있다. 이미 완료·저장된 다른 job은 재실행하지 않는다.
 - 실제 pilot DB 생성/초기화·manifest 영속화·DFN 생성·simulation은 승인되지 않았고 수행하지
   않았다. 저장 테스트는 `:memory:` 및 임시 파일 SQLite만 사용했다.
+- Python 작업은 conda `dlo-cq`에서만 수행한다. 테스트·검증은 `conda run -n dlo-cq ...`를 사용한다.
+  사용자가 파일럿 로그를 직접 볼 때는 동일 환경을 활성화한 뒤 `python -u ...`로 실행할 수 있다.
+  사용자의 2026-10-30 요청으로 저장소 상위
+  `/Users/myungkyusong/Documents/Develop/09. DFN/.venv`를 삭제했으며 다시 만들거나 사용하지 않는다.
 - 마지막 검증 증거와 상세 기록은 아래 작업 이력 및 전략 plan의 최신 timestamped 기록을 따른다.
+- **현재 상태 확인 (2026-10-30 15:04:43 +09:00):** 요청에 따라 기준 문서, checkpoint, README 및
+  작업 트리만 확인했다. T009/P5.05가 완료됐고 T010/P6.01은 아직 시작하지 않았다. 다음 단계는
+  사용자 지시 후 `dlo-cq`에서 config validate와 in-memory manifest preview를 수행하고,
+  실제 runtime/규모/output/resume 정보를 기록하는 것이다. 이번 확인에서는 Python 명령이나
+  pilot 작업을 실행하지 않았다. 작업 트리에 이미 있던 미커밋 변경은 보존했다.
 
 ## 1. 문서 역할과 우선순위
 
@@ -76,10 +368,11 @@
 | ID / 상태 | 확인 사항·근거 | 처리 및 결정 경계 | 영향 Step |
 |---|---|---|---|
 | D001 / verified (문서) | 이 문서의 “G0 전부 미승인”으로 읽히는 설명과 전략 §5·§11.2·§11.4의 pilot G0 간소 계약 승인 상태가 다름 | 최신 전략을 적용한다. 이미 승인된 schema version 1, ID·상태·evidence·JCS/SHA-256을 재결정하지 않는다. 남은 통합 테이블/열/FK/NULL/check 및 fingerprint 필드 묶음만 T002에서 제시·확인한다. 두 문서와 checkpoint 정합화 확인; G0와 T002 검토 완료를 동일시하지 않음 | P1.01, P1.03–P1.05 |
-| D002 / open | 간소 개념 계약은 승인됐으나 일관된 SQLite DDL, 실행 snapshot 필드, raw dataset serialization 묶음은 §11.4에서 미완료 | 새 설계 선택만 질문한다. 계약 확인 후 records/config/store/analysis의 해당 필드를 구현한다 | P1.03–P1.05; T002,T006,T008 |
+| D002 / resolved (2026-10-30 15:35:46 +09:00) | 통합 SQLite DDL, execution snapshot 필드, raw dataset serialization 계약의 확정 여부. 과거에는 미완료로 기록됐으나 후속 P1.05 계약 승인 및 T006/T008/T009 구현 기록과 대조 필요 | 사용자는 후속 P1.05 자료 계약 승인과 T006/T008/T009 구현이 범위를 충족한다고 판단해 resolved를 선택했다. 이 선택은 미해결인 별도 pilot 실행값이나 실행 승인을 뜻하지 않는다. | P1.03–P1.05; T002,T006,T008,T009 |
 | D003 / resolved (P1.07a) | RFC 8785 준수 구현 방식과 dependency 제약 결정이 남아 있었음 | 사용자 확인(2026-10-29): `rfc8785==0.1.4`를 의존성으로 사용한다. 공통 utility와 RFC 동작 테스트를 P1.07a에서 구현했다 | P1.07a |
 | D004 / verified (P4.02 storage boundary) | 중단된 `running` attempt의 재개 정책과 전체 attempt runtime 범위가 미정이었다 | 사용자 합의(2026-10-29): 재실행 시 같은 attempt ID를 복구하고 이미 저장된 관측은 보존·건너뛰며 `planned` 위치만 이어간다. 새 attempt/retry를 자동 생성하지 않는다. runtime 범위는 준비부터 최종 저장까지이며 중단시간은 제외한 활성 실행 구간을 합산한다. 비정상 종료로 잃은 구간은 마지막 checkpoint 누적값을 lower bound로 표시한다. Runner timer 연결은 P4.04에서 수행한다. | P4.02–P4.05 |
-| D005 / open | raw BH/face와 66 scenario는 확정. 참조 profile·보고 field의 pilot 범위와 일부 support/대응 계산 세부는 확인 필요 | detection·밀도·P32 등 전략의 분석 요구를 목록화해 필요한 evidence와 산출 가능성을 확인한다. threshold 자동 추정은 제외하고, 추가 측정/필드가 필요하면 구현 전에 범위를 결정받는다 | P1.03, P5.03–P5.04 |
+| D005 / verified (P5.03 scope) | raw BH/face와 66 scenario는 확정. 참조 profile·일부 support/대응 계산 범위 확인이 필요했음 | 사용자 결정(2026-10-30): 현행 자료로 가능한 profile만 구현하고 missing input profile은 unavailable로 표시한다. BH·face는 서로 다른 분포로 보고 같아야 한다고 가정하지 않는다. Modality/profile/scenario별 actual support를 분리한다(BH m, face m²). 같은 scenario의 가중 중앙값·bin support 비율 차이는 관측을 짝짓지 않는 탐색적 기술 대비로만 표시한다. Detection/miss는 산식 승인 전 보류한다. 추가 측정·필드·pilot DB 변경은 하지 않는다. P5.04 CSV schema details remain there | P5.03–P5.04 |
+| D012 / resolved (P5.04 CSV contract) | Scenario·profile·contrast·P32·target·location state를 계획된 10개 CSV로 제공한다. 제안된 exact headers/order/sorting/units·pilot row caps, pre-write bounded count preflight, literal `\\N` NULL, RFC 8785 canonical `report_summary.json`, payload에서 생성 시각 제외 및 별도 작업 로그 기록을 승인했다. | 2026-10-30 10:48:51 +09:00 timestamp 원칙과 P5.04 착수, 10:49:39 pilot 규모 확인, 10:51:36 제안 문서화, 11:02:44 형식 선택 및 11:06:02 상세 header/cap 승인. | P5.04 |
 | D006 / deferred | 축별 step, 후속 block/N·배분, 충분성·bin 전환·weight 등은 전략 §11.2.1–2의 post-pilot 항목 | 파일럿에서 값을 추정해 채우지 않는다. 결과 검토와 별도 승인 전 Phase 7/T011 차단 | P6.04, P7.01–P7.03 |
 | D007 / applied (초안) | 전략 §10.2의 2026-10-28 10:27·10:34 합의는 composite-key 구성 필드를 SQLite PK/FK로 직접 사용하고 opaque ID를 만들지 않도록 한다. 구현계획 D001은 승인된 “내부 row ID”를 유지한다고 기록해 키 방식이 불명확했다. | 사용자 확인(2026-10-29): SQLite에서 composite PK/FK만 사용하고 정수 surrogate row ID는 두지 않는다. 내부 정수 row ID로 읽힐 수 있는 D001 표현은 이 범위에서 composite-key 결정으로 구체화한다. 초안 관계에 반영; 최종 field/DDL 계약은 P1.05에서 고정한다. | P1.03–P1.05; T002,T006 |
 | D008 / applied (P1.04) | 논리 payload·JCS/SHA-256 규칙은 합의됐으나 SQLite 내 canonical snapshot의 bytes/text 저장 표현, source reference requiredness, evidence 교차점 표현 및 revision predecessor NULL 규칙은 미확정이었다. | 사용자 확인(2026-10-29): canonical JCS UTF-8 bytes는 BLOB, SHA-256은 lowercase hex TEXT; YAML source reference는 optional nullable; evidence 교차 위치는 evidence row의 sorted numeric JSON array; revision 1의 predecessor/reason은 NULL, 후속 revision은 직전 revision과 correction reason 필수. P1.04 검토안에 반영; 통합 field/DDL은 P1.05에서 고정한다. | P1.04–P1.05; T002,T006,T008 |
@@ -96,7 +389,7 @@
 |---|---|---|
 | 승인된 pilot 기반 | 최초 10 signatures: Jn 0.5/1의 2개 block, block별 N=5, design seed 39/36, 공통 realization seed 43. randomized LHS, 승인된 bounds·좌표변환, domain/tunnel/BH 형상, 1 m BH·face 측정, 여섯 동등 `Q′ > 400` 목표를 사용한다. G0 간소 계약에서 YAML + 단일 SQLite와 DB 내 manifest payload, schema version 1, ID/status/evidence, JCS/SHA-256 및 실행/분석 fingerprint 분리는 재결정하지 않는다. | 전략 §5·§11.2 안건 6·§11.4; 구현계획 §1.1 D001·§2·§5.1 P2.01–P2.03 |
 | REQ 범위 연결 | REQ-001–010은 pilot 기반의 설계·측정·저장·분석·사용자 실행 경계를 포괄한다. REQ-011은 초기 목표 ledger에도 적용되며 자동 갱신 부분은 후속이다. REQ-012/013은 T011/Phase 7의 후속 자동 탐색 범위다. | 전략 §2·§9; 구현계획 §5·§10 |
-| 아직 필요한 계약 결정 | 통합 SQLite 테이블·열·FK/NULL/check 제약, 실행 snapshot 및 fingerprint 입력 필드, pilot raw dataset serialization의 일관된 범위는 T002에서 제시·검토한다. 부분 실패 관측 보존은 유지하되 pilot 재시도·예산 차감·중단 복구 세부와 pilot 분석/profile 보고 범위·일부 support 대응 계산은 필요한 선택만 추가 확인한다. RFC 8785 구현 방법은 설치 환경/공식 vectors 확인 후 결정하며, 새 의존성 또는 직접 구현 필요 시 D003 절차를 따른다. | 구현계획 §1.1 D002–D005; P1.03–P1.07, P4.02·P4.04–P4.05, P5.03–P5.04 |
+| 아직 필요한 계약 결정 | 통합 SQLite 테이블·열·FK/NULL/check 제약, 실행 snapshot 및 fingerprint 입력 필드, pilot raw dataset serialization의 일관된 범위는 T002에서 제시·검토한다. CSV의 열·정렬·NULL·요약 계약과 출력 행수도 확정해야 한다. | 구현계획 §1.1 D002–D004; P1.03–P1.07, P4.02·P4.04–P4.05, P5.04–P5.05 |
 | 후속 또는 제외 | 충분성·비용/시간 집계·목표별 자동 예산 배분·step·정체/방향 전환·bin 전환·weight와 일반 자동 batch는 pilot 관측 후 별도 논의·승인 전 구현하지 않는다. simulation은 사용자가 입력·manifest·maximum simulation을 확인한 뒤 직접 실행한다. threshold 자동 선정, 현장 안전성 판단 및 기존 Euler 자료/설정의 변경·소급 변환은 이번 범위 밖이다. | 전략 §1.1·§5·§11.2.1–11.2.2; 구현계획 §2·§8–§9; D006 |
 | Gate 상태 | G0는 pilot 간소 자료 계약만 승인되었고 통합 T002 계약은 남아 있다. G1은 pilot 설계값이 확정되었으나 구현·검증은 미완료다. G2는 공통 당초 seed, 최고 target, 실행별 최대 simulation 입력과 상한 도달 상태 처리만 정해졌고 충분성·배분 등은 미결이다. G3는 구현 후 사용자 검증 대기, G4는 소규모 검증 후 benchmark 및 대규모 실행 승인 대기다. | 전략 §5·§11.2; 구현계획 §1.1·§2·§5.1 |
 
@@ -228,6 +521,7 @@ fingerprint 구현은 P1.06–P1.07에서 수행한다. D009–D011 선택과 �
 | `observations` | PK `(job key, attempt_index, modality, profile_id, location_index)`; composite FK to status/planned location and attempt | Actual raw observation rows only: `raw_rqd REAL NOT NULL CHECK 0..100`, `method_id TEXT NOT NULL`, `method_version TEXT NOT NULL`, `is_valid INTEGER CHECK 0/1`, `exclusion_reason TEXT NULL`, `zero_cross INTEGER CHECK 0/1`; if invalid, reason required, otherwise NULL. BH: `start_m/end_m`, `support_length_m`; face: `chainage_m`, `support_area_m2`, `advance_distance_m` (NULL only for initial reference face). Modality-specific columns mutually exclusive |
 | `measurement_evidence` | PK `(observation key, scanline_index)`; composite FK to `observations` | BH interval has its measured line length and sorted line-relative intersection positions; face has scanline index, start ENU, direction, actual valid length and sorted intersection positions. Position list is sorted numeric JSON UTF-8 `TEXT` (D011); no separate intersection table. Derived intersection count/line RQD/station average are not redundantly stored |
 | `dataset_revisions` | PK `(manifest_id, revision_index)`; FK to `manifest`; self-FK `(manifest_id, previous_revision_index)` | revision 1: predecessor/reason NULL; later correction revision: immediate previous revision and `correction_reason TEXT NOT NULL`; immutable `dataset_snapshot BLOB`, schema_version=1, SHA-256 digest. Snapshot contains planned-location statuses, selected raw observations, support/evidence; excludes attempt metadata/errors and derived scores |
+| `dataset_revision_observations` | PK `(manifest_id, revision_index, observation location key)`; FK to dataset revision and composite FK to source `observations` | One immutable relation per snapshot observation records the selected source `attempt_index`, excluded from the canonical raw snapshot itself. Added in store schema v2; v1 stores migrate additively. Existing revision rows without this provenance are not guessed/backfilled |
 | `analysis_runs` | PK `(manifest_id, revision_index, analysis_fingerprint_digest)`; FK to dataset revision | version=1 analysis snapshot BLOB/digest, dataset key+digest, analysis rules/config/implementation version. No raw-data copy |
 | `derived_scores` | PK `(analysis key, observation key, jr, ja)`; FK to analysis and observation | fixed Jn, Jr, Ja, `calculation_rqd=max(raw_rqd,10)`, continuous Q′, bin ID and zero-cross convention provenance; immutable raw observation |
 | `goal_contributions` | PK `(analysis key, goal_id, observation key)`; FK to analysis, goal and observation | many-to-many; duplicate contribution prohibited; reanalysis does not alter original execution goal |
@@ -323,7 +617,7 @@ manifest payload를 확인하기 전 simulation을 실행하지 않는다. 실�
 
 | 항목 | 계획 |
 |---|---|
-| 언어/런타임 | 기존 Python 프로젝트와 현재 프로젝트 환경을 사용한다. Python 버전이나 환경을 임의 상향하지 않는다. |
+| 언어/런타임 | conda `dlo-cq` 환경을 사용한다. `.venv`를 만들거나 사용하지 않는다. Python 버전이나 환경을 임의 상향하지 않는다. |
 | 주요 의존성 | 기존 NumPy/SciPy (`scipy.stats.qmc.LatinHypercube`), YAML parser, SQLite 및 MLX 경로를 재사용한다. 새 의존성은 추가하지 않는다. SciPy API는 구현 시 설치 버전으로 확인한다. |
 | 저장 | 신규 단일 SQLite DB, DB 내 고정 JSON manifest payload, 사용자 YAML 원본 bytes provenance. 기존 Euler DB/설정/결과와 분리된 run namespace. |
 | 실행 방식 | 별도 `run_rqd_exploration.py` CLI. simulation backend는 기존 정책을 따르고 MLX 오류 시 CPU로 묵시 전환하지 않는다. |
@@ -663,7 +957,7 @@ flowchart LR
 - **Requirements:** REQ-005, REQ-006, REQ-009
 - **기준:** 전략 계획 §§1–3, 4.5 및 §8 수용 기준.
 - **완료 조건:** 원자료는 불변이며 raw RQD와 계산 하한 적용을 분리한다. 고정 Jn별 각 raw observation에 정확히 66개 Jr/Ja 조합을 산출하고 score bin·도달성·실제 support를 구분한다. CSV 규모를 미리 추정한다.
-- [ ] T008 [Plan:5.1] `src/rqd_exploration/analysis.py`에 저장 RQD와 고정 Jn을 사용한 Jr/Ja 66개 scenario 점수를 구현하고, `obsolete/tools/tabulate_qprime_scores.py`와 점수·정확한 경계 규칙을 공유한다.
+- [x] T008 [Plan:5.1] `src/rqd_exploration/analysis.py`에 저장 RQD와 고정 Jn을 사용한 Jr/Ja 66개 scenario 점수를 구현하고, `obsolete/tools/tabulate_qprime_scores.py`와 점수·정확한 경계 규칙을 공유한다. P5.01–P5.02 검증 완료.
 - [ ] T009 [Plan:5.1] `src/rqd_exploration/analysis.py` 및 `run_rqd_exploration.py` 재분석 경로에서 scenario CSV, DFN–RQD 요약, 실제 bin support/inverse 진단, 수평 BH별 face 대응 분포·불일치, 독립 realization 및 원본 support 수를 산출한다.
 
 ### Phase 6 — 파일럿 검증·문서화·사용자 인계
@@ -698,11 +992,17 @@ T011에 의존하지 않는다. T011은 이 계획의 파일럿 범위 밖이다
 
 ## 5.1 Phase → Step 상세 실행 계획
 
+> **Historical pilot plan:** 아래 T001–T010/P1–P6 기록은 최초 pilot의 당시 요구·구현 범위를 설명한다.
+> `target_goals`, high-bin goal ledger, Jn 0.5/1 목표 및 도달성 검증 항목은 과거 pilot 전용이며
+> 2026-10-30 20:02부터 신규 누적 workflow에서 deprecated다. 이를 새 workflow에 구현하거나 유지하지 않는다.
+
 ### 단위·상태·검증 규칙
 
 - **Phase:** 검토 가능한 기능 묶음. 기존 Phase 1–6과 T-ID를 유지하고 후속 T011만 Phase 7로 표시한다.
 - **Step:** 실제 착수·완료를 기록하는 단위. `P2.01`처럼 Phase 내 연속 번호로 식별하며 상위 T-ID와
   `[Plan:X.Y]`를 연결한다. 새 T번호를 부여해 전략 plan의 작업 목록을 중복 생성하지 않는다.
+- **식별자 읽기:** `T008`은 상위 task이고 `P5.01`·`P5.02`는 해당 task의 실행 step이다.
+  `T009`는 `P5.03`–`P5.05`에 대응한다. `T007`과 `P5.07` 같은 표기는 같은 번호 체계가 아니다.
 - **공통 완료 조건:** 승인 범위 충족, 관련 D-ID 해소, 산출물 저장, 검증 증거 기록,
   두 문서의 상태 정합 확인. 테스트가 요구되는 기능 Step은 테스트를 실행하지 못하면
   완료가 아니라 `검증 대기`다. 보관 파일을 runtime import하거나 변경하지 않는다.
@@ -931,23 +1231,32 @@ Sample-specific producer는 표본 생성 후 P2.03에서 연결한다. **종료
 **진입:** T002 계약과 T005 관측 fixture. 순수 점수 계산은 runner/CLI 완료와 독립적으로 진행 가능.
 **종료:** 불변 원자료를 재생성 없이 분석하고 결과 규모·자료 제한을 보고한다.
 
-- [ ] P5.01 — T008 [Plan:5.1] `src/rqd_exploration/analysis.py`에 raw RQD와 계산용
+- [x] P5.01 — T008 [Plan:5.1] `src/rqd_exploration/analysis.py`에 raw RQD와 계산용
   `max(raw_RQD,10)`을 구별해 고정 Jn별 66개 Jr/Ja와 bin을 산출한다.
   `obsolete/tools/tabulate_qprime_scores.py`는 읽기 근거로만 사용하고 runtime import하지 않는다.
   [Source: obsolete/tools/tabulate_qprime_scores.py]
-- [ ] P5.02 — T008 [Plan:5.1] 승인된 점수·정확한 경계 규칙과 raw dataset/analysis
+- [x] P5.02 — T008 [Plan:5.1] 승인된 점수·정확한 경계 규칙과 raw dataset/analysis
   fingerprint를 검증한다. `src/test/test_rqd_exploration_analysis.py`에서 0/10/100 RQD,
-  bin 경계·`Q′ > 400`, 관측당 66행, 규칙/자료 변경 digest 구별을 확인한다.
+  bin 경계·`Q′ > 400`, 관측당 66행, 규칙/자료 변경 digest 구별을 확인한다. `dlo-cq`에서
+  focused 10개, 연관 regression 47개 및 전체 185개 테스트 통과; pilot DB/DFN/simulation 미실행.
 
-- [ ] P5.03 — T009 [Plan:5.1] `analysis.py`에서 DFN–RQD, BH별 face 대응 분포·불일치,
-  목표 거리·도달 support/inverse 진단과 D005에서 확인한 참조 profile을 산출한다.
-  독립 signature/realization·retry·관측·scenario 수를 구별하고 결측/비교 불가를 표시한다.
-- [ ] P5.04 — T009 [Plan:5.1] CSV 열·정렬·단위·분모·NULL 표기·요약 계약을 확인해
+- [x] P5.03 — T009 [Plan:5.1] `analysis.py`에서 고정 Jn/Jr/Ja scenario·modality/profile별
+  valid actual support 가중 중앙값·범위·bin support를 계산하고, profile 단위로 signature,
+  realization, observation, scenario 수와 location-state 결측/무효를 구분한다. BH–face는
+  서로 다른 분포임을 전제로 짝짓지 않는 탐색적 중앙값·bin 비율 대비를 제공한다. BH–P32를
+  job의 joint-set별로 연결하고 목표 `Q′ > 400`의 strict inverse RQD threshold·margin·
+  도달 support/비율을 산출한다. Retry count는 raw observation에서 추정하지 않고 unavailable로
+  보고한다. Detection/miss 비율은 보류한다. Face areal density와 tunnel-axis intersection
+  profile은 필요한 측정값이 현재 저장되지 않아 unavailable로 명시한다. `dlo-cq` focused
+  19개·전체 194개 테스트 통과. SQLite loader, CSV, CLI 및 pilot 실행은 포함하지 않는다.
+- [x] P5.04 — T009 [Plan:5.1] CSV 열·정렬·단위·분모·NULL 표기·요약 계약을 확인해
   `results/rqd_exploration/<run_id>/reports/`로 출력한다. DB writes 없이 raw snapshot을
-  고정해 재분석하며 raw 자료 변경 시 분석 fingerprint를 구별한다. CSV 확장 행수를 사전 산정한다.
-- [ ] P5.05 — T009 [Plan:5.1] `cli.py`의 analyze 경로와 analysis/CLI 테스트를 연결한다.
-  재분석 전후 원자료 불변·동일 규칙 출력 재현·simulation 호출 0회·중복 파생 행 미누적을
-  검증한다. **종료 증거:** 작은 fixture의 66배 행수와 support/표본 수가 맞는 CSV·요약.
+  고정해 재분석하며 raw 자료 변경 시 분석 fingerprint를 구별한다. CSV 확장 행수를 사전 산정했다.
+- [x] P5.05 — T009 [Plan:5.1] `cli.py` analyze 경로와 SQLite loader를 연결했다. Store schema
+  v2 migration 및 immutable revision-to-observation-attempt provenance를 추가하고, `derived_scores`
+  를 분석 fingerprint별 66 scenarios per observation으로 멱등 적재한다. `dlo-cq` fixture에서
+  원자료 불변·CSV/summary byte 재현·simulation 호출 0·중복 점수 행 없음·66행 및 support/표본 수를
+  검증했다. 전체 206 tests 통과; pilot DB/DFN/simulation 미실행.
 
 ### Phase 6 — 실행 전 인계·사용자 pilot·관측 후 결정
 
@@ -1029,6 +1338,31 @@ import 경계 변경 시 기존 회귀로 확장한다. 모델·store·CLI의 �
 | 2026-10-29 21:50 | P4.06 / T007 | 구현 완료 (CLI 실행 경계; P4.07 검증 대기) | `src/rqd_exploration/cli.py`; thin root `run_rqd_exploration.py`; `readme.md`; 두 계획; `checkpoints/tasks-to-impl.yaml` | `validate`, `preview`, `run`, `resume` 명령을 연결했다. Validate는 설정만 검증하고 preview는 MLX GPU preflight 및 immutable manifest preview를 만들되 DB write/simulation 없이 끝난다. Run/resume은 필수 manifest ID·DB path·양수 maximum simulation 및 `--confirm-execution`을 요구한다. 확인 전 DB connection/factory 생성은 하지 않는다. Run은 기존 경로를 거부하고 새 schema-v1 DB에 manifest를 저장한 뒤 Runner를 호출한다. Resume은 기존 DB에만 연결해 schema/manifest JSON 완전 일치를 확인한다. MLX만 허용하며 preflight 실패는 오류로 표시한다. CLI smoke: validate 성공, 실제 MLX preview 10 jobs/1,210 locations, confirm 없는 run 거부 및 DB 파일 미생성. Focused Runner/store 20 tests와 전체 suite(재실행 예정), Pylance/syntax/diff checks | P4.07 subprocess tests로 거절·예산 누락·DB mismatch·정상 preview 및 임시 DB run/resume 확인. Real pilot 실행은 별도 승인 필요 |
 | 2026-10-29 21:50 | P4.06 / T007 | 구현 완료 (CLI 실행 경계; P4.07 검증 대기) | `src/rqd_exploration/cli.py`; thin root `run_rqd_exploration.py`; `readme.md`; 두 계획; `checkpoints/tasks-to-impl.yaml` | `validate`, `preview`, `run`, `resume` 명령을 연결했다. Validate는 설정만 검증하고 preview는 MLX GPU preflight 및 immutable manifest preview를 만들되 DB write/simulation 없이 끝난다. Run/resume은 필수 manifest ID·DB path·양수 maximum simulation 및 `--confirm-execution`을 요구한다. 확인 전 DB connection/factory 생성은 하지 않는다. Run은 기존 경로를 거부하고 새 schema-v1 DB에 manifest를 저장한 뒤 Runner를 호출한다. Resume은 기존 DB에만 연결해 schema/manifest JSON 완전 일치를 확인한다. MLX만 허용하며 preflight 실패는 오류로 표시한다. CLI smoke: validate 성공, 실제 MLX preview 10 jobs/1,210 locations, confirm 없는 run 거부 및 DB 파일 미생성. P4.07은 subprocess tests에서 검증. 임시 SQLite/mock runner만 사용; pilot DB/DFN/simulation 미실행 | P4.07 subprocess 및 임시 DB run/resume 검증 완료 |
 | 2026-10-29 21:56 | P4.07 / T007 | 완료 (CLI/subprocess·임시 DB 통합 검증) | `src/test/test_rqd_exploration_cli.py`; `src/rqd_exploration/cli.py`; readme 및 두 계획; `checkpoints/tasks-to-impl.yaml` | 5개 CLI subprocess 테스트에서 validate/preview, 미확인 run 거부 및 DB 미생성, 필수/비유효 budget, 새 DB 경로 및 기존 DB 보호, 임시 schema-v1 run/manifest 저장, 동일 manifest resume, generator/runtime fingerprint mismatch, schema mismatch 및 budget 종료 요약 출력을 확인했다. Runner는 subprocess에서 모의 처리해 DFN 생성/simulation을 방지했다. Focused `conda run -n dlo-cq python -m unittest -q src.test.test_rqd_exploration_cli src.test.test_rqd_exploration_runner src.test.test_rqd_exploration_store`: 25 tests passed. 전체 suite 최종 결과 175 tests, 0 failures. CLI/test Pylance diagnostics 및 syntax checks 없음; `git diff --check` 통과. 임시 DB만 사용; 실제 pilot DB/manifest·DFN·simulation 미실행 | T006/T007 및 Phase 4 구현·검증 완료. 다음은 독립 T008/P5.01 분석 단계; 사용자 승인 전 미착수 |
+| 2026-10-30 10:04 +09:00 | P5.01–P5.02 / T008 | 완료 (66-scenario scoring·bin·fingerprint) | `src/rqd_exploration/analysis.py`; `src/test/test_rqd_exploration_analysis.py`; `.github/copilot-instructions.md`; `.github/SKILL.md`; readme; 두 계획 및 `checkpoints/tasks-to-impl.yaml` | 승인된 `max(raw_RQD,10) * Jr / (fixed_Jn * Ja)`를 고정 Jn에 적용하는 66개 조합, raw/calculation RQD 분리, `primary_profile_10bin_v1`의 `(lower, upper]` 10 bins와 `Q′ > 400` 초과 구간, RFC 8785 raw-dataset digest와 분리된 analysis rules/dataset digest를 구현했다. Focused analysis 10개, analysis/fingerprint/design/measurement regression 47개, full `conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -q`: 185 tests, 18.016s, OK. Pylance diagnostics/syntax 및 `git diff --check`는 마감 검증에서 확인. 사용자 요청으로 `/Users/myungkyusong/Documents/Develop/09. DFN/.venv` 삭제; Python 3.11.15, NumPy 2.4.3, SciPy 1.17.1, rfc8785 0.1.4는 `dlo-cq`에서 확인. Pilot DB/DFN/simulation 미실행 | 다음 후보 P5.03–P5.05 / T009; D005 참조 profile·보고 field·support 대응 범위 확인 전 진단/보고 구현 시작 안 함 |
+| 2026-10-30 10:45 +09:00 | P5.03 / T009 | 완료 (reference-profile analysis core) | `src/rqd_exploration/analysis.py`; `src/test/test_rqd_exploration_analysis.py`; D005, §5.1, strategy plan 및 checkpoint | Scenario/profile/modality별 support-weighted median·range/bin support, raw location-state/reason counts, distinct signature/realization/observation/scenario counts, P32 points per joint set, strict `Q′ > 400` inverse threshold/margin and reached BH support/ratio를 구현. BH–face는 서로 다른 분포로 유지하고 관측을 짝짓지 않은 median/bin-fraction contrasts만 탐색적 기술로 제공; equality expectation, pooled support, detection/miss ratio는 두지 않음. Current evidence로 산출 불가한 face areal density와 tunnel-axis intersection, raw snapshot에 없는 retry count는 reasons와 함께 unavailable 처리. Focused `conda run -n dlo-cq python -m unittest src.test.test_rqd_exploration_analysis -q`: 19 tests; full `conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -q`: 194 tests, 0 failures. `py_compile` passed; changed Python files Pylance diagnostics/syntax errors 없음. CSV/CLI/DB/pilot execution은 미수행 | D005 P5.03 scope verified; next proposal P5.04 CSV contract; user direction required before starting next Step |
+| 2026-10-30 10:48:51 +09:00 | 작업 기록 원칙 / P5.04 진행 지시 | 적용 중 | 사용자가 매 결과·진행 시각 기록과 당일 누락 기록 정리를 요청하고 다음 단계 진행을 지시 | P5.03은 10:45 완료 시각 기록이 있으나 이번 지시 이전 P5.04 kickoff 기록은 누락되어 아래 10:49:39 시작 로그에 추가. 이후 단계별 시작·결과를 진행 중/완료 상태와 함께 기록한다 | D012 open; P5.04 contract proposal |
+| 2026-10-30 10:49:39 +09:00 | P5.04 / T009 | 진행 시작 (contract review) | P5.04 입력·기존 CSV 요구사항·pilot size 확인 | 사용자 요청(10:48:51)을 받고 P5.04를 시작했다. 10 jobs·1,210 locations(600 BH/610 face)·6 goals·1 joint set/job 확인; CSV implementation 전 contract 결정을 분리해 다루기로 함 | D012 open |
+| 2026-10-30 10:51:36 +09:00 | P5.04 / T009 | 계약 제안 문서화 완료; 사용자 승인 대기 | 전략 plan의 P5.04 CSV contract proposal; README 현재 상태; D012/checkpoint 갱신 | Proposed 10 logical CSV files + deterministic JCS `report_summary.json`, exact header order, UTF-8/no BOM, RFC 4180/LF, literal `\\N` null, boolean text and round-trip float serialization. Per-file planned row caps (headers excluded): scenario 79,860; profile summary 264; profile-bin 2,904; BH-face contrast 132; BH-face bin contrast 1,452; BH–P32 39,600; target observations 1,800; target summaries 6; location states 1,210; unavailable profiles up to 6. Conservative sum of per-file maxima is 127,234 rows; not necessarily simultaneous and not actual observed data. No CSV was generated or exporter implemented. | D012 remains open; awaiting user decision before P5.04 implementation |
+| 2026-10-30 10:52:49 +09:00 | P5.04 / T009 | 제안 문서·인계 검증 완료 | README; ImplementationPlan §1/§5.1; strategy plan CSV proposal; `checkpoints/tasks-to-impl.yaml` | `conda run -n dlo-cq` YAML parse and metadata/194-test handoff assertion passed; `git diff --check` passed. Contract choices remain open; no exporter, CSV files, DB read/write, or pilot execution performed. | D012 open; user decision needed before exporter implementation |
+| 2026-10-30 10:53:19 +09:00 | P5.04 / T009 | 사용자 계약 확인 대기 | D012 and timestamped proposal across implementation plan, strategy plan, readme and checkpoint | Proposal and row-count calculations are documented and passed YAML/diff checks. No unresolved choice was silently defaulted: approval is requested for the normalized multi-file CSVs, explicit `\\N` nulls, canonical JCS metadata and omission of export time from deterministic payloads. | D012 open; resume P5.04 exporter only after user response |
+| 2026-10-30 11:02:44 +09:00 | P5.04 / T009 | 계약 선택 일부 확인; 세부 승인 대기 | D012 choices; strategy plan and README | User selected multiple result-type CSV files, explicit `\\N` NULL marker, canonical JCS summary, and generation time in an external work log. Exact headers/order/sorting/units and bounded preflight row caps were not included in the choice form and remain proposed, not presumed approved. No exporter implementation or CSV generation started. | Confirm exact header/cap proposal before exporter |
+| 2026-10-30 11:06:02 +09:00 | P5.04 / T009 | D012 상세 계약 승인 및 exporter 착수 | Exact strategy plan CSV headers/order/units and per-file row caps | User explicitly approved the proposed 10-file schema, exact headers/order/units, pilot-derived row caps, and pre-write row-count preflight. Together with the 11:02:44 selections this resolves D012. Began P5.04 bounded exporter/preflight only; no DB access or report CSV generation. | Implement and run focused tests |
+| 2026-10-30 11:09:46 +09:00 | P5.04 / T009 | Exporter 및 serialization focused tests 통과 | `reporting.py`; `test_rqd_exploration_reporting.py` | Six focused tests pass: exact header/row counts, preflight cap rejection before filesystem creation, canonical JCS summary, NULL/boolean/float serialization, deterministic byte output under input reordering, and inconsistent-source rejection. An earlier assertion incorrectly assumed the first BH/face bin was populated; corrected the test to check the populated bin. Pylance diagnostics clean for new source and test files. No pilot data or DB used. | Full regression validation pending |
+| 2026-10-30 11:10:06 +09:00 | P5.04 / T009 | 전체 회귀 검증 완료 | `dlo-cq` full suite; checkpoint YAML; `git diff --check`; syntax diagnostics | 전체 200 tests 통과(이전 194 + report focused 6); checkpoint YAML parse와 `git diff --check` 통과. New report source/test Pylance diagnostics clean, both Python files syntax-check 통과. Export tests used temporary fixture outputs only; no pilot DB, persistent CSV output, DFN generation, simulation, or CLI integration. | P5.04 complete; P5.05 SQLite loader/analyze CLI remains |
+| 2026-10-30 11:11:31 +09:00 | P5.04 / T009 | 완료 handoff 문서 최종 확인 | README, implementation plan, strategy plan, `tasks-to-impl.yaml` | 최종 상태는 P5.04 complete/P5.05 next이며 checkpoint YAML의 완료 단계·200개 테스트 handoff 및 `git diff --check`를 다시 확인했다. 작업 트리의 기존 미관련 변경을 보존했으며 커밋하지 않았다. | P5.05 SQLite loader/analyze CLI remains |
+| 2026-10-30 11:13:03 +09:00 | P5.05 / T009 | 진행 시작 | Existing `dataset_revisions`/`analysis_runs` schema and P1.05 selection policy review | Confirmed raw dataset revisions have schema tables but no creation/load API. P1.05 states the canonical dataset selects each job's highest-index succeeded attempt; P5.05 connects this immutable revision boundary to `analyze` without simulation. | Implement revision loader, CLI, regression tests |
+| 2026-10-30 11:27:43 +09:00 | P5.05 / T009 | 구현·검증 완료 | SQLite revision loader, `analyze` CLI, derived score persistence, fixture regression | 선생님 결정에 따라 `derived_scores`를 SQLite에 저장한다. Store schema v2 adds `dataset_revision_observations` for immutable revision→source-attempt lineage and migrates v1; provenance-less legacy revisions are never guessed. Highest-successful-attempt selection, canonical revision/hash verification, analysis-run registration and score insert-or-verify are implemented. Dataset/CLI/store focused tests pass; full `conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -q` passed 206 tests. Tests confirm 66 scenario score rows for one observation, 66 report rows/support counts, deterministic rerun, unchanged raw rows and zero simulation calls. | P5.05 complete; next T010/P6.01–P6.02 handoff preparation and user review. No pilot DB/DFN/simulation was run |
+| 2026-10-30 11:29:16 +09:00 | P5.05 / T009 | 완료 handoff 문서 검증 | README, ImplementationPlan, strategy plan, `tasks-to-impl.yaml`; Python syntax; `git diff --check` | `conda run -n dlo-cq` py_compile 통과, checkpoint YAML parse 통과, `git diff --check` 통과. README와 두 기준 문서, checkpoint가 P5.05 완료/206 tests/T010 다음 단계/schema-v2 migration/사용자 실행 승인 경계를 일치하게 기록한다. | T010/P6.01–P6.02 pre-run handoff; pilot 실행 전 별도 명시 승인 필요 |
+| 2026-10-30 11:31:18 +09:00 | P5.05 / T009 | legacy provenance 차단 사례 포함 최종 회귀 완료 | `dataset.py`; `test_rqd_exploration_dataset.py`; full `dlo-cq` suite | Schema-v1 revision에 원 attempt mapping이 없을 때 migration 후 추측 없이 explicit error가 발생하는 회귀 테스트를 추가했다. 전체 207 tests 통과, Pylance diagnostics 및 `dlo-cq` py_compile clean. | P5.05 complete; T010/P6.01–P6.02 next. No pilot DB/DFN/simulation |
+| 2026-10-30 11:31:52 +09:00 | P5.05 / T009 | 문서 handoff 최종 validation | `tasks-to-impl.yaml`; `git diff --check` | 최종 checkpoint YAML 구조·완료 수치(207 tests/4 tasks complete)를 파싱해 확인했고 `git diff --check`가 통과했다. 기준 문서와 README의 현재 단계는 T010/P6.01–P6.02다. | No pilot DB/DFN/simulation; 사용자 검토 전 P6.03 이후 작업 미착수 |
+| 2026-10-30 11:33:57 +09:00 | T010 / P6.01–P6.02 | 집 재개 handoff 및 pre-run 절차 문서화 | Current-state sections in ImplementationPlan, strategy plan, README, `tasks-to-impl.yaml` | 선생님은 집에서 남은 준비를 이어가고 simulation을 검토할 예정이라고 알렸다. 다음은 실제 config/manifest/runtime/budget/출력 규모 및 resume 절차를 확인하는 P6.01과 acceptance/D-ID/risk 검토를 제시하는 P6.02다. Validate/preview는 DB write·simulation 없이 수행한다. Pilot 실행은 config·manifest·DB path·maximum simulation·명령을 제시한 뒤 별도 명시 승인을 받은 경우에만 가능하다. 이번 handoff 작업에서는 DB/DFN/simulation을 실행하지 않았다. | At home: P6.01 validate/preview + documentation; P6.02 present review package and await explicit run approval |
+| 2026-10-30 15:07:50 +09:00 | T010 / P6.01 | Config validate 및 in-memory MLX manifest preview 완료 | `config/rqd_exploration_pilot.yml`; `run_rqd_exploration.py`; `reporting.py`; `store.py` | `conda run -n dlo-cq`에서 validate 및 preview 통과. 2 designs/10 samples/6 goals; 10 jobs, BH 600 + face 610 locations. Runtime: CPython 3.11.15, macOS 27.0.1 arm64, NumPy 2.4.3, SciPy 1.17.1, MLX 0.31.1, `Device(gpu, 0)`. Review-only ID `p6-01-review-20261030-1507`; manifest SHA-256 `25975ab2b6eb76d4b402e4734cc034585aa2a73fed82fd2bc29e4f7fabf040d0`; config SHA-256 `33d1629f4cd8eead88920ae4b2d2c78ee5c01c734c4fb4401b0824a4f1959ada`. CSV row-cap sum 127,234 is a ceiling, not observed rows. Existing results root has only `.gitkeep`, with no pilot DB/report. Preview reports no DB write or simulation; no DFN generated. DB path, simulation budget, and final manifest ID remain undecided. | P6.02 user review next; do not run pilot before explicit approval |
+| 2026-10-30 15:10:43 +09:00 | T010 / P6.02 | 사용자 검토 패키지 제시; 결정 대기 | Acceptance criteria §7.1, D-ID register, P6.01 preview, reporting caps, CLI run/resume templates | Criteria 1–9의 구현/test evidence와 criterion 10의 해석 경계를 설명했다. D004/D005 verified, D006 deferred, D012 resolved; D002의 `open` status와 P1.05/P5 구현 기록 간 불일치를 기록했다. 최종 manifest ID, DB 경로, budget은 미정. Run/resume 명령은 예시 template만 제공했으며 실행·DB·DFN·simulation 없음. | Await user review/choices; P6.02 not complete; no pilot execution authorization |
+| 2026-10-30 15:31:52 +09:00 | T010 / P6.02 | D002 의미 질문 | D-ID register | 사용자는 D002의 뜻을 질문했으며 상태를 선택하지 않았다. assistant가 이를 status 선택 대기라고 기록한 표현을 다음 사용자 지적으로 정정한다. D002 상태는 변경하지 않았다. | Explain D002 clearly; do not infer a status choice |
+| 2026-10-30 15:33:45 +09:00 | T010 / P6.02 | 사용자 요청에 따라 D002 설명 및 정확한 상태 질문 재제시 | D002 register and subsequent contract/implementation records | D002의 원래 범위(통합 SQLite DDL, execution snapshot fields, raw dataset serialization)와 `open` 표기 대 P1.05 승인/T006·T008·T009 구현 기록의 불일치를 설명했다. 사용자는 D002가 무엇인지 물었으며 상태를 지정하지 않았다. 선택지를 중립적으로 다시 묻고, 이 질의 자체가 상태 결정은 아님을 기록한다. | Await user choice; no status change, no pilot execution |
+| 2026-10-30 15:35:46 +09:00 | T010 / P6.02 | D002 상태 사용자 결정 | D002 register; P1.05/T006/T008/T009 completion evidence | 설명을 받은 뒤 사용자가 `resolved`를 선택했다. 근거는 P1.05 자료 계약 승인 및 후속 store/analysis/dataset revision 구현 기록이 D002 범위를 충족한다는 판단이다. Historical entries are retained; current register row updated. | D002 resolved; final manifest ID, DB path, and budget remain unselected; no pilot execution approval |
+| 2026-10-30 15:44:36 +09:00 | T010 / P6.02 | 설정 확정 및 final-ID preview 완료; 실행 승인 대기 | User-selected `sqlite/` folder and DB filename; `dlo-cq` in-memory preview | 사용자는 assistant가 생성한 manifest ID `qsimex-rqd-pilot-20261030-1535`, 새 DB 경로 `sqlite/qsimex-rqd-pilot.sqlite`, invocation budget 1000을 정했다. Final preview SHA-256 `9bc488720cbea5c8ba43b1e5fc0665327baaca0544a9e71911fb93dace834eea`, 10 jobs/1,210 locations. `sqlite/` 폴더만 존재하며 DB file 없음; preview에서 DB write/simulation 없음. Cap 1000은 최대치이며 예정 job은 10개다. | P6.02 review values recorded; wait for separate explicit authorization before DB creation/manifest persistence/DFN/simulation |
+| 2026-10-30 15:48:09 +09:00 | T010 / P6.03 | 실행 호출 중단; SQLite 상태 read-only 점검 | `sqlite/qsimex-rqd-pilot.sqlite`; CLI process check; SQLite read-only queries | 명시 승인된 run 호출은 tool interruption으로 끝났다. 현재 process 없음. DB schema v2, manifest 1, attempt 1 running (jn-half/block-half/sample 0/seed 43, attempt 0), 121 planned locations, 0 observations. 사용자는 직접 실행하겠다고 했으므로 assistant는 재개하지 않는다. 기존 DB 경로 때문에 다음 명령은 run이 아니라 resume다. | User executes resume command; no further assistant execution |
 
 **작업 중단·재개 메모 (2026-10-29 16:35 +09:00, 사용자 요청):**
 오늘은 2단계의 현 단계 검증(P2.04a)까지 진행한 상태에서 잠시 중단한다.
@@ -1074,6 +1408,199 @@ P2.03b와 P2.04b는 측정 producer가 있어야 완료할 수 있다. 따라서
   선생님과 상의한 뒤 진행한다.
 - 각 단계 종료 시 수행 결과, 실제 검증 결과와 남은 한계, 다음 작업을 제시하고
   다음 진행 지시를 기다린다. 현재의 단계별 보고 포맷을 유지한다.
+
+### 5.2 조건 변경형 누적 bin-coverage workflow — 순차 구현 계획
+
+**기록 시각:** 2026-10-30 20:02 +09:00
+**상태:** CUM.01 결정 확정·기록 완료. CUM.02 구현은 미착수.
+이 계획은 기존 pilot의 완료 이력을 다시 수행하는 것이 아니며,
+T011의 자동 후보 선택/controller 구현도 포함하지 않는다. 사용자가 조건과 다음 batch를 선택하고,
+프로그램은 새 raw observation을 기존 자료에 보존·누적하는 흐름만 다룬다.
+
+#### 범위와 고정 조건
+
+- 목표는 새 simulation batch를 같은 누적 자료에 추가하고, 누적 원관측의 bin support를 다시 분석하는 것이다.
+- Jn은 신규 DFN 생성 입력이며 실행값은 사용자 확정 매핑 `2→1 set`, `4→2`, `9→3`,
+  `15→4`, `20→5`만 허용한다. `0.5/1`은 새 DFN batch에서 제외하고, `3/6/12`는
+  random-joint 모델 지원 전까지 제외한다. `15→4`와 `20→5`는 사용자 선택 대표/근사 구성이다.
+- Jr/Ja 조합만 달라지는 경우 DFN을 다시 생성하지 않고 보존된 raw observations를 재점수화한다.
+- Jn 실행 조건과 점수화 분석 축은 서로 다른 입력 계약으로 둔다. 기존 점수 grid의 값까지
+  제거하거나 바꾸지는 않는다. Pilot `target_goals`/목표 도달성 기능은 신규 workflow에서 폐기하며
+  전체 bin coverage에 목표 목록을 요구하지 않는다. pilot2의 stale Jn 0.5/1 goal entries는 CUM.02에서 제거한다.
+- 모든 신규 실행은 명시적 실행 확인을 요구한다. 개발·검증 단계에서는 pilot DB/GPU simulation을
+  실행하지 않으며, 최종 batch 실행은 사용자 인계 후 사용자가 직접 한다.
+- 사용 환경은 기존 conda `dlo-cq`만 사용하며 `.venv`를 만들거나 사용하지 않는다.
+
+#### 순차 진행 규칙
+
+1. 아래 CUM.01부터 번호 순서로 한 단계씩 진행한다. 병렬 실행이나 다음 단계로의 선행 점프는 하지 않는다.
+2. 각 단계 종료 시 실제 변경, 검증 명령/결과, 미해결 사항, 다음 단계만 보고하고 멈춘다.
+   사용자의 확인 후에만 다음 단계에 착수한다.
+3. CUM.01의 사용자 결정이 필요한 사항은 구현 전에 질문하고, 답을 받은 뒤 이 계획과 관련 전략/
+   checkpoint를 갱신한다. 결정 전에는 가정을 코드나 설정에 반영하지 않는다.
+4. CUM.09의 simulation은 assistant가 대신 실행하지 않는다. 사용자가 직접 실행한 뒤 제공한 결과를
+   확인하는 경우에도 우선 read-only로 확인한다.
+
+#### 실행 단계
+
+| 순번 | Step | 작업 및 완료 기준 |
+|---:|---|---|
+| 1 | **CUM.01 — 동작 계약 및 미결 결정 확정** | 사용자가 선택한 단일 run 흐름(새 저장소 시작·새 조건 추가·동일 미완료 batch 자동 재개), 내부 batch/manifest ID, exact duplicate 거부, schema v2 migration 없이 새 schema만 지원을 계약으로 기록한다. 기존 pilot의 `target_goals` 기능은 deprecated이며 신규 실행 계약에서 폐기한다. 기존 기능과 설정을 실제로 제거하는 위치·범위를 CUM.02에 명시하고, 역사적 기록은 과거 pilot 결과로 표시한다. 남은 모호성·수용 기준을 결정하고 기록한다. **이 gate가 끝나기 전 코드/YAML 수정 금지.** |
+| 2 | **CUM.02 — 입력 검증과 폐기된 목표 기능 제거** | `config.py`의 신규 design `fixed_jn`을 확정 매핑과 `joint_sets` 개수에 맞춰 검증한다. 지원하지 않는 Jn 및 set 수 불일치는 명시적 오류로 거부한다. 활성 config/manifest/CLI/analysis/report 경로에서 `target_goals`, high-bin goal ledger, 목표 도달성 gate를 제거하고 전체 bin coverage만 남긴다. pilot2 설정은 이 단계에서 사용자 확인된 범위로 갱신한다. **완료 기준:** config/CLI 테스트에서 Jn 허용·거부와 매핑 개수를 확인하고, target goal 입력 없이 validation/coverage가 동작하며, 구형 goal 경로가 새 실행에 남아 있지 않음을 확인한다. |
+| 3 | **CUM.03 — append-only batch 저장 계약** | 현재 pilot SQLite schema v3의 `manifest_id` batch 경계를 검토하고 동일 DB에 복수 manifest를 추가할 수 있는 기존 관계를 검증한다. manifest/YAML provenance/design sample/job/planned location/raw observation/evidence는 append-only로 보호하고 batch/attempt provenance를 보존한다. batch별 revision은 기존 per-manifest 관계를 유지하며, 여러 batch를 합친 누적 revision은 CUM.05에서 다룬다. CUM.01 결정에 따라 기존 schema v2는 migration하지 않고 명시적으로 거부한다. **완료 기준:** 임시 DB 통합 테스트에서 새 batch 추가, transaction rollback, 재오픈 후 provenance·원자료 동일성, 불변성 및 schema v2 거부가 검증된다. |
+| 4 | **CUM.04 — batch 추가·재개 CLI** | 사용자가 새 조건 YAML로 기존 누적 DB에 batch를 추가하고, 동일한 미완료 batch를 안전하게 재개하는 CLI 경로를 구현한다. 기존 manifest ID를 사용자에게 반복 입력시키지 않으며 내부 식별은 provenance로 유지한다. 추가와 재개를 구별하고 config fingerprint 불일치, 중복 추가, 모호한 재개 대상은 CUM.01에서 합의한 규칙에 따라 명시적으로 처리한다. 실행 identity 기준은 구현 전에 사용자와 확인한다. preview/confirm gate는 보존한다. **완료 기준:** CLI subprocess 테스트가 신규 DB·기존 DB 추가·동일 batch resume·잘못된 입력·확인 누락을 검증하고 simulation 호출은 0회다. |
+| 5 | **CUM.05 — 다중 batch 누적 dataset revision** | 모든 batch의 raw BH/face 관측, 모든 attempt의 원관측/위치 상태, attempt 결과를 결정론적 immutable revision으로 구성한다. 분석상 적격 support를 구분하더라도 failure/incomplete 기록을 cumulative snapshot에서 숨기거나 삭제하지 않는다. 이전 revision은 보존하고, 새 batch 유입량과 누적 전체를 구분한다. 같은 execution fingerprint의 원자료/provenance는 batch별 보존하되 독립 realization은 한 번만 계산한다. schema v4 fresh-only이며 v2/v3는 거부한다. **완료 기준:** 다중 batch fixture에서 raw/failed/incomplete provenance, 중복 realization 정책, revision digest, append 및 immutability가 검증된다. |
+| 6 | **CUM.06 — 누적 재점수화·분석** | 누적 raw dataset에 선택된 분석 Jn/Jr/Ja scenario를 적용해 결과를 재현성 있게 계산한다. Jr/Ja 축만 바뀐 재분석은 DFN/generator 호출 없이 수행하며, 분석 입력/fingerprint가 달라진 revision을 식별한다. 파생 scenario 행은 독립 raw observation 수로 세지 않는다. **완료 기준:** Jr/Ja만 바꾼 분석의 backend 호출 0회, raw 데이터 불변, 새 score 및 revision 재현 테스트 통과. |
+| 7 | **CUM.07 — 누적·batch별 coverage 보고** | Jn × Jr × Ja × modality/profile × bin별 양의 support/occupancy, 관측·signature/DFN·realization 수, 유효/결측 상태를 구분해 출력한다. Occupancy는 유효한 양의 support가 하나라도 있으면 occupied이며, 이는 충분성 판정과 다르다. profile은 유효한 양의 support가 하나 이상이면 기술적으로 계산하되 sufficiency를 강제 gate로 두지 않고, 고유 signature/DFN 수 등 누적 진행 근거를 제공한다. 각 고유 signature의 결과를 개별적으로 유지하며 batch 평균으로 합치지 않는다. 동일 execution fingerprint는 coverage에서 한 번만 세고 모든 source/provenance는 보존한다. 상충 fingerprint는 원자료 상세에 보존·표시하고 해당 fingerprint 전체를 profile/bin 집계에서 제외하되 report는 계속한다. Batch별 source/독점/shared fingerprint 수를 보고하며 manifest 생성시각이 없으므로 시간순 신규 유입은 추정하지 않는다. BH 길이와 face 면적 등 이종 단위를 합치지 않는다. 고정 row cap 없이 정확한 행 수를 사전 계산하고 streaming export한다. **완료 기준:** exact headers/units/counts와 preflight 행수 및 conflict fixture 검증. 통계적 sufficiency(90% confidence/5 pp 후보)는 실제 pilot 자료 검토 뒤 결정한다. |
+| 8 | **CUM.08 — 통합 회귀, 설정 준비, 문서화** | 전체 CLI→저장→재개→누적 dataset→재분석→보고 경로를 임시 DB로 검증한다. pilot2 설정은 deprecated `target_goals` 제거를 포함해 사용자 확인된 범위에서 갱신하고 validate/preview를 통과시킨다. 테스트는 `conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -v`와 필요한 focused 테스트를 사용한다. **완료 기준:** multi-batch 누적, 원자료 불변, schema-v2 거부, resume, Jn 매핑, goal 없는 전체 coverage, Jr/Ja 재점수화 regression이 통과하고 readme/계획에 실행 명령과 한계를 기록한다. simulation은 실행하지 않는다. |
+| 9 | **CUM.09 — 사용자 실행 인계 및 결과 확인** | 검증된 설정·예상 job/location 수·대상 DB·추가/재개 명령·예산/실행 확인·출력 위치를 제시한다. 사용자가 직접 작은 batch를 실행하고 결과를 공유하면 저장 건수와 상태를 먼저 read-only로 확인한 뒤 누적 coverage 및 다음 수동 설정 단계를 보고한다. **완료 기준:** 사용자가 각 batch를 실행·검토하고 누적 자료와 신규 유입분을 구분해 확인한다. 자동 후보 선택·자동 batch loop는 포함하지 않는다. |
+
+#### CUM.01 — 결정 기록 (2026-10-30 20:02 +09:00)
+
+1. **CLI 흐름 — 사용자 선택:** 단일 실행 흐름으로 새 누적 저장소 시작, 새 조건 batch 추가, 일치하는 미완료 batch 재개를 처리한다. 내부 식별자는 프로그램이 관리하며 manifest ID를 사용자 입력으로 요구하지 않는다.
+2. **중복 — 사용자 선택:** exact duplicate batch는 거부한다. 같은 미완료 batch의 resume은 신규 duplicate batch가 아니라 해당 batch의 이어 실행이다. 실행 fingerprint와 batch 상태에 따른 판정은 CUM.04에서 명시적으로 구현·검증한다.
+3. **DB 호환 — 사용자 선택:** schema v2 자동 migration은 하지 않고 새 누적 schema만 지원한다. schema v2 DB는 실행 전에 명확히 거부한다. 이전 pilot DB/report는 이미 삭제되어 복구·migration 대상으로 삼지 않는다.
+4. **`target_goals` — 사용자 결정:** Jn은 DFN 설계 입력이며 `target_goals`는 Jn 결정/검증에 필요하지 않다. 기존 pilot의 goal 중심 기능은 **폐기(deprecated)**한다. 신규 workflow의 config, manifest, 실행 검증, 분석, 보고에서 제거하고 전체 bin support를 계산한다. 과거 pilot 설계/실행/분석 기록은 해당 실험의 역사적 기록으로만 남기며 현재 요구사항·기능으로 간주하지 않는다. pilot2의 과거 Jn 0.5/1 목표도 신규 실행에서 제거한다.
+5. **표본 독립성 세부 (CUM.05에서 사용자 확정):** 다른 batch에서 같은 execution fingerprint가 반복되어도 원관측과 출처는 모두 보존한다. 독립 realization support에서는 해당 fingerprint를 한 번만 계산한다.
+6. **Schema 호환 (CUM.05에서 사용자 확정):** 새 cumulative dataset revision용 SQLite schema v4를 fresh-only로 지원한다. schema v2와 v3 DB는 모두 거부하며 migration하지 않는다.
+
+신규 실행 Jn 매핑 `2/4/9/15/20`, 0.5/1 제외, random-joint 미지원 값 제외, Jr/Ja 변경 시 재시뮬레이션 금지,
+실제 simulation의 사용자 직접 실행 경계는 기존 사용자 결정을 재사용하며 다시 미결로 열지 않는다.
+
+#### CUM.02 — 입력 검증과 폐기된 목표 기능 제거 (완료, 2026-10-30 20:20 +09:00)
+
+- 신규 DFN 설계 Jn은 `2→1 set`, `4→2`, `9→3`, `15→4`, `20→5`로 검증한다. 지원하지 않는 Jn과
+  매핑에 맞지 않는 `joint_sets` 개수는 명시적으로 거부한다.
+- 신규 config·manifest·분석·보고·CLI 계약에서 `target_goals`, 목표 ledger/도달성 상태를 제거했다.
+  기존 `rqd_exploration_pilot.yml`은 역사적 설정으로 보존하며, CLI의 기본 설정은 Jn 2/4 설계가 있는
+  `rqd_exploration_pilot2.yml`로 변경했다.
+- SQLite schema는 3으로 올렸고 구형 DB는 자동 migration하지 않는다. 과거 schema v1/v2 입력은 거부한다.
+- `dlo-cq` focused regression 89개와 전체 204개 테스트가 통과했다. `pilot2`의 `validate`는
+  design 2개/샘플 10개로 통과했고, memory-only `preview`는 job 10개/예정 위치 1,210개
+  (BH 600, face 610)를 확인했다. `database_written=false`, `simulation_started=false`였다.
+  실제 DB와 simulation은 실행하지 않았다.
+
+CUM.02 완료 당시 다음 작업은 CUM.03의 append-only batch 저장 계약이었다.
+
+#### CUM.03 — append-only batch 저장 계약 (완료, 2026-10-30 20:28 +09:00)
+
+- 사용자가 CUM.02 결과를 확인하고 “기록하고 다음 진행”을 승인했다.
+- 기존 schema v3는 batch의 저장 단위로 `manifest_id`를 사용하고 모든 batch row에 이를 포함한다.
+  이는 서로 다른 manifest를 한 SQLite DB에 저장할 수 있는 구조지만, `observations` 및 정적
+  manifest/provenance projection에 UPDATE를 막는 DB trigger는 아직 없음을 확인했다.
+- 이 단계에서는 새 상위 campaign ID나 duplicate-content 판정 규칙을 임의로 만들지 않는다.
+  한 누적 DB 안에서 batch는 개별 immutable manifest 및 그 `manifest_id`로 구분하고,
+  exact duplicate 판정 세부는 CUM.04에서 다룬다. 누적 전체 dataset revision 구성은 CUM.05 범위다.
+- 구현 범위: 동일 임시 DB에 서로 다른 manifest를 원자적으로 추가할 수 있음을 검증하고,
+  manifest/YAML provenance/design sample/job/planned location/raw observation/evidence의 수정·삭제를
+  DB 차원에서 방지한다. attempt와 per-attempt `location_status`의 재개·완료를 위한 변경은 허용한다.
+  실패한 batch 추가는 해당 transaction만 rollback하고 이전 batch 자료는 보존해야 한다.
+- CUM.01에 따라 schema v2는 migration하지 않고 거부한다. 실제 DB와 simulation은 사용하지 않는다.
+- **완료 결과:** schema v3에 정적 batch/provenance projection, raw observation 및 measurement evidence의
+  UPDATE/DELETE 거부 trigger를 추가했다. 이는 새 테이블/열 없이 `initialize_store`가 v3 DB에도
+  idempotent하게 설치하는 보호 제약이므로 schema version은 3으로 유지한다. Attempt와 location status의
+  상태 전이는 기존 resume/completion 흐름대로 허용한다.
+- 임시 파일 DB에 서로 다른 manifest batch 2개를 append하고 닫은 뒤 재개방해 manifest, provenance,
+  jobs, raw observations 및 evidence의 보존을 확인했다. 잘못된 두 번째 batch의 FK 오류는 해당 쓰기만
+  rollback하고 첫 batch의 모든 row counts를 보존했다. schema v2 거부 테스트도 통과했다.
+- 검증: 네 CUM.03 집중 테스트와 전체 `dlo-cq` suite **208개 테스트 통과**, `git diff --check` 통과.
+  실제 프로젝트 DB write 또는 DFN/simulation 실행은 하지 않았다.
+
+CUM.03 완료 후 다음 작업은 CUM.04 batch 추가·재개 CLI다. 사용자의 다음 지시 전에는 해당 단계에
+착수하지 않는다.
+
+#### CUM.04 — batch 추가·재개 CLI (완료, 2026-10-30 20:47 +09:00)
+
+- **사용자 선택:** batch identity는 입력 YAML의 exact bytes와 execution runtime이 모두 일치하는 경우다.
+  원본 파일 경로는 identity가 아니다. 따라서 byte가 같은 YAML을 다른 경로에서 실행하면 동일 batch이며,
+  주석/공백만 바뀌어도 exact bytes가 달라 새 batch로 취급한다. runtime이 다르면 새 batch다.
+- `run` 하나로 신규 schema-v3 DB 생성, 기존 DB에 새 조건 batch 추가, identity가 같은 미완료 batch
+  자동 재개를 처리한다. batch/manifest ID는 `batch-<uuid>` 형식으로 내부 생성하며 사용자가 입력하지 않는다.
+  `resume` 명령과 `--manifest-id` 실행 인자는 제거했다.
+- 저장 manifest에서 YAML bytes와 runtime이 일치하면 normalized frozen payload도 일치하는지 추가 확인한다.
+  payload가 다르면 같은 identity를 안전하게 이어 실행할 수 없으므로 새 batch로 가장하지 않고 명시적으로
+  중단한다. 동일 identity가 여러 개면 모호한 재개로 거부한다. 모든 job에 성공 attempt가 있으면 완료된
+  exact duplicate이므로 simulation 전에 거부한다. 미완료 batch는 기존 runner 정책대로 성공 job은 건너뛰고
+  running attempt는 재개한다. 기존 failed attempt 자동 재시도 정책은 바꾸지 않았다.
+- confirmation/budget gate를 보존했다. `preview`는 DB를 쓰지 않고 simulation을 시작하지 않으며,
+  manifest ID `preview`는 실제 저장 ID가 아니다. `run` 시 DB 상태 검사와 batch 매칭/등록은
+  `BEGIN IMMEDIATE` transaction에서 처리한다.
+- subprocess 회귀는 신규 DB·동일 DB append·동일 YAML bytes의 경로 변경 자동 재개·source bytes 변경 시
+  새 batch·runtime 변경 시 새 batch·완료 duplicate 거부·모호한 match 거부·확인/예산/DB 오류를 확인했다.
+  `dlo-cq` focused CLI tests **7개 통과**, 전체 `src/test` suite **210개 통과** (2026-10-30 20:47 +09:00).
+  테스트 runner는 mock이며 실제 DFN/simulation은 실행하지 않았다.
+- 다음 단계는 CUM.05 다중 batch 누적 dataset revision이다. CUM.04는 CLI append/resume까지만 제공하며
+  다중 batch 누적 analysis/report는 아직 지원하지 않는다.
+
+#### CUM.05 — 다중 batch 누적 dataset revision (완료, 2026-10-30 21:22 +09:00)
+
+- **사용자 결정:** 서로 다른 batch에서 같은 execution fingerprint가 나오면 batch별 원관측과 provenance를
+  모두 보존하고, 독립 realization support는 한 번만 계산한다. 기존 per-manifest 추출 규칙은 유지해
+  job별 최고 성공 attempt 1개만 analysis projection에 선택한다. 누적 snapshot에는 failed/running/succeeded
+  전체 attempt history, 각 attempt의 location status, raw observations와 evidence를 별도로 보존한다.
+- **사용자 결정:** CUM.05 추가 테이블을 위해 schema v4를 도입하되 v3를 비롯한 이전 schema는 거부하고
+  migration하지 않는다. CUM.01의 v2 거부도 유지한다.
+- **완료 구현:** 전역 immutable cumulative revision과 batch/attempt/observation provenance tables,
+  CUM.05 loader/dataclass, 다중 manifest append 및 fingerprint 중복 realization count를 추가했다.
+  원 revision은 그대로 재로드 가능하며, source batch 또는 attempt 상태가 변하면 새 revision을 만든다.
+  각 batch의 YAML provenance, 전체 attempt history, per-attempt location status, raw observations와
+  measurement evidence를 snapshot에 보존한다. 분석 projection은 기존 규칙대로 job별 최고 성공 attempt만 선택한다.
+- **검증:** `dlo-cq` focused dataset tests **8개 통과**; 전체 `src/test` suite **215개 통과**
+  (2026-10-30 21:22 +09:00). DB 재개방 후 최신 cumulative revision과 manifest/attempt/observation
+  provenance가 유지되는 테스트를 포함한다. `compileall` 및 `git diff --check`도 통과했다.
+  기존 CUM.05 loader에 보고된 Pylance unused-local 경고 4개는 snapshot만 읽도록 정리했다.
+- 테스트는 임시 파일 DB를 사용했다. 사용자 프로젝트 DB, real DFN, simulation은 사용하지 않았다.
+- CUM.05는 분석/보고 CLI를 아직 연결하지 않는다. 다중 batch re-scoring 및 coverage는 CUM.06/CUM.07이다.
+- 다음 순차 단계는 **CUM.06 — 누적 재점수화·분석**이다. 누적 revision에 승인된 분석 시나리오를
+  적용하고 Jr/Ja만 바꾼 재분석에서 DFN/generator 호출 없이 재현 가능한 score를 검증한다.
+
+#### CUM.06 — 누적 재점수화·분석 (완료, 2026-10-30 21:26 +09:00)
+
+- **구현:** `analyze-cumulative --database <db> [--revision-index N] [--jr-values ...] [--ja-values ...]`
+  경로에서 전역 immutable cumulative revision을 읽고 선택한 Jr/Ja catalog로 기존 원관측을 재점수화한다.
+  기본값은 기존 전체 승인 catalog이며, 명시된 subset은 catalog 순서로 정규화한다.
+- Jn은 각 raw observation에 저장된 DFN 입력을 그대로 사용한다. Jr/Ja 선택이 달라지면 동일 raw
+  revision에 별도 analysis fingerprint와 derived score rows가 추가되며, 같은 선택을 재실행하면
+  기존 analysis/score rows가 재사용된다.
+- 누적 analysis/score 테이블은 기존 schema v4에 additive하게 생성한다. schema 버전은 올리지 않으며,
+  v2/v3 거부 정책을 유지한다. 분석 결과는 revision 및 manifest/job/attempt/location provenance를
+  참조한다. CSV와 coverage report는 이 단계 범위가 아니며 CUM.07에서 다룬다.
+- **검증:** 다중 batch(동일 execution fingerprint의 원관측 포함) scoring, Jr/Ja-only fingerprint 변경,
+  idempotent score persistence, raw observation/location status 불변, v4 table initialization을 검증했다.
+  `dlo-cq` focused suite 53개 및 전체 `src/test` suite 220개 통과. `compileall`,
+  `git diff --check` 및 변경 Python 파일 Pylance 진단도 통과했다.
+- 이 단계에서는 사용자 DB, 실제 DFN generator 또는 simulation을 실행하지 않았다. 다음 단계였던
+  **CUM.07 — 누적·batch별 coverage 보고**의 구현 결과는 아래 완료 기록에 정리한다.
+
+### CUM.07 — 누적·batch별 coverage 보고 구현·검증 완료 (2026-10-30 22:26 +09:00)
+
+- `report-cumulative`는 이미 저장된 immutable cumulative revision을 읽기 전용으로 불러와 누적 coverage를
+  CSV와 canonical `report_summary.json`으로 내보낸다. 기본 출력은
+  `results/rqd_exploration/cumulative/revision-<index>/reports`이며 `--output-dir`로 바꿀 수 있다.
+- report는 signature scenario 상세, source observation/provenance, cumulative profile/bin support,
+  batch별 source 및 batch-exclusive/shared fingerprint 수, conflict, location-status, BH/face contrast,
+  Q′–P32 및 unavailable-profile CSV를 출력한다. Batch 평균은 만들지 않으며 BH `m`과 face `m2`를
+  별도로 유지한다. 시간순 신규 유입은 manifest 생성시각이 저장되지 않아 산출하지 않는다.
+- 동일 fingerprint/location의 결과가 모두 같으면 source 행을 보존하고 coverage에 한 번만 반영한다.
+  원관측 값 또는 location status가 충돌하면 관련 source를 conflict로 표시하고 그 fingerprint 전체를
+  profile/bin 집계에서 제외하지만 나머지 report는 생성한다. 원자료·provenance는 변경하지 않는다.
+- 모든 CSV의 정확한 예상 행 수를 파일 생성 전에 계산하고 행 단위로 streaming한다. CUM.07 고정 상한은
+  없다. 127,234는 이전 P5.04 파일별 상한 합계의 역사적 수치이며 CUM.07 제한으로 사용하지 않는다.
+- 검증: duplicate/conflict fixtures와 CLI read-only/no-simulation focused tests 포함 전체
+  `dlo-cq` suite 224개 통과. `compileall`, `git diff --check`, handoff YAML parse 및 변경 Python 파일
+  Pylance diagnostics도 통과. 사용자 DB/실제 DFN/simulation은 사용하지 않았다.
+
+**작업 종료 및 다음 재개 지점 (2026-10-30 22:30 +09:00):** 사용자가 오늘 작업을 종료했다.
+CUM.07까지 완료했고 다음 계획 단계 CUM.08은 아직 시작하지 않았다. 재개 시 승인된 범위에서 pilot2
+설정을 검토하고 전체 CLI→store→resume→cumulative analysis→report 경로를 임시 DB로 통합 검증한다.
+설정 변경은 확인된 요구사항만 반영하며, simulation/실제 DFN은 별도 명시 승인 없이 실행하지 않는다.
+사용자 지시 전에는 다음 단계 작업을 시작하지 않는다. 이 종료 handoff의 상세 checkpoint는
+세션 기록 `011-end-of-day-20261030.md`에 보존한다.
+
+**작업 종료 기록 보완 (2026-10-30 22:40 +09:00):** README에 작업 이력과 진행 기록을 두지 않도록
+사용자 지시에 따라 README의 당일 수정 전체를 저장소 기준 버전으로 복구했다. README 변경 없음과
+`git diff --check`를 확인했다. 작업·검증 이력은 이 구현 계획과 전략 계획에 기록하며, README는
+복구 후 별도로 수정하지 않았다. CUM.08은 미착수 상태로 두고 사용자 지시를 기다린다.
 
 ## 6. 대상 구조와 산출물
 

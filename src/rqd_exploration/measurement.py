@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import floor, hypot, isclose, isfinite
-from typing import Literal, TypeAlias
+from typing import Callable, Literal, TypeAlias
 
 from src.euler_campaign.geometry import (
     TunnelStation,
@@ -22,6 +22,7 @@ from src.euler_campaign.models import (
     TunnelSpec,
     Vector3,
 )
+from src.euler_campaign.progress import ProgressUpdate
 from src.euler_campaign.profiles import (
     BatchedFaceGeometry,
     BatchedLineGeometry,
@@ -123,14 +124,28 @@ class _RecordingJointGeometry:
 
     def _line_intersections(
         self, queries: tuple[LineQuery, ...],
+        *,
+        progress_callback: Callable[[ProgressUpdate], None] | None = None,
     ) -> tuple[tuple[LineIntersection, ...], ...]:
         if isinstance(self._joints, BatchedLineGeometry):
-            results = self._joints.line_intersections_many(queries)
-        else:
-            results = tuple(
-                self._joints.line_intersections(start, direction, length)
-                for start, direction, length in queries
+            results = self._joints.line_intersections_many(
+                queries,
+                progress_callback=progress_callback,
             )
+        else:
+            result_list: list[tuple[LineIntersection, ...]] = []
+            for index, (start, direction, length) in enumerate(queries, start=1):
+                result_list.append(
+                    self._joints.line_intersections(start, direction, length),
+                )
+                if progress_callback is not None:
+                    progress_callback(ProgressUpdate(
+                        "BH intersection",
+                        f"completed interval queries {index}/{len(queries)}",
+                        index,
+                        len(queries),
+                    ))
+            results = tuple(result_list)
         if len(results) != len(queries):
             raise ValueError("geometry returned the wrong number of line results")
         self.line_queries = queries
@@ -144,8 +159,13 @@ class _RecordingJointGeometry:
 
     def line_intersections_many(
         self, queries: tuple[LineQuery, ...],
+        *,
+        progress_callback: Callable[[ProgressUpdate], None] | None = None,
     ) -> tuple[tuple[LineIntersection, ...], ...]:
-        return self._line_intersections(queries)
+        return self._line_intersections(
+            queries,
+            progress_callback=progress_callback,
+        )
 
     def face_intersections(
         self, station: TunnelStation, radius: float, domain: DomainSpec,
@@ -321,7 +341,10 @@ def _evidence(
 
 
 def measure_realization(
-    case: CaseSpec, joints: JointGeometry,
+    case: CaseSpec,
+    joints: JointGeometry,
+    *,
+    progress_callback: Callable[[ProgressUpdate], None] | None = None,
 ) -> MeasurementResult:
     """Measure BH intervals and fixed face stations from one existing realization."""
     planned_locations = plan_measurement_locations(case)
@@ -336,12 +359,46 @@ def measure_realization(
     planned_by_borehole: dict[str, list[PlannedBHInterval]] = {}
     for location in planned_bh:
         planned_by_borehole.setdefault(location.profile_id, []).append(location)
-    for borehole in case.boreholes:
+    bh_interval_total = len(planned_bh)
+    bh_intervals_completed = 0
+    active_boreholes = [
+        borehole for borehole in case.boreholes
+        if planned_by_borehole.get(borehole.borehole_id)
+    ]
+    for borehole_index, borehole in enumerate(active_boreholes, start=1):
         locations = planned_by_borehole.get(borehole.borehole_id, [])
-        if not locations:
-            continue
+        if progress_callback is not None:
+            progress_callback(ProgressUpdate(
+                "BH measurement",
+                f"starting borehole {borehole.borehole_id} "
+                f"({borehole_index}/{len(active_boreholes)}); "
+                f"campaign intervals completed "
+                f"{bh_intervals_completed}/{bh_interval_total}",
+                bh_intervals_completed,
+                bh_interval_total,
+            ))
+
+        def report_bh_progress(update: ProgressUpdate) -> None:
+            if progress_callback is None:
+                return
+            completed = update.completed or 0
+            progress_callback(ProgressUpdate(
+                update.stage,
+                f"borehole {borehole.borehole_id}: {update.detail}; "
+                f"campaign intervals completed "
+                f"{bh_intervals_completed + completed}/{bh_interval_total}",
+                bh_intervals_completed + completed,
+                bh_interval_total,
+                update.log,
+            ))
+
         recorder = _RecordingJointGeometry(joints)
-        profile = sample_borehole(case, borehole, recorder)
+        profile = sample_borehole(
+            case,
+            borehole,
+            recorder,
+            progress_callback=report_bh_progress,
+        )
         if len(profile.intervals) != len(locations):
             raise ValueError("BH profile intervals do not match the planned locations")
         if len(recorder.line_queries) != len(locations):
@@ -368,6 +425,16 @@ def measure_realization(
             location_states.append(PlannedLocationState(
                 "BH", location.profile_id, location.location_index, "observed", None,
             ))
+        bh_intervals_completed += len(locations)
+        if progress_callback is not None:
+            progress_callback(ProgressUpdate(
+                "BH measurement",
+                f"completed borehole {borehole.borehole_id}; "
+                f"campaign intervals completed "
+                f"{bh_intervals_completed}/{bh_interval_total}",
+                bh_intervals_completed,
+                bh_interval_total,
+            ))
 
     planned_faces = tuple(
         location for location in planned_locations
@@ -375,7 +442,21 @@ def measure_realization(
     )
     face_stop_reason: FaceStopReason = "tunnel_end"
     previous_chainage: float | None = None
-    for location in planned_faces:
+    face_station_total = len(planned_faces)
+    for station_index, location in enumerate(planned_faces, start=1):
+        if progress_callback is not None:
+            progress_callback(ProgressUpdate(
+                "Face measurement",
+                f"processing station {station_index}/{face_station_total} "
+                f"at chainage {location.chainage_m:g} m",
+                station_index - 1,
+                face_station_total,
+                log=(
+                    station_index == 1
+                    or station_index % 10 == 0
+                    or station_index == face_station_total
+                ),
+            ))
         station = locate_station(case.tunnel, location.chainage_m)
         recorder = _RecordingJointGeometry(joints)
         face: FaceObservation = sample_face(case, station, recorder)
@@ -388,6 +469,14 @@ def measure_realization(
                 "face_support_below_half_area",
             ))
             face_stop_reason = "invalid_boundary_face"
+            if progress_callback is not None:
+                progress_callback(ProgressUpdate(
+                    "Face measurement",
+                    f"stopped at invalid boundary station "
+                    f"{station_index}/{face_station_total}",
+                    station_index,
+                    face_station_total,
+                ))
             break
         if face.qprime is None:
             raise ValueError("valid face support has no raw RQD result")
@@ -421,6 +510,17 @@ def measure_realization(
             "face", location.profile_id, location.location_index, "observed", None,
         ))
         previous_chainage = location.chainage_m
+        if progress_callback is not None:
+            progress_callback(ProgressUpdate(
+                "Face measurement",
+                f"completed station {station_index}/{face_station_total}",
+                station_index,
+                face_station_total,
+                log=(
+                    station_index % 10 == 0
+                    or station_index == face_station_total
+                ),
+            ))
 
     return MeasurementResult(
         planned_locations,

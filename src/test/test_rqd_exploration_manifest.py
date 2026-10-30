@@ -16,7 +16,7 @@ from src.rqd_exploration.records import (
 
 class TestFrozenManifest(unittest.TestCase):
     def setUp(self) -> None:
-        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot.yml"
+        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
         self.config = load_config(path)
         self.runtime = ExecutionRuntime(
             "fixture-generator-v1", "fixture-measurement-v1", "fixture-numpy",
@@ -53,9 +53,9 @@ class TestFrozenManifest(unittest.TestCase):
         self.assertEqual(len(payload["designs"]), 2)
         self.assertEqual(len(payload["design_samples"]), 10)
         self.assertEqual(len(payload["jobs"]), 10)
-        self.assertEqual(len(payload["target_goals"]), 6)
+        self.assertNotIn("target_goals", payload)
+        self.assertNotIn("target_ledger", payload)
         self.assertEqual(len(payload["planned_locations"]), 20)
-        self.assertEqual([len(x["scenarios"]) for x in payload["target_ledger"]], [66, 66])
         self.assertEqual(manifest.source_yaml_bytes, self.config.source_yaml_bytes)
         self.assertEqual(sha256(manifest.source_yaml_bytes).hexdigest(),
                          payload["input_provenance"]["yaml_sha256"])
@@ -94,18 +94,16 @@ class TestFrozenManifest(unittest.TestCase):
             self.assertEqual(json.loads(job.fingerprint.canonical_bytes),
                              item["execution_snapshot"])
 
-    def test_fingerprint_ignores_manifest_ids_goals_provenance_and_retry_metadata(self) -> None:
+    def test_fingerprint_ignores_manifest_ids_provenance_and_retry_metadata(self) -> None:
         original = self.build()
         renamed = self.build(manifest_id="renamed")
         self.assertNotEqual(original.manifest_json, renamed.manifest_json)
         self.assertEqual([j.fingerprint for j in original.jobs],
                          [j.fingerprint for j in renamed.jobs])
-        goal = replace(self.config.target_goals[0], goal_id="renamed-goal")
         self.config = replace(
             self.config, source_yaml_bytes=b"fixture-source\n",
             source_yaml_sha256=sha256(b"fixture-source\n").hexdigest(),
             source_reference="fixture-other-path",
-            target_goals=(goal, *self.config.target_goals[1:]),
         )
         changed = self.build()
         self.assertNotEqual(original.manifest_json, changed.manifest_json)
@@ -212,12 +210,6 @@ class TestFrozenManifest(unittest.TestCase):
         for item in payload["planned_locations"]:
             self.assertNotIn("support_length_m", item)
             self.assertNotIn("support_area_m2", item)
-        for ledger in payload["target_ledger"]:
-            self.assertEqual(
-                {entry["goal"]["goal_id"] for entry in ledger["target_goals"]},
-                {goal["goal_id"] for goal in payload["target_goals"]
-                 if goal["fixed_jn"] == ledger["fixed_jn"]},
-            )
 
     def test_geometry_and_measurement_settings_reach_snapshot_and_digest(self) -> None:
         original_config = self.config

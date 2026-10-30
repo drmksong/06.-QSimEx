@@ -1,6 +1,4 @@
 from dataclasses import replace
-from fractions import Fraction
-from itertools import product
 from math import exp, floor, log
 from pathlib import Path
 import unittest
@@ -11,98 +9,24 @@ from scipy.stats import qmc
 
 from src.rqd_exploration.adapter import build_generation_case
 from src.rqd_exploration.config import load_config
-from src.rqd_exploration.design import (
-    build_target_ledger, generate_lhs_design, high_bin_reachability,
-)
+from src.rqd_exploration.design import generate_lhs_design
 
 
-class TestPilotTargetLedger(unittest.TestCase):
+class TestExecutableJnMapping(unittest.TestCase):
     def setUp(self) -> None:
-        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot.yml"
+        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
         self.config = load_config(path)
 
-    def test_retains_66_scenarios_and_six_equally_selected_goals(self) -> None:
-        ledger = build_target_ledger(self.config)
-        self.assertEqual(ledger, build_target_ledger(self.config))
-        self.assertEqual([len(block.scenarios) for block in ledger], [66, 66])
-        self.assertEqual([len(block.target_goals) for block in ledger], [5, 1])
+    def test_configs_use_fixed_jn_to_set_count_mapping(self) -> None:
         self.assertEqual(
-            [sum(s.reachable for s in block.scenarios) for block in ledger], [5, 1],
+            [(design.fixed_jn, len(design.joint_sets)) for design in self.config.designs],
+            [(2.0, 1), (4.0, 2)],
         )
-        self.assertEqual(
-            {entry.goal.goal_id for block in ledger for entry in block.target_goals},
-            {goal.goal_id for goal in self.config.target_goals},
-        )
-        self.assertEqual(
-            [sum(not s.reachable for s in block.scenarios) for block in ledger], [61, 65],
-        )
-        for block, design in zip(ledger, self.config.designs):
-            self.assertEqual((block.design_id, block.block_id, block.fixed_jn),
-                             (design.design_id, design.block_id, design.fixed_jn))
-
-    def test_required_rqd_uses_continuous_strict_thresholds(self) -> None:
-        expected = {
-            (0.5, 4, 0.75): 37.5,
-            (0.5, 4, 1): 50.0,
-            (0.5, 3, 0.75): 50.0,
-            (0.5, 3, 1): float(Fraction(200, 3)),
-            (0.5, 2, 0.75): 75.0,
-            (1, 4, 0.75): 75.0,
-        }
-        for scores, threshold in expected.items():
-            with self.subTest(scores=scores):
-                result = high_bin_reachability(*scores)
-                self.assertEqual(result.required_calculation_rqd_lower_exclusive, threshold)
-                self.assertTrue(result.reachable)
-        exact_boundary = high_bin_reachability(0.5, 2, 1)
-        self.assertEqual(exact_boundary.required_calculation_rqd_lower_exclusive, 100)
-        self.assertEqual(exact_boundary.max_qprime, 400)
-        self.assertFalse(exact_boundary.reachable)
-
-    def test_all_ten_jn_values_against_exact_arithmetic(self) -> None:
-        jn_values = (0.5, 1, 2, 3, 4, 6, 9, 12, 15, 20)
-        jr_values = (0.5, 1, 1.5, 2, 3, 4)
-        ja_values = (0.75, 1, 2, 3, 4, 6, 8, 10, 12, 13, 20)
-        counts = {}
-        for jn in jn_values:
-            count = 0
-            for jr, ja in product(jr_values, ja_values):
-                result = high_bin_reachability(jn, jr, ja)
-                maximum = Fraction(100) * Fraction(jr) / (Fraction(jn) * Fraction(ja))
-                self.assertEqual(result.max_qprime, float(maximum))
-                self.assertEqual(result.reachable, maximum > 400)
-                count += result.reachable
-            counts[jn] = count
-        self.assertEqual(counts, dict(zip(jn_values, (5, 1, 0, 0, 0, 0, 0, 0, 0, 0))))
-
-    def test_preserves_multiple_designs_at_same_jn(self) -> None:
-        extra = replace(self.config.designs[0], design_id="another", block_id="another-block")
-        ledger = build_target_ledger(
-            replace(self.config, designs=(*self.config.designs, extra)),
-        )
-        self.assertEqual(len(ledger), 3)
-        self.assertEqual(len(ledger[2].scenarios), 66)
-        self.assertEqual(ledger[0].target_goals, ledger[2].target_goals)
-
-    def test_rejects_unreachable_unlinked_or_unsupported_goals(self) -> None:
-        goal = self.config.target_goals[0]
-        for changed, message in (
-            (replace(goal, jr_value=0.5, ja_value=20), "not arithmetically reachable"),
-            (replace(goal, fixed_jn=2), "no matching design"),
-            (replace(goal, target_bin_id="other"), "unsupported target"),
-        ):
-            with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
-                build_target_ledger(replace(self.config, target_goals=(changed,)))
-
-    def test_rejects_invalid_ratings(self) -> None:
-        for values in ((True, 4, 0.75), (0.5, float("nan"), 1), (0.5, 4, 0)):
-            with self.subTest(values=values), self.assertRaises((TypeError, ValueError)):
-                high_bin_reachability(*values)
 
 
 class TestPilotLHS(unittest.TestCase):
     def setUp(self) -> None:
-        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot.yml"
+        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
         self.config = load_config(path)
         self.design = self.config.designs[0]
 
@@ -114,13 +38,13 @@ class TestPilotLHS(unittest.TestCase):
             self.assertEqual(result, generate_lhs_design(result.design))
             self.assertEqual([s.sample_index for s in result.samples], list(range(5)))
             expected = qmc.LatinHypercube(
-                d=5, scramble=True, strength=1, optimization=None,
+                d=len(result.axes), scramble=True, strength=1, optimization=None,
                 rng=np.random.default_rng(result.design.design_seed),
             ).random(5)
             np.testing.assert_array_equal(
                 [s.unit_coordinates for s in result.samples], expected,
             )
-            for column in range(5):
+            for column in range(len(result.axes)):
                 self.assertEqual(
                     sorted(floor(s.unit_coordinates[column] * 5) for s in result.samples),
                     list(range(5)),
@@ -182,7 +106,9 @@ class TestPilotLHS(unittest.TestCase):
 
     def test_multiple_sets_keep_order_and_share_only_shape_values(self) -> None:
         extra = replace(self.design.joint_sets[0], joint_set_id="second")
-        design = replace(self.design, joint_sets=(*self.design.joint_sets, extra))
+        design = replace(
+            self.design, fixed_jn=4, joint_sets=(*self.design.joint_sets, extra),
+        )
         result = generate_lhs_design(design)
         self.assertEqual(len(result.axes), 10)
         self.assertEqual([a.joint_set_id for a in result.axes],
@@ -248,7 +174,7 @@ class TestPilotLHS(unittest.TestCase):
         for changed, message in (
             (replace(self.design, design_seed=-1), "design_seed"),
             (replace(self.design, sample_count=0), "sample_count"),
-            (replace(self.design, joint_sets=()), "between 1 and 5"),
+            (replace(self.design, joint_sets=()), "requires exactly 1 joint_sets"),
             (replace(self.design, size_alpha=replace(
                 self.design.size_alpha, distribution="normal",
             )), "uniform"),

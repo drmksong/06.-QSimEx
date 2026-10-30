@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from itertools import product
 from math import expm1, hypot, isfinite, log, pi, sqrt
+from typing import Callable
 
 import numpy as np
 
@@ -15,6 +16,7 @@ from .models import (
     CaseSpec, DomainSpec, JointRealization, LineIntersection, Vector3,
     validate_case,
 )
+from .progress import ProgressUpdate
 from .profiles import JointGeometry
 
 _TOL = 1e-10
@@ -349,7 +351,13 @@ def _expected_joint_area(size_alpha: float, radius_min: float, radius_max: float
 class CaseJointFactory:
     """Generate the complete domain DFN once for a CaseSpec and seed."""
 
-    def generate(self, case: CaseSpec, seed: int) -> DiskJointGeometry:
+    def generate(
+        self,
+        case: CaseSpec,
+        seed: int,
+        *,
+        progress_callback: Callable[[ProgressUpdate], None] | None = None,
+    ) -> DiskJointGeometry:
         validate_case(case)
         if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
             raise ValueError("seed must be a non-negative integer")
@@ -362,7 +370,15 @@ class CaseJointFactory:
         rng = np.random.RandomState(np.random.SeedSequence(seed).generate_state(4))
         generated: list[JointRealization] = []
 
-        for joint_set in sorted(case.joint_sets, key=lambda item: item.set_id):
+        joint_sets = sorted(case.joint_sets, key=lambda item: item.set_id)
+        for set_index, joint_set in enumerate(joint_sets, start=1):
+            if progress_callback is not None:
+                progress_callback(ProgressUpdate(
+                    "DFN generation",
+                    f"starting joint set {joint_set.set_id}",
+                    set_index - 1,
+                    len(joint_sets),
+                ))
             expected_area = _expected_joint_area(
                 joint_set.size_alpha, joint_set.size_r_min, joint_set.size_r_max,
             )
@@ -377,6 +393,13 @@ class CaseJointFactory:
 
             count = int(rng.poisson(expected_count))
             if count == 0:
+                if progress_callback is not None:
+                    progress_callback(ProgressUpdate(
+                        "DFN generation",
+                        f"completed joint set {joint_set.set_id}; generated 0 joints",
+                        set_index,
+                        len(joint_sets),
+                    ))
                 continue
 
             if joint_set.size_r_min == joint_set.size_r_max:
@@ -410,6 +433,14 @@ class CaseJointFactory:
                     normal=(float(normal[0]), float(normal[1]), float(normal[2])),
                     radius=float(radii[index]),
                     condition=joint_set.condition,
+                ))
+            if progress_callback is not None:
+                progress_callback(ProgressUpdate(
+                    "DFN generation",
+                    f"completed joint set {joint_set.set_id}; "
+                    f"generated {count} joints for this set",
+                    set_index,
+                    len(joint_sets),
                 ))
 
         return DiskJointGeometry(tuple(generated))

@@ -1,20 +1,37 @@
 metadata:
-  generated: "2026-10-29 22:01 +09:00"
-  source_tasks: "../ImplementationPlan_v4.md#phase-4"
-  last_updated: "2026-10-29 22:01 +09:00"
+  generated: "2026-10-30 11:33 +09:00"
+  source_tasks: "../ImplementationPlan_v4.md"
+  last_updated: "2026-10-30 22:40 +09:00"
   handoff:
-    current_phase: "Phase 4 implementation and verification complete"
-    completed_work: "T006/T007 and P4.01-P4.07; 175 full-suite tests passed"
-    next_task_not_started: "T008/P5.01: implement the 66 fixed-Jn Jr/Ja score scenarios"
-    subsequent_work: "T008/P5.02; T009/P5.03-P5.05; T010/P6.01-P6.04 after analysis implementation"
-    unresolved_gate: "Resolve D005 before P5.03-P5.04"
+    current_phase: "Work paused 2026-10-30 22:40 +09:00; CUM.07 complete; README restored to repository baseline; CUM.08 not started and awaits user's next instruction"
+    completed_work: "T006/T007 P4.01-P4.07; T008 P5.01-P5.02; T009 P5.03-P5.05; CUM.02 input/Jn validation and goal-feature removal; CUM.03 multi-manifest append, append-only row protection, atomic rollback; CUM.04 single run command, internal batch IDs, exact YAML bytes+runtime identity, append/auto-resume, duplicate/ambiguous rejection; CUM.05 immutable cumulative schema-v4 dataset revisions with batch/attempt/observation provenance, retry history, duplicate realization de-duplication, and DB reopen persistence; CUM.06 immutable cumulative analysis/score persistence, selectable Jr/Ja subsets, re-analysis fingerprints and raw data immutability; CUM.07 read-only report-cumulative with exact row preflight and streaming CSV, per-signature detail/source provenance, unique fingerprint aggregation, observation/status conflict flag-and-exclude while continuing output, batch-exclusive/shared counts; entire dlo-cq suite 224 tests passed, compileall, git diff --check, YAML parsing, changed-file Pylance diagnostics passed"
+    next_task_not_started: "CUM.08 is the next plan step, not started. When the user asks to resume, perform the approved integrated regression for config/CLI/store/cumulative/reporting, review pilot2 settings and change only confirmed requirements, and document validate/preview commands and limitations. No real DFN or simulation."
+    cumulative_workflow_plan: "2026-10-30 22:40 +09:00: CUM.01-CUM.07 implementation and validation are documented. CUM.07 decisions: batch is a manifest/run record grouping, not a scientific sample or averaging unit; each unique signature maps to one DFN and remains individually represented; repeated execution fingerprints are not counted twice, while all raw source rows/provenance remain preserved. A descriptive profile requires at least one valid positive-support observation; sufficiency is not a hard gate. 90% confidence and 5 percentage points are candidates after pilot data, not current thresholds. User selected no fixed cumulative row cap; report-cumulative calculates exact rows before writing and streams output. Historical 127,234 is not a CUM.07 limit. If same fingerprint/location results or location statuses conflict, source rows are retained, the fingerprint is flagged and excluded from profile/bin aggregates, and the rest of the report continues. Batch-exclusive/shared counts are reported; chronological first-seen is not inferred because manifest creation time is not stored. Full suite 224 passed. No user DB, real DFN, or simulation was used; .venv was not used. At 22:40 user requested end of day after README was restored to repository baseline; README has no changes and git diff --check passed. Work records belong in ImplementationPlan_v4 and the strategy plan, not README. CUM.08 awaits the user's next instruction."
+    pilot_data_cleanup: "2026-10-30 19:18 +09:00 user requested deletion of all prior results including DB. Removed sqlite/qsimex-rqd-pilot.sqlite and results/rqd_exploration/qsimex-rqd-pilot-20261030-1535/reports/; verified both absent. Preserved original/pilot2 YAML, code, and documentation."
+    p6_02_review: "2026-10-30 15:44 +09:00: user-selected manifest id qsimex-rqd-pilot-20261030-1535; DB path sqlite/qsimex-rqd-pilot.sqlite; per-invocation cap 1000. Final in-memory preview SHA-256 9bc488720cbea5c8ba43b1e5fc0665327baaca0544a9e71911fb93dace834eea; 10 jobs, 600 BH + 610 face locations. User explicitly authorized run, then stated they will execute themselves."
+    interrupted_run_state: "Historical 2026-10-30 15:48 +09:00 checkpoint: DB had one running sample 0 attempt and zero observations after the first invocation interruption. Superseded by pilot_outcome: all 10 jobs subsequently succeeded."
+    d002_resolution: "Decision 002 covered integrated SQLite DDL, execution snapshot fields, and raw dataset serialization. User chose resolved at 2026-10-30 15:35:46 +09:00 because later approved P1.05 contract and T006/T008/T009 implementation satisfy scope."
+    p6_01_result: "2026-10-30 15:07 +09:00: dlo-cq validate and in-memory MLX preview passed; 2 designs, 10 samples, 6 goals; 10 jobs, 600 BH + 610 face locations; CPython 3.11.15/macOS 27.0.1 arm64/NumPy 2.4.3/SciPy 1.17.1/MLX 0.31.1/Device(gpu, 0); review-only manifest id p6-01-review-20261030-1507, sha256 25975ab2b6eb76d4b402e4734cc034585aa2a73fed82fd2bc29e4f7fabf040d0; no DB, report, DFN, or simulation written/run"
+    p6_01_config_sha256: "33d1629f4cd8eead88920ae4b2d2c78ee5c01c734c4fb4401b0824a4f1959ada"
+    p6_01_csv_row_cap_total: 127234
+    p6_01_output_root: "Reports use results/rqd_exploration/<manifest_id>/reports; pilot DB now exists at sqlite/qsimex-rqd-pilot.sqlite"
+    p6_01_resume: "Store schema version 2; selected DB exists with matching manifest; resume command is required, not run"
+    subsequent_work: "Initial pilot and user-authorized analyze are complete. Resolve expected iterative signature-update scope before any next batch or additional DFN/simulation. T011 implementation remains deferred until policy decision/approval."
+    unresolved_gate: "None for D012 P5.04 report contract: user approved multiple CSVs, literal \\N NULL, canonical JCS summary, external work-log timestamp, exact headers/order/units, and row caps/preflight at 2026-10-30 11:06:02 +09:00"
     deferred: "T011 adaptive batch controller awaits post-pilot policy review and separate approval"
-    execution_boundary: "No pilot DB/manifest persistence, DFN generation, or simulation has been run; explicit user approval is required"
-    resume_guidance: "Do not repeat Phase 1-4. This handoff identifies a candidate only and does not authorize starting it."
+    execution_boundary: "Initial fixed 10-job batch was explicitly user-authorized and completed via user-run resume. Assistant inspected the DB read-only, then ran analyze only after explicit user authorization; that wrote dataset revision, analysis/derived scores, and report files. No further simulation was run."
+    environment: "Use existing conda dlo-cq only; use conda run -n dlo-cq for tests/checks, or activate dlo-cq and use python -u for user-run interactive pilot logs. Do not use or recreate the deleted parent .venv."
+    resume_guidance: "Historical at 15:48: user was to resume manually because DB existed and first job was running. The resume has since completed all 10 jobs; do not run again. maximum_simulations=1000 was an invocation cap, not a 1000-simulation request."
+    progress_logging: "2026-10-30 16:24 +09:00 (validated 16:25 +09:00): user chose a 60-second heartbeat plus DFN joint-set/materialization stages, BH interval/query-batch counters, face station counters, and persistence stage. Heartbeat includes current job identity, current stage elapsed time, and latest counters. Joint-set counts are queued array work, not GPU completion percent; face updates are station-level, not intra-station GPU percent. Full suite 209 tests, py_compile, git diff --check passed. Existing process is unaffected. Assistant did not inspect, execute, or modify the pilot DB."
+    pilot_outcome: "2026-10-30 16:42 +09:00: user supplied successful resume output; initial read-only inspection confirmed 10/10 attempts succeeded, 0 running/failed, 1,210/1,210 locations observed and valid (600 BH, 610 face; 121 each per job). Resume invocation skipped 8 completed jobs and completed resumed sample 3 plus new sample 4 (simulation_count=2; jobs_complete). Stored attempt runtime sum 2,178.96697s. Raw RQD arithmetic means/ranges: jn-half BH n=300 mean 90.5639 range 39.3058-100; face n=305 mean 93.6698 range 68.0769-100; jn-one BH n=300 mean 90.4830 range 10.1714-100; face n=305 mean 80.4399 range 1.5788-100. After explicit user authorization, P6.04 analyze created dataset revision 1 (sha256 6d18312e975fbaf079d23916e93a7b5c4d8483e7e737a73f83f756cd983efd5e), analysis_run 1 (fingerprint 2a83f1755b1d9e1fc0c41a0024b79af6986c5f80c96fe6ee112e63f9a7ea23c3), and 79,860 derived scores; raw observations unchanged and no simulation. CSV reports contain 127,232 total data rows. Six BH target fractions: 82%, 84.33%, 99%, 91%, 100%, 99%, each comparable with 300m valid support, 5 signatures and 5 realizations. No signature updates/adaptive next batch occurred; clarify intended pilot iteration before more execution."
+    jn_classification_reference: "Confirmed and documented 2026-10-30 19:40 +09:00 per user: the new cumulative exploration executable fixed_jn list excludes prior pilot values 0.5 and 1. Supported planned values are 2->1 set, 4->2, 9->3, 15->4 (representative), 20->5 (chosen crushed/earthlike approximation). Jn 3/6/12 require random-joint components and are excluded until supported. Existing 0.5/1 remain historical only, not candidates for new batches. This is a documented execution rule; validator/runtime code is not yet changed. No intersection/portal multiplier."
+    accumulation_requirement: "2026-10-30 19:11 +09:00 user reasserted the central goal: run in manageable batches while changing Jn/Jr/Ja and always accumulate eligible results for improved bin coverage. Existing raw data must remain append-only with batch/config/attempt provenance. Jn changes require new DFN observations; Jr/Ja are currently post-processing axes and should re-score retained observations without rerunning DFN. Analysis must aggregate across batches while separating conditions and not counting derived scenarios or unlike modalities as independent/commensurate support. Manifest IDs are internal provenance, not a user-facing obstacle. Current run/resume/analyze CLI does not satisfy this end-to-end. 19:18 plan recorded in ImplementationPlan_v4; no code or simulation executed. 19:28 mapping revised 19:39 per user to exclude 0.5/1 from new conditions: 2/4/9/15/20 map to 1/2/3/4/5 sets; 3/6/12 require random-joint support and are excluded."
+    deferred: "T011's original autonomous adaptive controller remains distinct from the user-required cumulative workflow. Design the cumulative append/analysis path first; do not infer automatic candidate selection, sufficiency, budget, or stopping policy."
+    pilot_outcome: "2026-10-30 16:42 +09:00: user supplied successful resume output; initial read-only inspection confirmed 10/10 attempts succeeded, 0 running/failed, 1,210/1,210 locations observed and valid (600 BH, 610 face; 121 each per job). Resume invocation skipped 8 completed jobs and completed resumed sample 3 plus new sample 4 (simulation_count=2; jobs_complete). Stored attempt runtime sum 2,178.96697s. Raw RQD arithmetic means/ranges: jn-half BH n=300 mean 90.5639 range 39.3058-100; face n=305 mean 93.6698 range 68.0769-100; jn-one BH n=300 mean 90.4830 range 10.1714-100; face n=305 mean 80.4399 range 1.5788-100. After explicit user authorization, P6.04 analyze created dataset revision 1 (sha256 6d18312e975fbaf079d23916e93a7b5c4d8483e7e737a73f83f756cd983efd5e), analysis_run 1 (fingerprint 2a83f1755b1d9e1fc0c41a0024b79af6986c5f80c96fe6ee112e63f9a7ea23c3), and 79,860 derived scores; raw observations unchanged and no simulation. CSV reports contain 127,232 total data rows. Six BH target fractions: 82%, 84.33%, 99%, 91%, 100%, 99%, each comparable with 300m valid support, 5 signatures and 5 realizations. No signature updates/adaptive next batch occurred; clarify intended pilot iteration before more execution."
 
 summary:
-  total_tasks: 2
-  completed_tasks: 2
+  total_tasks: 4
+  completed_tasks: 4
   in_progress_tasks: 0
   pending_tasks: 0
   completion_percentage: 100.0
@@ -108,10 +125,119 @@ tasks:
       requirements: ["REQ-007", "REQ-008", "REQ-009", "REQ-010"]
       full_trace: "REQ-007/008/009/010 -> Phase 4.1 -> P4.04-P4.07 -> T007 -> runner.py, cli.py, and their tests"
 
+  - task_id: "T008"
+    description: "Implement fixed-Jn 66-scenario scoring and analysis fingerprints"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/rqd_exploration/analysis.py"
+          changes:
+            - change_type: "created"
+              description: "Implement calculation-RQD floor, approved scenario scores, primary bins, overflow classification, and separate raw-dataset/analysis fingerprints."
+        - file: "src/test/test_rqd_exploration_analysis.py"
+          changes:
+            - change_type: "created"
+              description: "Verify raw/calculation RQD for 0/10/100, all 66 scenarios, bin edges and Q-prime overflow, input guards, raw immutability, and digest changes."
+        - file: "Specification/ImplementationPlan_v4.md"
+          changes:
+            - change_type: "modified"
+              description: "Record P5.01-P5.02 completion, verification evidence, T-ID/Step ID distinction, and next-step D005 gate."
+        - file: "Specification/RQDExplorationStrategy_20261026/plan.md"
+          changes:
+            - change_type: "modified"
+              description: "Mark T008 complete and record the 2026-10-30 implementation handoff and environment rule."
+    verification:
+      test_results:
+        command: "conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -q"
+        passed: 185
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Focused analysis suite: 10 tests passed; related analysis/fingerprint/design/measurement regression: 47 tests passed; full suite: 185 tests passed. Python 3.11.15, NumPy 2.4.3, SciPy 1.17.1, and rfc8785 0.1.4 confirmed in conda dlo-cq. The parent .venv was removed per user request and must not be recreated. No pilot DB/manifest, DFN generation, or simulation."
+    upstream_trace:
+      plan_item: "5.1"
+      requirements: ["REQ-005", "REQ-006", "REQ-009"]
+      full_trace: "REQ-005/006/009 -> Phase 5.1 -> P5.01-P5.02 -> T008 -> analysis.py and test_rqd_exploration_analysis.py"
+
+  - task_id: "T009"
+    description: "Implement reference-profile analysis, reports, and analyze integration"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/rqd_exploration/analysis.py"
+          changes:
+            - change_type: "modified"
+              description: "Add profile/scenario support-weighted distributions, non-paired exploratory BH-face contrasts, BH-P32 points, strict target inverse/reached-support diagnostics, location-state counts, and explicit unavailable profiles."
+        - file: "src/test/test_rqd_exploration_analysis.py"
+          changes:
+            - change_type: "modified"
+              description: "Test separate support units, profile contrasts without equality assumptions, support-weighted medians, target reachability/boundaries, P32 rows, location states, and unavailable evidence."
+        - file: "src/rqd_exploration/reporting.py"
+          changes:
+            - change_type: "created"
+              description: "Add deterministic 10-file CSV export, canonical summary JSON, pre-write per-file row-count caps, schema validation, and stable sorting."
+        - file: "src/test/test_rqd_exploration_reporting.py"
+          changes:
+            - change_type: "created"
+              description: "Test output headers/counts, preflight cap rejection, canonical summary, serialization, deterministic ordering, and input consistency."
+        - file: "src/rqd_exploration/store.py"
+          changes:
+            - change_type: "modified"
+              description: "Upgrade store schema to v2 with revision-to-observation attempt provenance, v1 migration, and immutable provenance triggers."
+        - file: "src/rqd_exploration/dataset.py"
+          changes:
+            - change_type: "created"
+              description: "Load highest-successful-attempt raw rows into canonical immutable revisions and idempotently persist analysis scores."
+        - file: "src/rqd_exploration/cli.py"
+          changes:
+            - change_type: "modified"
+              description: "Connect analyze to database migration, immutable revision loading, score persistence, and deterministic report export without simulation."
+        - file: "src/test/test_rqd_exploration_dataset.py"
+          changes:
+            - change_type: "created"
+              description: "Test successful-attempt selection, immutable revisions/provenance, score persistence idempotency, and analysis-run fingerprint verification."
+        - file: "src/test/test_rqd_exploration_analyze_cli.py"
+          changes:
+            - change_type: "created"
+              description: "Test deterministic report/summary output, support/sample counts, raw-data immutability, 66 score rows, and zero simulation calls."
+        - file: "src/test/test_rqd_exploration_store.py"
+          changes:
+            - change_type: "modified"
+              description: "Verify additive schema-v1-to-v2 migration for revision provenance."
+        - file: "Specification/ImplementationPlan_v4.md"
+          changes:
+            - change_type: "modified"
+              description: "Record D005 P5.03 scope, verified implementation, and P5.04 handoff."
+        - file: "Specification/RQDExplorationStrategy_20261026/plan.md"
+          changes:
+            - change_type: "modified"
+              description: "Record the user-approved distinct BH/face distribution interpretation, evidence limits, and P5.03 verification."
+        - file: "readme.md"
+          changes:
+            - change_type: "modified"
+              description: "Synchronize current P5.04 completion, D012 approvals, validation, and P5.05 handoff."
+        - file: "Specification/RQDExplorationStrategy_20261026/checkpoints/tasks-to-impl.yaml"
+          changes:
+            - change_type: "modified"
+              description: "Record P5.05 completion, schema migration, idempotent score persistence, and T010 handoff."
+    verification:
+      test_results:
+        command: "conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -q"
+        passed: 207
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "P5.05 focused dataset tests: 4 passed; analyze CLI tests: 2 passed; store tests: 15 passed; full conda dlo-cq suite: 207 passed. Pylance diagnostics clean for changed Python files; conda py_compile passed at 2026-10-30 11:31:18 +09:00; final checkpoint YAML parse and git diff --check passed at 11:31:52 +09:00. Tests verify 66 persisted scores per observation, immutable source-attempt provenance, schema-v1 migration, explicit refusal to guess missing legacy provenance, deterministic report bytes, support/sample counts, unchanged raw rows, and zero simulation calls. Fixture DBs and report folders only; no pilot DB, DFN generation, or simulation."
+    upstream_trace:
+      plan_item: "5.1"
+      requirements: ["REQ-005", "REQ-006", "REQ-009"]
+      full_trace: "REQ-005/006/009 -> Phase 5.1 -> P5.03 analysis.py -> P5.04 reporting.py -> P5.05 SQLite loader, revision provenance, derived_scores, analyze CLI and regression tests"
+
 pending_tasks: []
 known_limitations:
   - "Current in-flight job DFN/intermediate state is not persisted before atomic job completion; that job may need regeneration after interruption."
-  - "The maximum simulation cap and unresolved goal status apply to one command invocation and are returned in memory; each resume invocation takes a new cap, and those run-level statuses are not persisted in schema v1."
+  - "The maximum simulation cap and unresolved goal status apply to one command invocation and are returned in memory; each resume invocation takes a new cap, and those run-level statuses are not persisted in schema v2."
+  - "A legacy dataset revision without dataset_revision_observations cannot be safely assigned source attempt indices; the loader reports the missing provenance rather than guessing."
 
 traceability_chain:
   - chain_id: "TRACE-T006"
@@ -133,6 +259,15 @@ traceability_chain:
       - "src/rqd_exploration/cli.py"
       - "src/test/test_rqd_exploration_runner.py"
       - "src/test/test_rqd_exploration_cli.py"
+    status: "complete"
+  - chain_id: "TRACE-T008-P501-P502"
+    requirement: "REQ-005, REQ-006, REQ-009"
+    plan_phase: "Phase-5"
+    plan_item: "5.1"
+    tasks: ["T008"]
+    files:
+      - "src/rqd_exploration/analysis.py"
+      - "src/test/test_rqd_exploration_analysis.py"
     status: "complete"
 
 validation:

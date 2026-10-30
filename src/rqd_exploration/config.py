@@ -14,18 +14,15 @@ _SAFE_INTEGER_MAX = (2**53) - 1
 _SAFE_INTEGER_MIN = -_SAFE_INTEGER_MAX
 _SCHEMA_VERSION = 1
 JN_VALUES = (0.5, 1.0, 2.0, 3.0, 4.0, 6.0, 9.0, 12.0, 15.0, 20.0)
+EXECUTABLE_JN_SET_COUNTS = {
+    2.0: 1,
+    4.0: 2,
+    9.0: 3,
+    15.0: 4,
+    20.0: 5,
+}
 JR_VALUES = (0.5, 1.0, 1.5, 2.0, 3.0, 4.0)
 JA_VALUES = (0.75, 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 12.0, 13.0, 20.0)
-_HIGH_BIN_GOALS = frozenset({
-    (0.5, 2.0, 0.75),
-    (0.5, 3.0, 0.75),
-    (0.5, 3.0, 1.0),
-    (0.5, 4.0, 0.75),
-    (0.5, 4.0, 1.0),
-    (1.0, 4.0, 0.75),
-})
-_HIGH_BIN_ID = "qprime_gt_400"
-_BIN_CATALOG_ID = "primary_profile_10bin_v1"
 
 
 @dataclass(frozen=True)
@@ -88,24 +85,11 @@ class DesignInput:
 
 
 @dataclass(frozen=True)
-class TargetGoalInput:
-    goal_id: str
-    target_bin_id: str
-    catalog_id: str
-    fixed_jn: float
-    jr_scenario_id: str
-    jr_value: float
-    ja_scenario_id: str
-    ja_value: float
-
-
-@dataclass(frozen=True)
 class NormalizedPilotInput:
     schema_version: int
     geometry: GeometryInput
     measurements: MeasurementInput
     designs: tuple[DesignInput, ...]
-    target_goals: tuple[TargetGoalInput, ...]
     source_yaml_bytes: bytes
     source_yaml_sha256: str
     source_reference: str | None
@@ -380,9 +364,10 @@ def _designs(value: Any) -> tuple[DesignInput, ...]:
         design_ids.add(design_id)
 
         fixed_jn = _number(item["fixed_jn"], f"{name}.fixed_jn")
-        if fixed_jn not in JN_VALUES:
+        if fixed_jn not in EXECUTABLE_JN_SET_COUNTS:
             raise ValueError(
-                f"{name}.fixed_jn must be one of {JN_VALUES}"
+                f"{name}.fixed_jn must be one of the executable Barton values "
+                f"{tuple(EXECUTABLE_JN_SET_COUNTS)}"
             )
         sample_count = _integer(item["sample_count"], f"{name}.sample_count")
         if sample_count <= 0:
@@ -505,8 +490,12 @@ def _designs(value: Any) -> tuple[DesignInput, ...]:
                     size_radius_transform,
                 )
             )
-        if not 1 <= len(joint_sets) <= 5:
-            raise ValueError(f"{name}.joint_sets must contain between 1 and 5 sets")
+        expected_set_count = EXECUTABLE_JN_SET_COUNTS[fixed_jn]
+        if len(joint_sets) != expected_set_count:
+            raise ValueError(
+                f"{name}.fixed_jn={fixed_jn:g} requires exactly "
+                f"{expected_set_count} joint_sets; got {len(joint_sets)}"
+            )
 
         designs.append(
             DesignInput(
@@ -526,99 +515,6 @@ def _designs(value: Any) -> tuple[DesignInput, ...]:
     if not designs:
         raise ValueError("designs must contain at least one design")
     return tuple(designs)
-
-
-def _target_goals(value: Any) -> tuple[TargetGoalInput, ...]:
-    goals: list[TargetGoalInput] = []
-    goal_ids: set[str] = set()
-    goal_combinations: set[tuple[float, float, float]] = set()
-    jr_scenarios: dict[str, float] = {}
-    ja_scenarios: dict[str, float] = {}
-    jr_values: dict[float, str] = {}
-    ja_values: dict[float, str] = {}
-    for index, raw_goal in enumerate(_sequence(value, "target_goals")):
-        name = f"target_goals[{index}]"
-        item = _fields(
-            raw_goal,
-            name,
-            {
-                "goal_id",
-                "target_bin_id",
-                "catalog_id",
-                "fixed_jn",
-                "jr_scenario_id",
-                "jr_value",
-                "ja_scenario_id",
-                "ja_value",
-            },
-        )
-        goal_id = _string(item["goal_id"], f"{name}.goal_id")
-        if goal_id in goal_ids:
-            raise ValueError(f"duplicate goal_id: {goal_id}")
-        goal_ids.add(goal_id)
-
-        target_bin_id = _string(item["target_bin_id"], f"{name}.target_bin_id")
-        if target_bin_id != _HIGH_BIN_ID:
-            raise ValueError(f"{name}.target_bin_id must be {_HIGH_BIN_ID!r}")
-        catalog_id = _string(item["catalog_id"], f"{name}.catalog_id")
-        if catalog_id != _BIN_CATALOG_ID:
-            raise ValueError(f"{name}.catalog_id must be {_BIN_CATALOG_ID!r}")
-
-        fixed_jn = _number(item["fixed_jn"], f"{name}.fixed_jn")
-        jr_value = _number(item["jr_value"], f"{name}.jr_value")
-        ja_value = _number(item["ja_value"], f"{name}.ja_value")
-        if fixed_jn not in (0.5, 1.0):
-            raise ValueError(f"{name}.fixed_jn must be 0.5 or 1 for the initial pilot")
-        if jr_value not in JR_VALUES:
-            raise ValueError(f"{name}.jr_value must be one of {JR_VALUES}")
-        if ja_value not in JA_VALUES:
-            raise ValueError(f"{name}.ja_value must be one of {JA_VALUES}")
-
-        jr_scenario_id = _string(item["jr_scenario_id"], f"{name}.jr_scenario_id")
-        ja_scenario_id = _string(item["ja_scenario_id"], f"{name}.ja_scenario_id")
-        if (
-            jr_scenario_id in jr_scenarios
-            and jr_scenarios[jr_scenario_id] != jr_value
-        ):
-            raise ValueError(f"{name}.jr_scenario_id maps to inconsistent Jr values")
-        if jr_value in jr_values and jr_values[jr_value] != jr_scenario_id:
-            raise ValueError(f"{name}.jr_value maps to inconsistent Jr scenario IDs")
-        if (
-            ja_scenario_id in ja_scenarios
-            and ja_scenarios[ja_scenario_id] != ja_value
-        ):
-            raise ValueError(f"{name}.ja_scenario_id maps to inconsistent Ja values")
-        if ja_value in ja_values and ja_values[ja_value] != ja_scenario_id:
-            raise ValueError(f"{name}.ja_value maps to inconsistent Ja scenario IDs")
-        jr_scenarios[jr_scenario_id] = jr_value
-        ja_scenarios[ja_scenario_id] = ja_value
-        jr_values[jr_value] = jr_scenario_id
-        ja_values[ja_value] = ja_scenario_id
-
-        combination = (fixed_jn, jr_value, ja_value)
-        if combination in goal_combinations:
-            raise ValueError(f"duplicate target-goal combination: {combination}")
-        goal_combinations.add(combination)
-        goals.append(
-            TargetGoalInput(
-                goal_id,
-                target_bin_id,
-                catalog_id,
-                fixed_jn,
-                jr_scenario_id,
-                jr_value,
-                ja_scenario_id,
-                ja_value,
-            )
-        )
-    if goal_combinations != _HIGH_BIN_GOALS:
-        missing = sorted(_HIGH_BIN_GOALS - goal_combinations)
-        unsupported = sorted(goal_combinations - _HIGH_BIN_GOALS)
-        raise ValueError(
-            "target_goals must list the six approved reachable Q′ > 400 "
-            f"combinations; missing={missing}, unsupported={unsupported}"
-        )
-    return tuple(goals)
 
 
 def _shape_randomization(
@@ -676,7 +572,7 @@ def parse_config_bytes(
     root = _fields(
         raw,
         "configuration",
-        {"schema_version", "geometry", "measurements", "designs", "target_goals"},
+        {"schema_version", "geometry", "measurements", "designs"},
     )
     schema_version = _integer(root["schema_version"], "schema_version")
     if schema_version != _SCHEMA_VERSION:
@@ -684,22 +580,11 @@ def parse_config_bytes(
     geometry = _geometry(root["geometry"])
     measurements = _measurements(root["measurements"])
     designs = _designs(root["designs"])
-    target_goals = _target_goals(root["target_goals"])
-    design_jn_values = {design.fixed_jn for design in designs}
-    missing_design_jn = sorted(
-        {goal.fixed_jn for goal in target_goals} - design_jn_values
-    )
-    if missing_design_jn:
-        raise ValueError(
-            f"target_goals reference Jn values without a design block: "
-            f"{missing_design_jn}"
-        )
     return NormalizedPilotInput(
         schema_version,
         geometry,
         measurements,
         designs,
-        target_goals,
         source_yaml_bytes,
         sha256(source_yaml_bytes).hexdigest(),
         source_reference.strip() if source_reference is not None else None,

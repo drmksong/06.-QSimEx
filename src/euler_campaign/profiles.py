@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import exp, floor, fsum, hypot, isclose, isfinite, log
-from typing import Literal, Protocol, Union, runtime_checkable
+from typing import Callable, Literal, Protocol, Union, runtime_checkable
 
 from .geometry import (
     ClippedBorehole, FaceSupport, OverlapInterval, TunnelStation,
@@ -20,6 +20,7 @@ from .models import (
     JointRealization, LineIntersection, TunnelSpec, Vector3,
 )
 from .qprime import QPrimeResult, calculate_qprime
+from .progress import ProgressUpdate
 
 PROFILE_CALCULATION_VERSION = "qsimex-profile-v1"
 ProfileJoint = Union[JointRealization, JointProfileEvidence]
@@ -42,6 +43,8 @@ class JointGeometry(Protocol):
 class BatchedLineGeometry(Protocol):
     def line_intersections_many(
         self, queries: tuple[LineQuery, ...],
+        *,
+        progress_callback: Callable[[ProgressUpdate], None] | None = None,
     ) -> tuple[tuple[LineIntersection, ...], ...]: ...
 
 
@@ -150,7 +153,11 @@ def _direct_rqd(intersections: tuple[LineIntersection, ...], length: float) -> f
 
 
 def sample_borehole(
-    case: CaseSpec, borehole: BoreholeSpec, joints: JointGeometry,
+    case: CaseSpec,
+    borehole: BoreholeSpec,
+    joints: JointGeometry,
+    *,
+    progress_callback: Callable[[ProgressUpdate], None] | None = None,
 ) -> BoreholeProfile:
     """Sample full intervals; distances refer to the original requested start.
 
@@ -184,11 +191,22 @@ def sample_borehole(
         interval_ranges.append((start, end))
         line_queries.append((origin, direction, interval_length))
     if isinstance(joints, BatchedLineGeometry):
-        hits_by_interval = joints.line_intersections_many(tuple(line_queries))
-    else:
-        hits_by_interval = tuple(
-            joints.line_intersections(*query) for query in line_queries
+        hits_by_interval = joints.line_intersections_many(
+            tuple(line_queries),
+            progress_callback=progress_callback,
         )
+    else:
+        hit_results: list[tuple[LineIntersection, ...]] = []
+        for index, query in enumerate(line_queries, start=1):
+            hit_results.append(joints.line_intersections(*query))
+            if progress_callback is not None:
+                progress_callback(ProgressUpdate(
+                    "BH intersection",
+                    f"completed interval queries {index}/{len(line_queries)}",
+                    index,
+                    len(line_queries),
+                ))
+        hits_by_interval = tuple(hit_results)
     if len(hits_by_interval) != len(interval_ranges):
         raise ValueError("batched geometry returned the wrong number of line results")
     intervals: list[ProfileInterval] = []

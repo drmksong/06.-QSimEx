@@ -74,10 +74,24 @@ strategy, implementation plan, tests, and workspace instructions—not replace t
 - Check the final diff and relevant diagnostics. Report the commands and actual
   results. Distinguish tests, preflight checks, in-memory previews, persistent
   writes, DFN generation, and simulation.
+- Pilot execution must report observable phases and periodic heartbeats, not
+  only job boundaries. Keep progress instrumentation behavior-neutral and state
+  what its counters do and do not measure.
 - Do not mark work complete when a required check failed or was not run.
 - At each handoff, state what changed, verification results, limitations or
   unrun actions, and the next dependency/decision. Then wait for the user's
   instruction; do not continue into that next step.
+
+## 6. Python environment
+
+- Run Python commands, tests, and dependency checks only in the existing conda
+  `dlo-cq` environment. Use `conda run -n dlo-cq ...` for tests and checks. For
+  an interactive pilot run where the user needs live terminal progress, first
+  activate `dlo-cq` and invoke `python -u ...` directly so no `conda run` wrapper
+  captures output.
+- Do not use or create `.venv` or another Python environment. The parent
+  directory's `.venv` was removed on 2026-10-30 at the user's request and must
+  not be recreated.
 
 ## Application
 

@@ -10,7 +10,7 @@ from src.rqd_exploration.fingerprint import ExecutionJointSet
 
 class TestGenerationAdapter(unittest.TestCase):
     def setUp(self) -> None:
-        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot.yml"
+        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
         self.config = load_config(path)
         self.joint_set = ExecutionJointSet("set-1", 1.5, 3.0, 0.5, 10.0, 45.0, 120.0, 20.0)
 

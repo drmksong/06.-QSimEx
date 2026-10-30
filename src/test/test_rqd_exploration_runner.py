@@ -7,6 +7,7 @@ import sqlite3
 import sys
 from types import SimpleNamespace
 import tempfile
+from time import sleep
 import unittest
 from unittest.mock import patch
 
@@ -37,7 +38,7 @@ from src.rqd_exploration.store import (
 
 class TestPilotManifestProducer(unittest.TestCase):
     def setUp(self) -> None:
-        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot.yml"
+        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
         self.config = load_config(path)
 
     def build_manifest(self):
@@ -69,7 +70,8 @@ class TestPilotManifestProducer(unittest.TestCase):
         self.assertEqual(len(payload["planned_locations"]), 1210)
         self.assertEqual(len(payload["design_samples"]), 10)
         self.assertEqual(len(payload["jobs"]), 10)
-        self.assertEqual(len(payload["target_goals"]), 6)
+        self.assertNotIn("target_goals", payload)
+        self.assertNotIn("target_ledger", payload)
         self.assertEqual(
             sum(item["modality"] == "BH" for item in payload["planned_locations"]),
             600,
@@ -243,7 +245,7 @@ class TestPilotManifestProducer(unittest.TestCase):
 
 class TestFrozenJobExecution(unittest.TestCase):
     def setUp(self) -> None:
-        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot.yml"
+        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
         self.config = load_config(path)
         mlx_backend = SimpleNamespace(
             MLX_GENERATOR_VERSION="qsimex-mlx-generation-v1",
@@ -256,6 +258,44 @@ class TestFrozenJobExecution(unittest.TestCase):
                 self.config, manifest_id="pilot-runner-fixture",
             )
         self.fake_factory = SimpleNamespace(generate=lambda case, seed: (case, seed))
+
+    def test_progress_callback_reports_job_start_completion_and_budget_stop(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = sqlite3.connect(Path(temp_dir) / "progress.sqlite")
+            initialize_store(connection)
+            store_manifest(connection, self.manifest)
+            messages: list[str] = []
+            first_job = self.manifest.jobs[0]
+
+            def slow_measurement(case, factory, seed, *, progress_callback=None):
+                sleep(0.04)
+                return self._measurement_result(case, reason="progress fixture")
+
+            with patch(
+                "src.rqd_exploration.runner.generate_and_measure",
+                side_effect=slow_measurement,
+            ), patch("src.rqd_exploration.runner._PROGRESS_HEARTBEAT_SECONDS", 0.01):
+                summary = execute_frozen_jobs(
+                    connection,
+                    self.manifest,
+                    self.config,
+                    self.fake_factory,
+                    maximum_simulations=1,
+                    progress_callback=messages.append,
+                )
+
+            self.assertIn("[1/10] start attempt=0", messages[0])
+            self.assertIn("simulation 1/1", messages[0])
+            self.assertTrue(any("heartbeat stage_elapsed=" in message for message in messages))
+            self.assertTrue(any("[1/10] complete" in message for message in messages))
+            self.assertTrue(any("observations=0" in message for message in messages))
+            self.assertIn("[2/10] budget exhausted", messages[-1])
+            self.assertEqual(summary.simulation_count, 1)
+            self.assertEqual(
+                job_attempt_statuses(connection, first_job),
+                ((0, "succeeded"),),
+            )
+            connection.close()
 
     @staticmethod
     def _measurement_result(case, *, reason: str) -> MeasurementResult:
@@ -360,7 +400,6 @@ class TestFrozenJobExecution(unittest.TestCase):
                 summary.maximum_simulations, len(self.manifest.jobs) - 1,
             )
             self.assertEqual(summary.termination_reason, "jobs_complete")
-            self.assertEqual(summary.goal_statuses, ())
             self.assertEqual(len(resumed_calls), len(self.manifest.jobs) - 1)
             self.assertEqual(
                 job_attempt_statuses(reopened, self.manifest.jobs[0]),
@@ -486,13 +525,6 @@ class TestFrozenJobExecution(unittest.TestCase):
             self.assertEqual(summary.maximum_simulations, 1)
             self.assertEqual(summary.termination_reason, "budget_exhausted")
             self.assertEqual(len(summary.completed_job_keys), 1)
-            self.assertEqual(
-                summary.goal_statuses,
-                tuple(
-                    (goal.goal_id, "unresolved_at_budget")
-                    for goal in self.config.target_goals
-                ),
-            )
             self.assertEqual(
                 job_attempt_statuses(connection, self.manifest.jobs[0]),
                 ((0, "succeeded"),),

@@ -2,17 +2,18 @@
 
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
-import json
 import platform
 import sqlite3
+from threading import Event, Lock, Thread
 from time import monotonic
-from typing import Literal
+from typing import Callable, Literal
 
 import numpy
 import scipy
 
 from src.euler_campaign.models import CaseSpec
 from src.euler_campaign.ports import JointFactory
+from src.euler_campaign.progress import ProgressUpdate
 
 from .adapter import build_generation_case
 from .config import NormalizedPilotInput
@@ -49,7 +50,6 @@ class FrozenJobRunSummary:
     simulation_count: int
     maximum_simulations: int
     termination_reason: Literal["jobs_complete", "budget_exhausted"]
-    goal_statuses: tuple[tuple[str, Literal["unresolved_at_budget"]], ...]
 
 
 def build_mlx_pilot_manifest(
@@ -104,11 +104,118 @@ def build_mlx_pilot_manifest(
 
 
 def generate_and_measure(
-    case: CaseSpec, factory: JointFactory, seed: int,
+    case: CaseSpec,
+    factory: JointFactory,
+    seed: int,
+    *,
+    progress_callback: Callable[[ProgressUpdate], None] | None = None,
 ) -> MeasurementResult:
     """Generate one DFN and measure it once; persistence, retry, and policy are separate."""
-    joints = factory.generate(case, seed)
-    return measure_realization(case, joints)
+    if progress_callback is not None:
+        progress_callback(ProgressUpdate("DFN generation", "starting DFN generation"))
+    if progress_callback is None:
+        joints = factory.generate(case, seed)
+    else:
+        joints = factory.generate(
+            case,
+            seed,
+            progress_callback=progress_callback,
+        )
+    if progress_callback is not None:
+        progress_callback(ProgressUpdate(
+            "DFN generation",
+            f"generation complete; joints={getattr(joints, 'count', 'unknown')}",
+        ))
+        progress_callback(ProgressUpdate(
+            "Measurement",
+            "starting BH interval and face station measurements",
+        ))
+    return measure_realization(
+        case,
+        joints,
+        progress_callback=progress_callback,
+    )
+
+
+_PROGRESS_HEARTBEAT_SECONDS = 60.0
+
+
+class _ProgressHeartbeat:
+    def __init__(
+        self,
+        callback: Callable[[str], None] | None,
+        context: str,
+    ) -> None:
+        self._callback = callback
+        self._context = context
+        self._stop = Event()
+        self._lock = Lock()
+        self._stage = "job"
+        self._detail = "starting"
+        self._completed: int | None = None
+        self._total: int | None = None
+        self._stage_started = monotonic()
+        self._thread: Thread | None = None
+
+    def __enter__(self) -> "_ProgressHeartbeat":
+        if self._callback is not None:
+            self._thread = Thread(target=self._run, daemon=True)
+            self._thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join()
+
+    def update(self, update: ProgressUpdate) -> None:
+        now = monotonic()
+        with self._lock:
+            if update.stage != self._stage:
+                self._stage = update.stage
+                self._stage_started = now
+            self._detail = update.detail
+            self._completed = update.completed
+            self._total = update.total
+            message = self._format(update, heartbeat=False, elapsed=0.0)
+        if update.log and self._callback is not None:
+            self._callback(message)
+
+    def _run(self) -> None:
+        while not self._stop.wait(_PROGRESS_HEARTBEAT_SECONDS):
+            with self._lock:
+                elapsed = max(0.0, monotonic() - self._stage_started)
+                update = ProgressUpdate(
+                    self._stage,
+                    self._detail,
+                    self._completed,
+                    self._total,
+                )
+                message = self._format(update, heartbeat=True, elapsed=elapsed)
+            if self._callback is not None:
+                self._callback(message)
+
+    def _format(
+        self,
+        update: ProgressUpdate,
+        *,
+        heartbeat: bool,
+        elapsed: float,
+    ) -> str:
+        progress = (
+            f" progress={update.completed}/{update.total}"
+            if update.completed is not None and update.total is not None
+            else ""
+        )
+        prefix = (
+            f"heartbeat stage_elapsed={elapsed:.0f}s"
+            if heartbeat
+            else "progress"
+        )
+        return (
+            f"{self._context} {prefix} stage={update.stage}"
+            f"{progress}; {update.detail}"
+        )
 
 
 def _utc_now() -> str:
@@ -122,25 +229,6 @@ def _job_identity(job: ExecutionJob) -> tuple[str, str, str, int, int]:
         job.manifest_id, job.design_id, job.block_id,
         job.sample_index, job.realization_seed,
     )
-
-
-def _unresolved_goal_statuses(
-    manifest: FrozenManifest,
-) -> tuple[tuple[str, Literal["unresolved_at_budget"]], ...]:
-    payload = json.loads(manifest.manifest_json)
-    if not isinstance(payload, dict):
-        raise ValueError("frozen manifest payload must be a JSON object")
-    goals = payload.get("target_goals")
-    if not isinstance(goals, list):
-        raise ValueError("frozen manifest payload must contain target_goals")
-    goal_ids: list[str] = []
-    for goal in goals:
-        if not isinstance(goal, dict) or not isinstance(goal.get("goal_id"), str):
-            raise ValueError("frozen manifest contains an invalid target goal")
-        goal_ids.append(goal["goal_id"])
-    if len(goal_ids) != len(set(goal_ids)):
-        raise ValueError("frozen manifest contains duplicate target goal IDs")
-    return tuple((goal_id, "unresolved_at_budget") for goal_id in goal_ids)
 
 
 def _unpersisted_measurements(
@@ -211,6 +299,7 @@ def execute_frozen_jobs(
     factory: JointFactory,
     *,
     maximum_simulations: int,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> FrozenJobRunSummary:
     """Run pending frozen jobs and resume an interrupted attempt without repeating saved jobs."""
     if not isinstance(manifest, FrozenManifest):
@@ -229,9 +318,9 @@ def execute_frozen_jobs(
     skipped_failed: list[tuple[str, str, str, int, int]] = []
     simulation_count = 0
     termination_reason: Literal["jobs_complete", "budget_exhausted"] = "jobs_complete"
-    goal_statuses: tuple[tuple[str, Literal["unresolved_at_budget"]], ...] = ()
 
-    for job in manifest.jobs:
+    job_total = len(manifest.jobs)
+    for job_number, job in enumerate(manifest.jobs, start=1):
         identity = _job_identity(job)
         attempts = job_attempt_statuses(connection, job)
         succeeded = [index for index, status in attempts if status == "succeeded"]
@@ -241,15 +330,29 @@ def execute_frozen_jobs(
             raise ValueError("job has both succeeded and running attempts; refusing ambiguous state")
         if succeeded:
             skipped_completed.append(identity)
+            if progress_callback is not None:
+                progress_callback(
+                    f"[{job_number}/{job_total}] skip completed "
+                    f"{job.design_id}/{job.block_id}/sample={job.sample_index}"
+                )
             continue
         if running and failed:
             raise ValueError("job has both running and failed attempts; refusing ambiguous resume")
         if failed:
             skipped_failed.append(identity)
+            if progress_callback is not None:
+                progress_callback(
+                    f"[{job_number}/{job_total}] skip failed attempt "
+                    f"{job.design_id}/{job.block_id}/sample={job.sample_index}"
+                )
             continue
         if simulation_count >= maximum_simulations:
             termination_reason = "budget_exhausted"
-            goal_statuses = _unresolved_goal_statuses(manifest)
+            if progress_callback is not None:
+                progress_callback(
+                    f"[{job_number}/{job_total}] budget exhausted; "
+                    f"started {simulation_count}/{maximum_simulations} simulations"
+                )
             break
 
         started_monotonic = monotonic()
@@ -259,6 +362,7 @@ def execute_frozen_jobs(
             resume_state = resume_attempt(connection, job)
             attempt_index = resume_state.attempt_index
             location_states = resume_state.location_states
+            action = f"resume attempt={attempt_index}"
         else:
             attempt_index = 0
             planned_location_rows = connection.execute(
@@ -284,44 +388,91 @@ def execute_frozen_jobs(
                 )
                 for modality, profile_id, location_index in planned_location_rows
             )
+            action = f"start attempt={attempt_index}"
 
-        try:
-            simulation_count += 1
-            result = generate_and_measure(case, factory, job.realization_seed)
-            pending_result = _unpersisted_measurements(result, location_states)
-            complete_attempt(
-                connection,
-                job,
-                attempt_index,
-                pending_result,
-                finished_at_utc=_utc_now(),
-                runtime_seconds=max(0.0, monotonic() - started_monotonic),
-            )
-        except KeyboardInterrupt:
-            checkpoint_attempt_runtime(
-                connection,
-                job,
-                attempt_index,
-                max(0.0, monotonic() - started_monotonic),
-            )
-            raise
-        except Exception as error:
+        simulation_count += 1
+        job_started = monotonic()
+        progress_context = (
+            f"[{job_number}/{job_total}] {action} "
+            f"{job.design_id}/{job.block_id}/sample={job.sample_index} "
+            f"seed={job.realization_seed}; "
+            f"simulation {simulation_count}/{maximum_simulations}"
+        )
+        with _ProgressHeartbeat(progress_callback, progress_context) as heartbeat:
+            heartbeat.update(ProgressUpdate(
+                "DFN generation",
+                f"{len(location_states)} locations planned/pending",
+            ))
             try:
-                finish_attempt(
+                if progress_callback is None:
+                    result = generate_and_measure(
+                        case, factory, job.realization_seed,
+                    )
+                else:
+                    result = generate_and_measure(
+                        case,
+                        factory,
+                        job.realization_seed,
+                        progress_callback=heartbeat.update,
+                    )
+                pending_result = _unpersisted_measurements(result, location_states)
+                heartbeat.update(ProgressUpdate(
+                    "Persistence",
+                    f"persisting {len(pending_result.observations)} observations "
+                    f"and {len(pending_result.location_states)} location states",
+                ))
+                complete_attempt(
                     connection,
                     job,
                     attempt_index,
-                    status="failed",
+                    pending_result,
                     finished_at_utc=_utc_now(),
                     runtime_seconds=max(0.0, monotonic() - started_monotonic),
                 )
-            except Exception as persistence_error:
-                raise ExceptionGroup(
-                    "job execution and failure-state persistence both failed",
-                    [error, persistence_error],
+            except KeyboardInterrupt:
+                checkpoint_attempt_runtime(
+                    connection,
+                    job,
+                    attempt_index,
+                    max(0.0, monotonic() - started_monotonic),
                 )
-            raise
+                heartbeat.update(ProgressUpdate(
+                    "Interruption",
+                    f"[{job_number}/{job_total}] {job.design_id}/"
+                    f"{job.block_id}/sample={job.sample_index}; "
+                    "attempt checkpointed for resume",
+                ))
+                raise
+            except Exception as error:
+                try:
+                    finish_attempt(
+                        connection,
+                        job,
+                        attempt_index,
+                        status="failed",
+                        finished_at_utc=_utc_now(),
+                        runtime_seconds=max(0.0, monotonic() - started_monotonic),
+                    )
+                except Exception as persistence_error:
+                    raise ExceptionGroup(
+                        "job execution and failure-state persistence both failed",
+                        [error, persistence_error],
+                    )
+                heartbeat.update(ProgressUpdate(
+                    "Failure",
+                    f"[{job_number}/{job_total}] "
+                    f"{job.design_id}/{job.block_id}/"
+                    f"sample={job.sample_index}: {error}",
+                ))
+                raise
         completed.append(identity)
+        if progress_callback is not None:
+            progress_callback(
+                f"[{job_number}/{job_total}] complete "
+                f"{job.design_id}/{job.block_id}/sample={job.sample_index}; "
+                f"elapsed={max(0.0, monotonic() - job_started):.1f}s; "
+                f"observations={len(pending_result.observations)}"
+            )
 
     return FrozenJobRunSummary(
         tuple(completed),
@@ -330,5 +481,4 @@ def execute_frozen_jobs(
         simulation_count,
         maximum_simulations,
         termination_reason,
-        goal_statuses,
     )

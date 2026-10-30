@@ -100,7 +100,12 @@ class TestMlxCaseJointFactory(unittest.TestCase):
         )
 
         factory = MlxCaseJointFactory()
-        first = factory.generate(_case(), 1234)
+        progress = []
+        first = factory.generate(
+            _case(),
+            1234,
+            progress_callback=progress.append,
+        )
         second = factory.generate(_case(), 1234)
 
         self.assertEqual(MLX_GENERATOR_VERSION, "qsimex-mlx-generation-v1")
@@ -111,6 +116,20 @@ class TestMlxCaseJointFactory(unittest.TestCase):
         self.assertEqual(first.set_ids.tolist(), second.set_ids.tolist())
         self.assertEqual(first.centers.__dlpack_device__()[0], 8)
         self.assertEqual(first.conditions, {1: _condition()})
+        self.assertTrue(any(
+            update.stage == "DFN generation" and update.completed == update.total
+            for update in progress
+        ))
+        self.assertTrue(any(
+            update.stage == "DFN materialization"
+            and "evaluating generated GPU arrays" in update.detail
+            for update in progress
+        ))
+        self.assertTrue(any(
+            update.stage == "DFN materialization"
+            and update.completed == first.count
+            for update in progress
+        ))
 
     def test_samples_respect_radius_and_buffered_domain_bounds(self) -> None:
         from src.euler_campaign.mlx_backend import MlxCaseJointFactory
@@ -172,8 +191,12 @@ class TestMlxCaseJointFactory(unittest.TestCase):
             ((5.0, 0.0, 5.0), (0.0, 1.0, 0.0), 10.0),
         )
 
+        progress = []
         batched = arrays.line_intersections_many(
-            queries, chunk_size=2, query_batch_size=2,
+            queries,
+            chunk_size=2,
+            query_batch_size=2,
+            progress_callback=progress.append,
         )
         individual = tuple(arrays.line_intersections(*query) for query in queries)
 
@@ -191,6 +214,14 @@ class TestMlxCaseJointFactory(unittest.TestCase):
                 for hits in batched
             ),
             ((0.0, 5.0, 10.0), (0.0, 5.0, 10.0), ()),
+        )
+        self.assertEqual(
+            [
+                update.completed
+                for update in progress
+                if update.stage == "BH intersection" and update.log
+            ],
+            [2, 3],
         )
 
     def test_face_and_scanline_queries_share_joint_chunk_pass(self) -> None:

@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
 from math import exp, floor, isfinite, lgamma, log, pi, sqrt
+from typing import Callable
 
 import mlx.core as mx
 
@@ -21,6 +22,7 @@ from .models import (
     CaseSpec, DomainSpec, JointCondition, JointProfileEvidence,
     LineIntersection, Vector3, validate_case,
 )
+from .progress import ProgressUpdate
 
 MLX_GENERATOR_VERSION = "qsimex-mlx-generation-v1"
 LineQuery = tuple[Vector3, Vector3, float]
@@ -136,6 +138,8 @@ class MlxJointArrays:
         queries: tuple[LineQuery, ...],
         chunk_size: int = 65_536,
         query_batch_size: int = 4,
+        *,
+        progress_callback: Callable[[ProgressUpdate], None] | None = None,
     ) -> tuple[tuple[LineIntersection, ...], ...]:
         if (
             isinstance(chunk_size, bool)
@@ -166,10 +170,25 @@ class MlxJointArrays:
         results: list[list[tuple[float, int, int]]] = [
             [] for _ in normalized_queries
         ]
-        for query_offset in range(0, len(normalized_queries), query_batch_size):
+        query_batch_total = (
+            len(normalized_queries) + query_batch_size - 1
+        ) // query_batch_size
+        for batch_index, query_offset in enumerate(
+            range(0, len(normalized_queries), query_batch_size), start=1,
+        ):
             query_batch = normalized_queries[
                 query_offset:query_offset + query_batch_size
             ]
+            if progress_callback is not None:
+                progress_callback(ProgressUpdate(
+                    "BH intersection",
+                    f"processing query batch {batch_index}/{query_batch_total}; "
+                    f"intervals {query_offset + 1}-"
+                    f"{query_offset + len(query_batch)}/{len(normalized_queries)}",
+                    query_offset,
+                    len(normalized_queries),
+                    log=False,
+                ))
             starts = mx.array(
                 tuple(item[0] for item in query_batch), dtype=mx.float32,
             )
@@ -214,6 +233,14 @@ class MlxJointArrays:
                             hit_local_ids.tolist(),
                         )
                     )
+            if progress_callback is not None:
+                progress_callback(ProgressUpdate(
+                    "BH intersection",
+                    f"completed interval queries "
+                    f"{query_offset + len(query_batch)}/{len(normalized_queries)}",
+                    query_offset + len(query_batch),
+                    len(normalized_queries),
+                ))
 
         outputs: list[tuple[LineIntersection, ...]] = []
         for query_hits in results:
@@ -703,7 +730,13 @@ def _sample_poisson_count(expected_count: float, key: mx.array) -> int:
 class MlxCaseJointFactory:
     """Generate a Case DFN as GPU arrays without per-joint Python objects."""
 
-    def generate(self, case: CaseSpec, seed: int) -> MlxJointArrays:
+    def generate(
+        self,
+        case: CaseSpec,
+        seed: int,
+        *,
+        progress_callback: Callable[[ProgressUpdate], None] | None = None,
+    ) -> MlxJointArrays:
         require_mlx_gpu()
         validate_case(case)
         if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
@@ -727,7 +760,14 @@ class MlxCaseJointFactory:
         local_ids_by_set: list[mx.array] = []
         conditions: dict[int, JointCondition] = {}
 
-        for set_index, joint_set in enumerate(ordered_sets):
+        for set_index, joint_set in enumerate(ordered_sets, start=1):
+            if progress_callback is not None:
+                progress_callback(ProgressUpdate(
+                    "DFN generation",
+                    f"sampling joint set {joint_set.set_id}",
+                    set_index - 1,
+                    len(ordered_sets),
+                ))
             expected_area = _expected_joint_area(
                 joint_set.size_alpha, joint_set.size_r_min, joint_set.size_r_max,
             )
@@ -751,6 +791,13 @@ class MlxCaseJointFactory:
                 expected_count, set_keys[key_offset],
             )
             if count == 0:
+                if progress_callback is not None:
+                    progress_callback(ProgressUpdate(
+                        "DFN generation",
+                        f"queued joint set {joint_set.set_id}; sampled 0 joints",
+                        set_index,
+                        len(ordered_sets),
+                    ))
                 continue
 
             sample_key = set_keys[key_offset + 1]
@@ -791,6 +838,13 @@ class MlxCaseJointFactory:
             ids_by_set.append(mx.full((count,), joint_set.set_id, dtype=mx.int32))
             local_ids_by_set.append(mx.arange(count, dtype=mx.int32))
             conditions[joint_set.set_id] = joint_set.condition
+            if progress_callback is not None:
+                progress_callback(ProgressUpdate(
+                    "DFN generation",
+                    f"queued joint set {joint_set.set_id}; sampled {count} joints",
+                    set_index,
+                    len(ordered_sets),
+                ))
 
         if centers_by_set:
             centers = mx.concatenate(centers_by_set, axis=0)
@@ -805,7 +859,20 @@ class MlxCaseJointFactory:
             set_ids = mx.zeros((0,), dtype=mx.int32)
             local_ids = mx.zeros((0,), dtype=mx.int32)
 
+        if progress_callback is not None:
+            progress_callback(ProgressUpdate(
+                "DFN materialization",
+                "evaluating generated GPU arrays",
+            ))
         mx.eval(centers, normals, radii, set_ids, local_ids)
-        return MlxJointArrays(
+        generated = MlxJointArrays(
             centers, normals, radii, set_ids, local_ids, conditions,
         )
+        if progress_callback is not None:
+            progress_callback(ProgressUpdate(
+                "DFN materialization",
+                f"GPU arrays ready; total joints={generated.count}",
+                generated.count,
+                generated.count,
+            ))
+        return generated
