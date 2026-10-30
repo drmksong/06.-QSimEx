@@ -8,6 +8,33 @@
 - 상세화: 2026-10-28 사용자 요청에 따라 §5의 T001–T011을 §5.1의 Phase/Step으로 분해했다.
   실행 중 충돌·미정 사항은 §1.1의 결정 절차를 따르며, 본 갱신은 기능 구현이나 실행이 아니다.
 
+## 현재 상태 및 다음 재개 지점 (2026-10-29 22:01 +09:00)
+
+- **완료:** Phase 1–4 (T001–T007, P1.01–P4.07) 구현·검증. 특히 전체 175개 테스트 통과.
+  이미 완료한 작업을 다시 시작하거나 재실행할 필요가 없다.
+- **현재 미착수:** Phase 5의 T008/P5.01–P5.02 (66개 Jr/Ja scenario 점수와 경계/fingerprint
+  검증), T009/P5.03–P5.05 (관측 진단, CSV 및 analyze CLI).
+- **선행 결정:** P5.03–P5.04에 들어가기 전에 D005의 참조 profile, 보고 field, support 대응 계산
+  범위를 승인된 전략 근거와 대조해 해결한다. T008/P5.01–P5.02 점수 계산은 먼저 독립적으로
+  진행 가능하다.
+- **그 후:** T010/P6.01–P6.02 실행 전 인계·승인 확인을 완료한다. 실제 pilot run은 사용자에게
+  config, manifest, maximum simulation과 실행 명령을 제시하고 별도 명시 승인을 받은 뒤에만
+  사용자가 실행한다. P6.03–P6.04는 실제 사용자 실행 결과가 있을 때만 기록한다.
+- **별도 보류:** T011/Phase 7 adaptive batch controller는 pilot 결과 검토와 별도 정책 승인
+  전까지 deferred이며, 현재 pilot 범위에 포함되지 않는다.
+- **다음 재개 위치:** T008 → P5.01. 이 인계 기록은 재개 지점을 지정할 뿐 다음 작업의 착수
+  승인은 아니다. 재개 시 이 현재 상태와 최신 시각 기록을 기준으로 삼고, 아래 과거 이력의
+  "다음 작업" 문구는 당시 상태 기록으로만 읽는다.
+- **실행 경계:** 실제 pilot DB/manifest 영속화, DFN generation, simulation은 아직 수행하지
+  않았다. `--confirm-execution`은 CLI 내부의 필수 안전 스위치이며 사용자 승인 자체가 아니다.
+- **복구 한계:** 저장 완료된 job은 재개 시 건너뛰지만, 결과 commit 전 중단된 in-flight job의
+  DFN은 재생성될 수 있다. 예산은 명령별 상한이며 resume 명령마다 새 양수 상한을 받는다.
+- 실패 전 commit되지 않은 현재 job은 DFN 및 측정 결과를 메모리에만 보유하므로 재개 때
+  해당 job의 DFN을 다시 생성할 수 있다. 이미 완료·저장된 다른 job은 재실행하지 않는다.
+- 실제 pilot DB 생성/초기화·manifest 영속화·DFN 생성·simulation은 승인되지 않았고 수행하지
+  않았다. 저장 테스트는 `:memory:` 및 임시 파일 SQLite만 사용했다.
+- 마지막 검증 증거와 상세 기록은 아래 작업 이력 및 전략 plan의 최신 timestamped 기록을 따른다.
+
 ## 1. 문서 역할과 우선순위
 
 구현 관련 주 기준 문서는 다음 두 파일이다.
@@ -38,6 +65,11 @@
   필요하고, `verified`에는 문서 또는 코드의 검증 증거가 필요하다. 문서 정정과 기능 완료는 별개다.
 - **단계 인계:** 완료 Step·산출물·검증 명령/결과·남은 D-ID·다음 실행 가능 Step을 이 문서에
   기록한다. 양쪽 문서에 task 체크박스를 유지할 경우 T-ID 완료 상태도 함께 맞춘다.
+- **다음 단계 승인:** 다음 Step 제안은 착수 승인이 아니다. 완료 결과·검증·한계와 다음 후보를
+  보고하고 사용자 지시를 기다린다. 별도 지시 전에는 제안된 다음 Step을 시작하지 않는다.
+- **현재 상태:** 과거 재개 메모는 이력으로 보존한다. 최신 완료/대기 상태는 문서 앞부분의
+  timestamped 현재 상태와 가장 최근 작업 로그로 확인하며, 오래된 재개 지시를 현재 상태로
+  해석하지 않는다.
 
 #### 결정·충돌 대장 (2026-10-28 상세 계획 기준)
 
@@ -45,10 +77,209 @@
 |---|---|---|---|
 | D001 / verified (문서) | 이 문서의 “G0 전부 미승인”으로 읽히는 설명과 전략 §5·§11.2·§11.4의 pilot G0 간소 계약 승인 상태가 다름 | 최신 전략을 적용한다. 이미 승인된 schema version 1, ID·상태·evidence·JCS/SHA-256을 재결정하지 않는다. 남은 통합 테이블/열/FK/NULL/check 및 fingerprint 필드 묶음만 T002에서 제시·확인한다. 두 문서와 checkpoint 정합화 확인; G0와 T002 검토 완료를 동일시하지 않음 | P1.01, P1.03–P1.05 |
 | D002 / open | 간소 개념 계약은 승인됐으나 일관된 SQLite DDL, 실행 snapshot 필드, raw dataset serialization 묶음은 §11.4에서 미완료 | 새 설계 선택만 질문한다. 계약 확인 후 records/config/store/analysis의 해당 필드를 구현한다 | P1.03–P1.05; T002,T006,T008 |
-| D003 / open | RFC 8785 준수 요구와 새 의존성 추가를 계획하지 않는 제약을 함께 만족해야 함 | 설치 환경의 지원 기능과 공식 test vectors를 확인한다. 일반 `json.dumps(sort_keys=True)`를 JCS로 간주하지 않는다. 새 패키지나 직접 구현이 필요하면 정확성·복잡도·대안을 제시해 결정받는다 | P1.07 |
-| D004 / open | 부분 실패 관측 보존은 승인됐으나 pilot 중 재시도 선택·실행 예산 차감·중단 작업 복구 세부가 미완료 | 동일 seed 재시도를 독립 realization로 세지 않는 원칙을 유지한다. 자동 retry/부분 관측 병합/유리한 attempt 선택을 임의 도입하지 않고 pilot에 필요한 처리만 결정받는다 | P4.02, P4.04–P4.05 |
+| D003 / resolved (P1.07a) | RFC 8785 준수 구현 방식과 dependency 제약 결정이 남아 있었음 | 사용자 확인(2026-10-29): `rfc8785==0.1.4`를 의존성으로 사용한다. 공통 utility와 RFC 동작 테스트를 P1.07a에서 구현했다 | P1.07a |
+| D004 / verified (P4.02 storage boundary) | 중단된 `running` attempt의 재개 정책과 전체 attempt runtime 범위가 미정이었다 | 사용자 합의(2026-10-29): 재실행 시 같은 attempt ID를 복구하고 이미 저장된 관측은 보존·건너뛰며 `planned` 위치만 이어간다. 새 attempt/retry를 자동 생성하지 않는다. runtime 범위는 준비부터 최종 저장까지이며 중단시간은 제외한 활성 실행 구간을 합산한다. 비정상 종료로 잃은 구간은 마지막 checkpoint 누적값을 lower bound로 표시한다. Runner timer 연결은 P4.04에서 수행한다. | P4.02–P4.05 |
 | D005 / open | raw BH/face와 66 scenario는 확정. 참조 profile·보고 field의 pilot 범위와 일부 support/대응 계산 세부는 확인 필요 | detection·밀도·P32 등 전략의 분석 요구를 목록화해 필요한 evidence와 산출 가능성을 확인한다. threshold 자동 추정은 제외하고, 추가 측정/필드가 필요하면 구현 전에 범위를 결정받는다 | P1.03, P5.03–P5.04 |
 | D006 / deferred | 축별 step, 후속 block/N·배분, 충분성·bin 전환·weight 등은 전략 §11.2.1–2의 post-pilot 항목 | 파일럿에서 값을 추정해 채우지 않는다. 결과 검토와 별도 승인 전 Phase 7/T011 차단 | P6.04, P7.01–P7.03 |
+| D007 / applied (초안) | 전략 §10.2의 2026-10-28 10:27·10:34 합의는 composite-key 구성 필드를 SQLite PK/FK로 직접 사용하고 opaque ID를 만들지 않도록 한다. 구현계획 D001은 승인된 “내부 row ID”를 유지한다고 기록해 키 방식이 불명확했다. | 사용자 확인(2026-10-29): SQLite에서 composite PK/FK만 사용하고 정수 surrogate row ID는 두지 않는다. 내부 정수 row ID로 읽힐 수 있는 D001 표현은 이 범위에서 composite-key 결정으로 구체화한다. 초안 관계에 반영; 최종 field/DDL 계약은 P1.05에서 고정한다. | P1.03–P1.05; T002,T006 |
+| D008 / applied (P1.04) | 논리 payload·JCS/SHA-256 규칙은 합의됐으나 SQLite 내 canonical snapshot의 bytes/text 저장 표현, source reference requiredness, evidence 교차점 표현 및 revision predecessor NULL 규칙은 미확정이었다. | 사용자 확인(2026-10-29): canonical JCS UTF-8 bytes는 BLOB, SHA-256은 lowercase hex TEXT; YAML source reference는 optional nullable; evidence 교차 위치는 evidence row의 sorted numeric JSON array; revision 1의 predecessor/reason은 NULL, 후속 revision은 직전 revision과 correction reason 필수. P1.04 검토안에 반영; 통합 field/DDL은 P1.05에서 고정한다. | P1.04–P1.05; T002,T006,T008 |
+| D009 / applied (P1.05) | Frozen manifest는 SQLite 안의 fixed JSON payload로 승인됐으며, 결과 저장에는 manifest의 design/job/location/goal key를 참조하는 composite FK가 필요하다. JSON payload 단독으로는 해당 내부 key의 FK를 SQLite가 검사할 수 없다. | 사용자 확인(2026-10-29): frozen JSON payload와 sample/goal/job/planned-location composite FK에 필요한 최소 relational key/index rows를 함께 둔다. Payload가 설계 원본이고 projection은 immutable FK index이며 생성 시 payload와 일치 여부를 검증한다. 중복 식별값은 payload와 projection에 각각 한 번 나타나며 별도 의미를 갖는 독립 원본은 아니다. | P1.05; T002,T006,T008 |
+| D010 / applied (P1.05) | attempt별 location state 및 모든 partial observation의 이력 보존은 합의됐지만, attempt metadata를 빼는 immutable raw dataset revision에 같은 job의 복수 attempt 자료를 투영하는 규칙은 미정이었다. | 사용자 확인(2026-10-29): job별 가장 높은 `attempt_index`의 `succeeded` attempt 하나만 status/observation을 dataset에 투영한다. 실패 attempt와 partial observations는 전체 이력에 보존하되 dataset에는 합치지 않는다. 성공 attempt가 없으면 planned locations는 `planned`로 두고 observation을 포함하지 않는다. | P1.05; T002,T006,T008; D004 |
+| D011 / applied (P1.05) | Manifest payload, evidence intersection JSON array, measurement method version 및 attempt runtime의 정확한 SQLite/Python scalar representation과 method-version requiredness는 미정이었다. | 사용자 확인(2026-10-29): manifest JSON payload와 evidence intersection array는 UTF-8 JSON `TEXT`, method version은 필수 `TEXT`/`str`, attempt runtime은 `REAL` seconds로 저장한다. Canonical dataset snapshot은 별도 JCS UTF-8 BLOB이며 evidence TEXT 값을 digest input으로 직접 사용하지 않고 정렬된 숫자 배열로 재구성한다. | P1.05; T002,T006 |
+
+#### P1.01 기준 문서 대조 결과 (2026-10-29)
+
+전략 plan §5·§6·§11.2–11.4와 이 문서 §1.1·§2·§5.1을 대조했다. 아래 구분은
+기존 사용자 합의를 구현 관점으로 정리한 것이며 새로운 설계값이나 실행 승인이 아니다.
+
+| 구분 | 대조 결과 | 근거 및 영향 |
+|---|---|---|
+| 승인된 pilot 기반 | 최초 10 signatures: Jn 0.5/1의 2개 block, block별 N=5, design seed 39/36, 공통 realization seed 43. randomized LHS, 승인된 bounds·좌표변환, domain/tunnel/BH 형상, 1 m BH·face 측정, 여섯 동등 `Q′ > 400` 목표를 사용한다. G0 간소 계약에서 YAML + 단일 SQLite와 DB 내 manifest payload, schema version 1, ID/status/evidence, JCS/SHA-256 및 실행/분석 fingerprint 분리는 재결정하지 않는다. | 전략 §5·§11.2 안건 6·§11.4; 구현계획 §1.1 D001·§2·§5.1 P2.01–P2.03 |
+| REQ 범위 연결 | REQ-001–010은 pilot 기반의 설계·측정·저장·분석·사용자 실행 경계를 포괄한다. REQ-011은 초기 목표 ledger에도 적용되며 자동 갱신 부분은 후속이다. REQ-012/013은 T011/Phase 7의 후속 자동 탐색 범위다. | 전략 §2·§9; 구현계획 §5·§10 |
+| 아직 필요한 계약 결정 | 통합 SQLite 테이블·열·FK/NULL/check 제약, 실행 snapshot 및 fingerprint 입력 필드, pilot raw dataset serialization의 일관된 범위는 T002에서 제시·검토한다. 부분 실패 관측 보존은 유지하되 pilot 재시도·예산 차감·중단 복구 세부와 pilot 분석/profile 보고 범위·일부 support 대응 계산은 필요한 선택만 추가 확인한다. RFC 8785 구현 방법은 설치 환경/공식 vectors 확인 후 결정하며, 새 의존성 또는 직접 구현 필요 시 D003 절차를 따른다. | 구현계획 §1.1 D002–D005; P1.03–P1.07, P4.02·P4.04–P4.05, P5.03–P5.04 |
+| 후속 또는 제외 | 충분성·비용/시간 집계·목표별 자동 예산 배분·step·정체/방향 전환·bin 전환·weight와 일반 자동 batch는 pilot 관측 후 별도 논의·승인 전 구현하지 않는다. simulation은 사용자가 입력·manifest·maximum simulation을 확인한 뒤 직접 실행한다. threshold 자동 선정, 현장 안전성 판단 및 기존 Euler 자료/설정의 변경·소급 변환은 이번 범위 밖이다. | 전략 §1.1·§5·§11.2.1–11.2.2; 구현계획 §2·§8–§9; D006 |
+| Gate 상태 | G0는 pilot 간소 자료 계약만 승인되었고 통합 T002 계약은 남아 있다. G1은 pilot 설계값이 확정되었으나 구현·검증은 미완료다. G2는 공통 당초 seed, 최고 target, 실행별 최대 simulation 입력과 상한 도달 상태 처리만 정해졌고 충분성·배분 등은 미결이다. G3는 구현 후 사용자 검증 대기, G4는 소규모 검증 후 benchmark 및 대규모 실행 승인 대기다. | 전략 §5·§11.2; 구현계획 §1.1·§2·§5.1 |
+
+#### P1.02 현재 구조·회귀 기준 확인 결과 (2026-10-29)
+
+프로젝트 루트 `06. QSimEx`에서 README의 표준 명령을 실행하고 현재 파일·저장 경계를
+확인했다.
+
+| 확인 항목 | 결과 |
+|---|---|
+| 프로젝트·보관 경계 | 현재 프로젝트는 `master` branch의 Git 저장소다. `src/`는 현재 유지할 계산 경계와 v4 package/test만 포함하고, 이전 전체 source와 관련 test는 `obsolete/src_obs/` 아래 보존한다. runtime import/수정 대상은 신규 `src/`로 한정한다. |
+| 새 모드 골격 | `src/rqd_exploration/`에 `records.py`, `config.py`, `design.py`, `measurement.py`, `runner.py`, `store.py`, `analysis.py`, `cli.py`가 있으나 확인 시점에는 모듈 docstring만 있는 골격이다. root `run_rqd_exploration.py`는 package CLI를 호출하고, CLI는 미구현 안내와 종료 코드 2를 반환한다. |
+| 입력·결과 위치 | `config/rqd_exploration_pilot.yml`은 실행 가능한 값이 없는 주석 placeholder다. `results/rqd_exploration/`에는 `.gitkeep`만 있으며 `.gitignore`는 실제 결과를 제외한다. 보관된 결과/설정 폴더는 현행 실행 대상이 아니다. |
+| 환경·회귀 기준 | 프로젝트 README가 지정한 `conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -v`를 프로젝트 루트에서 실행했다. Python 3.11.15, NumPy 2.4.3, SciPy 1.17.1, macOS 27.0.1 arm64 환경에서 **84 tests, 0.731s, OK**. 실행 주체: 구현 assistant; 이는 현행 재사용 경계 회귀 기준이며 새 파일럿 기능 검증이나 simulation이 아니다. |
+| 작업 트리 상태 | 확인 시점 Git status는 `master...origin/master`였으며, 수정 파일은 직전 P1.01에서 갱신한 두 기준 문서뿐이었다. P1.02에서는 코드·설정·결과물을 변경하지 않았다. |
+
+#### P1.03 통합 자료 계약표 초안 및 반영 결과 (2026-10-29)
+
+아래는 전략 plan §10.2–10.9의 기존 자료 의미와 저장 합의를 `records.py`/`config.py`/
+`store.py` 구현 경계에 대응한 **검토용 초안**이다. 행·속성 명칭은 설명용이며 확정 API가
+아니다. 이미 승인된 자료 의미는 재질문하지 않고, `TBD`는 사용자 확인 전 구현하지 않는다.
+
+| 자료군 / 논리 테이블 | 보존 자료와 생성 시점 | 키·관계 초안 | 필수·NULL·CHECK/FK 초안 |
+|---|---|---|---|
+| 원 설정 provenance (`input_provenance`) | 입력 YAML exact bytes와 SHA-256, source reference. config 입력 시 1회 보존하며 normalized execution snapshot과 분리 | manifest ID가 provenance record를 composite FK로 참조; 내부 surrogate row ID 없음 | bytes·digest 필수; 원문을 parse/re-serialize하지 않음. source reference의 필수성은 P1.04 검토 |
+| Frozen manifest (`manifest` JSON payload in SQLite) | `schema_version=1`, text manifest ID, canonical units/frame, source YAML reference/digest; designs/blocks/samples/LHS axes·bounds·변환/signature·Jn/seed/fingerprint; target-goal ledger; jobs·예정 BH/face 물리 위치와 예정 support. 설계 확정 시 immutable payload | manifest ID는 text key; JSON에 deterministic composite-key 구성 요소를 명시. target goal과 physical location은 별도 collection. | manifest/schema version 필수. 독립 manifest 파일은 만들지 않음. JSON bytes/text 저장 표현 및 세부 구조는 P1.04 |
+| Design sample (`design_samples`, manifest 내 collection) | design/block/sample index, LHS 재현 설정·signature 입력 | `(manifest_id, design_id, block_id, sample_index)` composite PK; manifest FK | 식별자·index·승인 설계값 필수; FK 구성 요소 모두 not-null. 단위·bounds는 승인 canonical 설정과 일치 |
+| Execution job (`jobs`) | 고정 design sample·realization seed·normalized execution snapshot 및 JCS/SHA-256 digest. 설계 때 frozen manifest로부터 고정 | `(manifest_id, design_id, block_id, sample_index, realization_seed, execution_fingerprint_digest)` composite PK/FK | seed·snapshot·digest·관련 design sample 필수. seed는 안전 정수 범위; fingerprint 입력은 실제 적용 canonical 값. Jr/Ja·Q′/bin·attempt metadata 제외 |
+| Planned location 및 상태 (`planned_locations`, `location_status`) | manifest에 planned BH interval/face station, modality/profile/index, chainage/ENU, 예정 support를 저장. 각 attempt-location 상태는 `planned/observed/unavailable/missing` | planned location key `(job_key, modality, profile_id, location_index)`. 사용자 확인(2026-10-29): 상태 key는 `(job_key, attempt_index, modality, profile_id, location_index)`; attempt/location 복합 FK를 사용 | 예정 위치·예정 support는 raw observation과 별도. 상태 CHECK는 네 합의값만 허용. 위치상태와 attempt 상태 혼합 금지 |
+| Attempt (`attempts`) | job별 attempt index, 상태 `running/succeeded/failed`, UTC RFC 3339 시작/종료, runtime. 시작 시 생성, 종료 시 상태 갱신 | `(job_key, attempt_index)` composite PK; job composite FK | job FK 필수; 상태 CHECK 위 값만 허용. 오류 code/message/traceback 등 진단자료는 저장하지 않음. 종료시각/runtime의 running·terminal별 NULL/check는 P1.04에서 구체화 |
+| Raw observation (`observations`) | 실제 raw RQD가 산출된 BH 원 interval 또는 face station만 생성. modality/method/version, actual support, zero-cross provenance 및 원천 attempt 연결 | `(attempt_key, planned_location_key)` composite PK/FK | raw RQD·method/version·valid actual support 필수; raw RQD는 [0,100]. RQD가 없으면 행 대신 위치상태만 기록. 목표 기여는 observation 본문에 합치지 않음 |
+| Measurement evidence (`measurement_evidence`) | BH interval의 내부 line-relative 교차 위치(m); face station의 하위 scanline 시작점·방향·유효 길이·내부 교차 위치. 최소 evidence로 raw RQD 재계산 가능 | `(observation_key, scanline_index)` composite PK/FK. BH는 interval 측정 line, face는 각 scanline을 동일 evidence 관계로 표현하는 초안 | line 길이·교차 위치는 canonical m, ENU geometry와 일치; 길이/교차 목록 검증 및 정렬·endpoint/dedup 규칙은 기존 측정 합의와 일치. 정확한 열·자료형은 P1.04 |
+| Goal contribution (`goal_contributions`) | 분석에서 관측이 기여한 목표의 별도 다대다 relation | 합의 key `(analysis_run_id, goal_id, observation_id)` composite PK; analysis·goal·observation composite FK | 세 참조 필수. 동일 relation 중복 금지; 원 실행의 목표 의도를 분석 후 변경하지 않음 |
+| Raw dataset revision (`dataset_revisions`) | planned-location status, raw observations, support, evidence를 포함하는 불변 canonical snapshot. `schema_version=1`, deterministic ID order, JCS UTF-8/SHA-256 digest. 보정은 새 revision | 사용자 확인(2026-10-29): `(manifest_id, revision_index)` composite PK; digest는 별도 content identifier. predecessor relation/NULL 세부는 P1.04 제안 대상으로 남김 | snapshot·schema version·digest 필수. 보정 사유·이전 revision relation의 requiredness/NULL은 P1.04에서 구체화. Attempt metadata/error 및 파생 score 제외 |
+| Analysis run / derived results (`analysis_runs`, `derived_scores`) | dataset revision/digest, versioned analysis fingerprint; raw RQD의 계산용 floor, 고정 Jn의 Jr/Ja scenario별 Q′·bin 파생값 | analysis run이 dataset revision을 참조; 파생 점수는 analysis·raw observation·scenario에 연결 | raw observation 불변. Jr/Ja/Q′/bin은 analysis 자료로만 저장하며 execution fingerprint/raw dataset digest에서 제외. score schema 세부는 P1.04 |
+
+**사용자 확인 (2026-10-29):** composite PK/FK만 사용하고 정수 surrogate row ID는 두지 않음,
+location status는 attempt별로 보존, dataset revision은 `(manifest_id, revision_index)` 복합키로
+식별하고 digest는 별도 content identifier로 둔다. 이는 P1.03의 관계표·키 선택을 확정한다.
+source reference 필수성, JSON/JCS bytes 저장 표현, 정확한 field type/NULL/CHECK 및 evidence 열은
+P1.04에서 제안·검토하고, 통합 계약 전체는 P1.05에서 확정한다.
+
+P1.03 **완료 (관계/키 초안 제시 및 사용자 선택 반영)**. 이는 T002 또는 G0 상세 통합 계약
+전체가 완료되었다는 뜻은 아니다.
+
+#### P1.04 Provenance·fingerprint·dataset·analysis snapshot 검토안 및 결정 (2026-10-29)
+
+전략 plan §10.2–10.9의 확정된 자료 의미를 해시 단위별로 나눴다. 아래는 직렬화 경계를
+명확히 하기 위한 검토안이며, 승인된 RFC 8785 JCS UTF-8 + SHA-256 계약을 바꾸지 않는다.
+JSON 속성 spelling·정확한 SQL type/DDL과 아직 질문이 필요한 저장 선택은 P1.05 전에 확정하지 않는다.
+
+| 자료/digest | Snapshot에 포함 | 제외 | 정렬·version·digest |
+|---|---|---|---|
+| 원 YAML provenance | 사용자 제공 YAML의 exact source bytes; 그 바이트열에 대한 SHA-256 | YAML parse 결과, whitespace/comment 제거본, execution/analysis 입력 | 원본 bytes를 보존하고 정규화·canonical JSON으로 바꾸지 않음. SHA-256은 exact bytes의 무결성 reference |
+| Execution fingerprint | 실제 실행기에 전달되는 정규화 입력: schema/canonicalization/digest metadata; 고정 Jn 및 joint-set DFN 입력; domain/BH/tunnel geometry; realization seed; BH/face 측정 설정·경계 규칙; generator/measurement 버전; backend/device/runtime. 길이 m, P32 m²/m³, 각도 degree, ENU coordinates로 표현 | YAML 표기·source bytes, design/manifest/block/sample ID, target-goal 목적, attempt 번호/시각/status/error/log/output path, Jr/Ja scenario, Q′/bin | execution `schema_version=1`; RFC 8785 JCS의 UTF-8 bytes + SHA-256. 의미 있는 ordered input arrays는 입력 순서를 유지. same normalized input+seed retry는 같은 digest |
+| Frozen design manifest | 고정 design/block/sample, N/design seed·ordered axes·canonical bounds·분포/변환, signature inputs, fixed Jn/realization seed, job별 execution snapshot/digest, target-goal ledger, planned physical locations/support 및 YAML provenance reference/digest | 실행 후 attempt 결과와 raw/derived output | versioned JSON payload를 SQLite에 한 번 저장하고 불변으로 취급; text manifest ID와 composite-key 구성값을 포함. 이는 fingerprint payload와 별개 자료 |
+| Raw dataset revision | `schema_version=1`; 해당 immutable revision의 planned-location 상태, 실제 raw observation, actual support, BH interval/face scanline measurement evidence | attempt metadata·error detail, execution fingerprint 재복제, Jr/Ja별 파생 Q′/bin score 및 analysis output | collection records를 결정적 composite-key 순으로 canonical serialize; 내부 ordered axis/scanline/intersection 자료는 물리 순서/chainage 순. RFC 8785 JCS UTF-8 + SHA-256. revision key는 `(manifest_id, revision_index)`, digest는 content identifier |
+| Analysis fingerprint | 별도 analysis `schema_version=1`; 대상 raw dataset revision key+digest; 공식/RQD 계산 규칙 및 floor=10; 승인 Jr/Ja scenario set; bin/catalog·경계; 분석 설정·구현 버전 | raw observation 복제, attempt metadata, 실제 derived score rows | versioned RFC 8785 JCS UTF-8 + SHA-256. 동일 분석 규칙/설정과 dataset만 같은 fingerprint |
+| Derived result | analysis run과 observation/scenario에 연결된 계산용 RQD, Jr/Ja 조합별 Q′·bin 등 | raw dataset snapshot/digest의 내용 변경 | analysis fingerprint가 정한 규칙으로 생성하는 파생 자료; 원 raw RQD·support/evidence를 수정하지 않음 |
+
+**정렬 초안:** raw dataset의 top-level collection은 정해진 composite primary-key tuple의
+각 구성요소를 순서대로 비교해 정렬한다. 숫자 index는 numeric order, text 식별자는 UTF-8
+bytewise order를 제안한다. BH interval·face station/scanline은 profile 및 chainage/index의
+물리·계획 순서를 보존하고, line-relative intersection은 오름차순으로 저장한다. JSON object의
+property order와 숫자 표기는 RFC 8785가 canonicalize한다. Exact sort comparator 및 nested
+array 직렬화는 P1.05에서 기록한다.
+
+**사용자 결정 반영 (D008, 2026-10-29):**
+
+1. Execution/raw dataset/analysis canonical snapshot은 RFC 8785 JCS UTF-8 byte열 그대로
+   SQLite BLOB으로 보존하고, SHA-256 digest는 lowercase hex TEXT로 별도 저장한다. 각
+   snapshot과 digest는 같은 canonical byte열을 기준으로 한다.
+2. 원 YAML exact bytes와 SHA-256을 provenance의 권위 자료로 보존한다. 별도 source path/URI
+   reference는 optional nullable이다.
+3. BH interval/face scanline evidence의 line-relative 교차 위치는 evidence row 내 sorted
+   numeric JSON array로 보존하며 별도 교차점 child table은 만들지 않는다. Raw dataset
+   canonical serialization에서도 그 순서를 유지한다.
+4. Dataset revision 1은 predecessor key와 correction reason을 NULL로 허용한다. 후속 보정
+   revision은 같은 manifest의 직전 revision을 predecessor로 참조하고 correction reason을
+   필수로 기록한다. 각 revision은 불변으로 유지한다.
+
+Attempt의 합의된 UTC RFC 3339 시각·`running/succeeded/failed` 상태, location 상태와의 독립,
+오류 진단자료 미저장 및 실패 attempt에서 산출된 유효 관측 보존은 선택사항이 아니며 이 표의
+기반 계약이다. status별 시간/runtime CHECK는 terminal 상태만 종료시각을 갖도록 P1.05에서
+DDL로 명시하되, 새로운 실행 복구·재시도 정책을 이 Step에서 만들지 않는다. Profile/report의
+pilot 산출 범위와 support 대응 세부는 D005/P5.03–P5.04에서 확인하며, threshold 자동 추정은 제외한다.
+
+**남은 D004 경계:** dataset snapshot의 필드·digest 규칙은 확정된 자료 단위에 적용하지만,
+동일 planned location이 여러 attempt에서 관측되었을 때 어떤 observation/status를 특정
+dataset revision에 포함할지는 자동으로 정하지 않는다. 오류 수정 후 재실행이 정상 완료된
+경우 수정 후 정상 결과만 연구 분석에 사용한다는 합의는 유지한다. 그 밖의 실패/부분 결과
+선정 및 interrupted `running` attempt 복구는 D004/P1.05에서 다루며, history 보존과
+analysis dataset membership을 구분한다.
+
+P1.04 **완료 (검토안 제시 및 사용자 결정 반영)**. 이 결정은 D008을 해소하지만,
+통합 field/DDL, 정확한 type·NULL/CHECK/FK 및 fingerprint 필드 전체를 확정하지는 않는다.
+그 통합은 P1.05에 남긴다. D004/D005의 관련 경계도 별도 미결로 유지한다.
+
+#### P1.05 통합 자료 계약 (완료, 2026-10-29)
+
+아래는 P1.03 관계·키 초안과 P1.04 저장/digest 결정을 하나로 합친 구현 계약안이다.
+P1.05는 문서·자료 타입 계약 단계로 한정한다. DB DDL은 P4.01, configuration parser와
+fingerprint 구현은 P1.06–P1.07에서 수행한다. D009–D011 선택과 아래 통합 field/key/null/CHECK 계약 전체를 사용자 확인으로 승인했다.
+아래 계약은 records.py/DDL 구현의 기준이며, 구현은 계획된 후속 Step에서 수행한다.
+
+**공통 저장/type 규칙**
+
+| 의미 | SQLite/Python representation | 필수 제약 |
+|---|---|---|
+| composite-key 식별자와 enum | `TEXT` / `str` | PK/FK 구성 요소 `NOT NULL`; opaque integer/UUID ID 금지. manifest 내 고정 식별자는 명시적 text |
+| 순번·seed·boolean·schema version | `INTEGER` / `int` / `bool` | index/seed/version은 정수이며 seed/fingerprint 정수는 `−(2^53−1)..2^53−1`; boolean은 `0/1`만 허용 |
+| RQD·거리·면적·각도 등 측정 수치 | `REAL` / finite `float` | RQD `[0,100]`; 길이 m, 면적 m², P32 m²/m³, 각도 degree. NaN/Inf 금지. 일반 양수/0 허용 경계는 개별 필드 의미에 한정 |
+| canonical snapshot | `BLOB` / `bytes` | RFC 8785 JCS UTF-8 bytes를 그대로 보존; SHA-256 lowercase 64-hex `TEXT` 별도 보존 |
+| 원 YAML | `BLOB` / `bytes` | exact input bytes와 그 SHA-256. optional source reference `TEXT NULL` |
+| UTC 시각·간단 reason | `TEXT` / `str` | 시각은 timezone-aware RFC 3339 UTC `Z`; 상세 error code/message/traceback은 저장하지 않음 |
+
+**논리 엔터티·필드·제약 통합 계약**
+
+| Entity | Composite PK 및 FK | 필수/조건부 필드·CHECK |
+|---|---|---|
+| `manifest` | PK `(manifest_id)`; manifest ID는 text. `schema_version`은 row 내 version | version=1; `manifest_json TEXT NOT NULL` frozen payload와 원 YAML provenance 연결. 독립 manifest 파일 없음. D009에 따라 projection key rows와 일치 여부 검증 |
+| `input_provenance` | PK/FK `(manifest_id)` → `manifest` | `yaml_bytes BLOB NOT NULL`, `yaml_sha256 TEXT NOT NULL`; optional `source_reference TEXT NULL`; digest는 정확한 bytes의 SHA-256 |
+| `design_samples` | PK `(manifest_id, design_id, block_id, sample_index)`; FK `(manifest_id)` → `manifest` | text IDs, integer sample index, 고정 Jn, signature 입력과 LHS 재현 설정을 manifest payload에 포함. 실제 축/bounds/변환은 승인값 사용 |
+| `target_goals` | PK `(manifest_id, goal_id)`; FK `(manifest_id)` → `manifest` | target/bin/catalog ID, 고정 Jn, Jr/Ja scenario ID·값, required calculation RQD 및 산술 도달성. goal은 physical location과 분리 |
+| `jobs` | PK `(manifest_id, design_id, block_id, sample_index, realization_seed, execution_fingerprint_digest)`; FK to `design_samples` composite key | seed, normalized execution snapshot BLOB, digest 필수. snapshot은 실제 실행 입력/버전/backend/runtime 포함; goal·attempt·analysis score 제외 |
+| `planned_locations` | PK `(job key, modality, profile_id, location_index)`; FK to `jobs` | modality `BH/face`; location/profile/index, planned chainage/interval, ENU-referenced geometry as in manifest, modality-specific planned support. planned support never substitutes actual support |
+| `attempts` | PK `(job key, attempt_index)`; FK to `jobs` | status `running/succeeded/failed`; `started_at_utc` 필수, terminal이면 `finished_at_utc` 필수, running이면 NULL; `runtime_seconds REAL NULL` while running, terminal duration `>=0`; runtime unit is seconds (D011). Error detail omitted |
+| `location_status` | PK `(job key, attempt_index, modality, profile_id, location_index)`; FK to same attempt and planned location | status in `planned/observed/unavailable/missing`; per-attempt provenance. `observed` must correspond to an observation; other statuses must not create a null-RQD observation. Cross-table consistency enforced transactionally |
+| `observations` | PK `(job key, attempt_index, modality, profile_id, location_index)`; composite FK to status/planned location and attempt | Actual raw observation rows only: `raw_rqd REAL NOT NULL CHECK 0..100`, `method_id TEXT NOT NULL`, `method_version TEXT NOT NULL`, `is_valid INTEGER CHECK 0/1`, `exclusion_reason TEXT NULL`, `zero_cross INTEGER CHECK 0/1`; if invalid, reason required, otherwise NULL. BH: `start_m/end_m`, `support_length_m`; face: `chainage_m`, `support_area_m2`, `advance_distance_m` (NULL only for initial reference face). Modality-specific columns mutually exclusive |
+| `measurement_evidence` | PK `(observation key, scanline_index)`; composite FK to `observations` | BH interval has its measured line length and sorted line-relative intersection positions; face has scanline index, start ENU, direction, actual valid length and sorted intersection positions. Position list is sorted numeric JSON UTF-8 `TEXT` (D011); no separate intersection table. Derived intersection count/line RQD/station average are not redundantly stored |
+| `dataset_revisions` | PK `(manifest_id, revision_index)`; FK to `manifest`; self-FK `(manifest_id, previous_revision_index)` | revision 1: predecessor/reason NULL; later correction revision: immediate previous revision and `correction_reason TEXT NOT NULL`; immutable `dataset_snapshot BLOB`, schema_version=1, SHA-256 digest. Snapshot contains planned-location statuses, selected raw observations, support/evidence; excludes attempt metadata/errors and derived scores |
+| `analysis_runs` | PK `(manifest_id, revision_index, analysis_fingerprint_digest)`; FK to dataset revision | version=1 analysis snapshot BLOB/digest, dataset key+digest, analysis rules/config/implementation version. No raw-data copy |
+| `derived_scores` | PK `(analysis key, observation key, jr, ja)`; FK to analysis and observation | fixed Jn, Jr, Ja, `calculation_rqd=max(raw_rqd,10)`, continuous Q′, bin ID and zero-cross convention provenance; immutable raw observation |
+| `goal_contributions` | PK `(analysis key, goal_id, observation key)`; FK to analysis, goal and observation | many-to-many; duplicate contribution prohibited; reanalysis does not alter original execution goal |
+
+The `method_version` scalar is required `TEXT`/`str` per D011. Composite key components are expanded from the job/observation keys
+shown in the table, with no surrogate identifiers. Exact public Python class/property names can be
+chosen consistently when materializing `records.py`.
+
+**P1.05에서 확인한 결정**
+
+1. **D009 — manifest와 relational integrity.** 사용자 확인(2026-10-29): DB에 frozen JSON payload를 보존하면서
+   sample/goal/job/location의 key와 FK에 필요한 최소 projection tables도 둔다. Payload는
+   설계 원본, projection은 immutable FK index이며 생성 시 projection이 payload와 일치하는지
+   검증한다. 중복 식별값은 payload와 FK index projection 간의 구조적 중복이며 projection은
+   독립적인 source of truth가 아니다.
+2. **D010 — canonical dataset에 담을 retry 결과.** 사용자 확인(2026-10-29): job별 가장 최근 `succeeded` attempt 하나만
+   상태/관측을 투영하고, 실패 attempt와 partial observations는 전체 이력에는 보존하되 분석
+   dataset에는 합치지 않는다. `succeeded`가 하나도 없으면 그 job의 계획 위치는 dataset에서
+   `planned`로 남기고 observation은 포함하지 않는다. 성공 attempt가 복수이면 높은
+   `attempt_index`의 성공 결과를 선택한다.
+3. **D011 — scalar serialization.** 사용자 확인(2026-10-29): frozen manifest payload와 sorted evidence intersection array는 UTF-8 JSON `TEXT`, measurement method version은 필수 `TEXT`/`str`, attempt elapsed runtime은 `REAL` seconds다. Canonical dataset digest는 evidence text의 bytes가 아니라 재구성된 정렬 숫자 배열을 포함하는 JCS UTF-8 snapshot BLOB에서 계산한다.
+4. **미결 실행 세부:** `running` attempt가 프로세스 중단 뒤 발견되면 자동 재개/failed 전환/사용자 선택 중
+   어느 동작을 할지와 attempt별 runtime 측정 시작·끝 기준은 D004/P4.02에서 별도 결정한다.
+   P1.05에서 임의로 상태 전이를 만들지 않는다.
+
+D009–D011의 선택과 위 통합 field/key/null/CHECK 계약 전체를 사용자 확인으로 승인해
+P1.05를 완료했다. D004의 interrupted `running` 복구 및 runtime 측정 시작/끝 기준은
+별도 미결이며, 이번 저장 type 결정으로 해소되지 않는다. 실패/부분 관측 history 보존과
+dataset membership은 D010에 따른다.
+
+#### P1.06 YAML 입력 검증 계약 및 결과 (완료, 2026-10-29)
+
+사용자 확인에 따라 YAML은 root `schema_version`, 공통 `geometry`·`measurements`, block별
+`designs`, 필수 `target_goals`로 구성한다. Geometry에는 ENU frame, domain size/grid spacing,
+tunnel vertices/radius, borehole start/direction/length를 명시한다. Measurements에는 BH
+interval과 face advance를 각각 m 단위로 명시한다. 각 design에는 ID, block ID, 고정 Jn, N,
+design/realization seed, block-common 방향 bounds, signature-common `size_alpha`/`fisher_kappa`
+난수 설정 및 joint-set별 P32·반경 bounds를 둔다. Bounds는 lower/upper/unit/coordinate/상단
+endpoint inclusivity를 명시하고, 반경 순서 변환은 `ordered_log_pair`로 기록한다.
+
+`target_goals`는 목표 ID·target-bin ID·catalog ID·고정 Jn·Jr/Ja scenario ID와 값을 모두
+명시한다. 초기 pilot용으로 catalog `primary_profile_10bin_v1`의 `qprime_gt_400` 도달 가능
+조합 6개를 빠짐없이 한 번씩 포함하고, 각 목표 Jn에 대응하는 design이 있어야 한다. 필요
+calculation RQD와 산술 도달성은 승인된 공식으로 P2.1에서 계산해 manifest에 기록한다.
+
+Parser는 exact source YAML bytes와 SHA-256 provenance를 보존하고, immutable normalized
+dataclasses를 반환한다. UTF-8·YAML·schema version, 누락/미지/중복 key, 단위, bounds,
+finite number, safe integer, ID/scenario 일관성, goal/design 관계, geometry 및 fixed 1 m 측정
+간격을 검증한다. 필수값 누락은 오류이며 default를 보충하지 않는다. Comment-only placeholder는
+거부한다. 오류에서는 멈춰 원인을 파악·수정한 뒤 재검증하며, 영향이 없다고 확인된 경우에만
+근거를 남겨 fallback을 허용한다. 이 Step은 실행 fingerprint/JCS, LHS 생성, pilot YAML 작성
+또는 simulation을 포함하지 않는다.
 
 대장의 `open`은 이미 승인된 원칙까지 다시 미정으로 만든다는 뜻이 아니다. 발견된 차이가
 단순 전사 오류인지 새 동작 선택인지 먼저 구별한다. 상세 계약 초안은 이 문서의 해당 Step
@@ -185,9 +416,9 @@ src/core/joint_models.py        # required DFN factory dependency
 
 아래는 현재 마련한 골격과 파일럿 구현의 **목표 구조**를 함께 표시한다.
 루트 진입점은 package CLI에 연결했으나 현재 CLI는 미구현 안내와 종료 코드 2만 반환한다.
-`config/rqd_exploration_pilot.yml`은 주석만 있는 placeholder로, 승인되거나 실행 가능한
-입력이 아니다. `results/rqd_exploration/`은 `.gitkeep`으로 위치만 준비했다.
-그 밖의 새 모듈은 골격이며 실제 기능과 테스트는 각 task에서 구현한다. T002 승인 전에는
+`config/rqd_exploration_pilot.yml`은 P1.08에서 승인값을 담은 검토용 초안으로 작성했으며
+실행 승인은 별도다. `results/rqd_exploration/`은 `.gitkeep`으로 위치만 준비했다.
+입력 검증/fingerprint serializer/adapter 외 모듈은 골격이며 해당 task에서 구현한다. T002 승인 전에는
 설정값·DB schema를 임의 확정하지 않는다. 이전 자료는 `obsolete/`에서 참조 전용으로 보존한다.
 
 ```text
@@ -200,7 +431,7 @@ QSimEx/
 │       └── checkpoints/
 ├── run_rqd_exploration.py             # CLI 연결; 현재는 미구현 안내만 반환
 ├── config/
-│   └── rqd_exploration_pilot.yml      # 주석만 있는 placeholder; T002 후 작성
+│   └── rqd_exploration_pilot.yml      # P1.08 검토용 초안; 실행 승인은 별도
 ├── src/
 │   ├── rqd_exploration/               # 신규 독립 pilot 기능
 │   │   ├── __init__.py
@@ -348,8 +579,8 @@ flowchart LR
 | `obsolete/tools/tabulate_qprime_scores.py` | 기존 재사용 | 점수 집합과 bin 경계의 기준. 정적 표 생성 동작을 유지하고 필요하면 공통 계산부만 분리한다. |
 | `src/test/test_rqd_exploration_*.py` | 신규 | 모듈별 deterministic unit/integration 테스트. 기존 unittest 실행 흐름에 포함한다. |
 
-현재 `src/rqd_exploration/`의 모듈 파일은 package 경로만 마련한 placeholder이며, 동작 구현은
-T001 이후 해당 task에서 수행한다. 신규 `src/`에는 v4 재사용 경계에 필요한 계산 코드와
+현재 `src/rqd_exploration/`에는 입력 검증/fingerprint serializer/adapter를 구현했으며,
+나머지 모듈은 해당 task에서 구현한다. 신규 `src/`에는 v4 재사용 경계에 필요한 계산 코드와
 일부 기존 회귀 테스트만 선택적으로 복사한다. 기존 `src/` 전체는 `obsolete/src_obs/`에 원래 폴더
 구조로 보존하며, archived code를 수정하지 않는다.
 
@@ -393,8 +624,8 @@ T001 이후 해당 task에서 수행한다. 신규 `src/`에는 v4 재사용 경
 - **완료 조건:** 승인값/미결값 구분, 원본 YAML 및 normalized input, execution fingerprint
   범위, 데이터 상태와 관계가 구체화되어 사용자 검토를 통과한다. 정확한 SQLite schema,
   field/check/FK/NULL 정의는 T002 검토 산출물로 제시한다.
-- [ ] T001 [Plan:1.1] `Specification/RQDExplorationStrategy_20261026/plan.md`의 최신 합의·G0/G1/G2 상태를 확인해 구현 범위, 실행 금지 경계, 파일럿 입력 목록을 정리한다.
-- [ ] T002 [Plan:1.1] `src/rqd_exploration/records.py`, `config.py`를 위한 YAML 입력·SQLite/manifest의 남은 통합 자료 계약을 제시·확인하고 승인 범위에서 구현한다. Pilot G0의 기존 간소 계약 승인을 다시 미정으로 돌리지 않는다. Legacy case adapter의 생성용 placeholder는 분석 관측값으로 취급하지 않는다.
+- [x] T001 [Plan:1.1] `Specification/RQDExplorationStrategy_20261026/plan.md`의 최신 합의·G0/G1/G2 상태를 확인해 구현 범위, 실행 금지 경계, 파일럿 입력 목록을 정리한다.
+- [x] T002 [Plan:1.1] `src/rqd_exploration/records.py`, `config.py`를 위한 YAML 입력·SQLite/manifest의 남은 통합 자료 계약을 제시·확인하고 승인 범위에서 구현한다. Pilot G0의 기존 간소 계약 승인을 다시 미정으로 돌리지 않는다. Legacy case adapter의 생성용 placeholder는 분석 관측값으로 취급하지 않는다.
 
 ### Phase 2 — pilot 목표 ledger와 고정 LHS manifest
 
@@ -403,7 +634,7 @@ T001 이후 해당 task에서 수행한다. 신규 `src/`에는 v4 재사용 경
 - **Requirements:** REQ-001, REQ-002, REQ-007, REQ-009, REQ-011
 - **기준:** 전략 계획 §11.2 안건 6 및 각 결정 기록; pilot의 고정 목표·Jn 도달성·LHS 좌표 변환.
 - **완료 조건:** 동일 입력/design seed에서 manifest가 재현되며, bounds·set ordering·seed·signature ID·여섯 동등 high-bin target goal 연결 및 Jn별 산술 도달성(초기 우선순위: Jn 0.5의 5개 조합, Jn 1의 1개 조합)을 검증하고 검증 실패를 명시한다. Simulation은 실행하지 않는다.
-- [ ] T003 [Plan:2.1] `src/rqd_exploration/design.py`에 pilot 목표 ledger, 고정 Jn별 도달성, 승인된 block당 N=5 LHS, 좌표 변환, 별도 α/κ RNG stream, 재현 가능한 설계·DB manifest payload 생성을 구현한다.
+- [x] T003 [Plan:2.1] `src/rqd_exploration/design.py`에 pilot 목표 ledger, 고정 Jn별 도달성, 승인된 block당 N=5 LHS, 좌표 변환, 별도 α/κ RNG stream, 재현 가능한 설계·DB manifest payload 생성을 구현한다.
 
 ### Phase 3 — 측정 계산과 원자료 관측 생성
 
@@ -412,8 +643,8 @@ T001 이후 해당 task에서 수행한다. 신규 `src/`에는 v4 재사용 경
 - **Requirements:** REQ-003, REQ-004, REQ-008
 - **기준:** 전략 계획 §§3, 4.1–4.2, 4.5, 4.16 및 11.2 안건 6.
 - **완료 조건:** 기존 측정 함수/API regression이 보존되고 새 모드 BH 1 m interval과 Q′/Jr/Ja 독립 face 1 m station을 산출한다. 실제 support, 무교차, boundary·unavailable 상태 및 재계산 가능한 최소 evidence가 관측에 연결된다.
-- [ ] T004 [Plan:3.1] `src/euler_campaign/profiles.py`의 BH/face 기하·RQD 공통 계산을 분리 또는 재사용 가능하게 하되 기존 public 함수, `.pyi`와 결과 의미를 보존한다.
-- [ ] T005 [Plan:3.1] `src/rqd_exploration/measurement.py`에 단일 realization의 BH/고정 face raw measurement를 구현하고 `src/rqd_exploration/runner.py`에서 기존 DFN factory를 호출해 이를 연결한다. Raw RQD·scanline·support·상태·최소 측정 evidence를 생성하며 Jr/Ja는 RQD 및 station 선정에 관여하지 않는다.
+- [x] T004 [Plan:3.1] `src/euler_campaign/profiles.py`의 BH/face 기하·RQD 공통 계산을 분리 또는 재사용 가능하게 하되 기존 public 함수, `.pyi`와 결과 의미를 보존한다.
+- [x] T005 [Plan:3.1] `src/rqd_exploration/measurement.py`에 단일 realization의 BH/고정 face raw measurement를 구현하고 `src/rqd_exploration/runner.py`에서 기존 DFN factory를 호출해 이를 연결한다. Raw RQD·scanline·support·상태·최소 측정 evidence를 생성하며 Jr/Ja는 RQD 및 station 선정에 관여하지 않는다.
 
 ### Phase 4 — 별도 저장, 재개와 사용자 실행 CLI
 
@@ -501,55 +732,124 @@ Stage는 별도 관리하지 않는다. 기존 중간 묶음을 제거하고 각
 **진입:** 두 기준 문서와 현재 골격. **종료:** pilot 입력·자료 계약의 구현 가능 범위가
 명확하고 승인된 입력 검증이 동작한다. D002–D005 중 이 단계에 필요한 선택이 남으면 해당 Step 차단.
 
-- [ ] P1.01 — T001 [Plan:1.1] 두 기준 문서의 최신 결정·G0–G4·REQ 목록을 대조한다.
+- [x] P1.01 — T001 [Plan:1.1] 두 기준 문서의 최신 결정·G0–G4·REQ 목록을 대조한다.
   승인된 pilot 수치/자료 규칙, 미결 일반 정책, 제외 범위를 §1.1 대장과 전략 §11.4에 맞춘다.
-  **증거:** 승인/미결 대조표와 각 D-ID의 실제 근거.
-- [ ] P1.02 — T001 [Plan:1.1] `src/`, `config/`, root CLI, 결과 골격과 보관 경계를 확인한다.
+  **증거:** §1.1의 “P1.01 기준 문서 대조 결과”와 각 D-ID의 근거.
+- [x] P1.02 — T001 [Plan:1.1] `src/`, `config/`, root CLI, 결과 골격과 보관 경계를 확인한다.
   현행 회귀 기준·환경 버전·검증 수행 주체를 기록한다.
-  **증거:** 기존 84-test 기준과 변경 전 명령/결과. 이는 pilot 측정 검증이 아니다.
+  **증거:** §1.1의 “P1.02 현재 구조·회귀 기준 확인 결과”. 이는 pilot 측정 검증이 아니다.
 
-- [ ] P1.03 — T002 [Plan:1.1] 이 문서에 `records.py`/`config.py`/`store.py`의 통합
+- [x] P1.03 — T002 [Plan:1.1] 이 문서에 `records.py`/`config.py`/`store.py`의 통합
   계약표를 제시한다. 원 YAML bytes, schema version 1, block/sample/job/attempt/위치/관측/
   scanline/목표/scenario의 관계와 생성 주체, 입력 단위·필수성·NULL/check/FK를 대응시킨다.
-  승인된 내부 row ID·text 설계 ID와 `running/succeeded/failed`, 위치 4상태를 유지한다.
-- [ ] P1.04 — T002 [Plan:1.1] 실행/원본 provenance/raw dataset/analysis snapshot의
+  composite key 사용·attempt별 위치 상태·revision key의 사용자 결정을 반영한다. 상세 field type/
+  snapshot serialization 및 통합 계약 승인은 P1.04–P1.05에 남긴다.
+- [x] P1.04 — T002 [Plan:1.1] 실행/원본 provenance/raw dataset/analysis snapshot의
   필드·제외 항목·정렬·version·digest를 대조한다. dataset에 위치 상태·support·evidence를
-  포함하고 attempt metadata·파생 점수는 제외한다. D002–D005의 새 선택만 사용자에게 제시한다.
-- [ ] P1.05 — T002 [Plan:1.1] 결정 응답을 전략 plan과 대장에 반영해 통합 계약을 고정한다.
-  미결 필드는 구현을 보류하고, 검토된 필드를 `src/rqd_exploration/records.py`의 타입으로 옮긴다.
+  포함하고 attempt metadata·파생 점수는 제외한다. D002–D005의 새 선택을 검토안으로
+  제시하고 사용자 결정을 반영했다.
+- [x] P1.05 — T002 [Plan:1.1] 결정 응답을 전략 plan과 대장에 반영해 통합 계약을 고정한다.
+  미결 필드는 구현을 보류한다. P1.05는 문서상 자료 계약 승인 단계이며, 코드 구현은 각 모듈의
+  계획된 Step에서 수행한다.
   **종료 증거:** 필드표·승인 근거·관련 Step의 차단/해제 목록.
 
-- [ ] P1.06 — T002 [Plan:1.1] `src/rqd_exploration/config.py`에 YAML bytes 읽기,
+- [x] P1.06 — T002 [Plan:1.1] `src/rqd_exploration/config.py`에 YAML bytes 읽기,
   명시적 형식/단위/bounds/정수·유한 실수/geometry 검증 및 normalized input을 구현한다.
   주석뿐인 현재 YAML은 유효 입력으로 처리하지 않는다. 오류·누락값에 암묵 default를 넣지 않는다.
-- [ ] P1.07 — T002 [Plan:1.1] 승인된 방식으로 RFC 8785 UTF-8/SHA-256을 구현한다.
-  안전 정수 범위, 동등 숫자 표기, 배열 순서, 재시도 동일 입력, 결과 관련 입력 변경,
-  YAML bytes digest와 execution digest의 독립성을 검증한다. D003 미해소면 이 Step 보류.
-- [ ] P1.08 — T002 [Plan:1.1] 승인 계약에 따라 `config/rqd_exploration_pilot.yml`을
+  P1.06 검증 계약과 완료 근거는 §1.1에 기록한다.
+- [x] P1.07 — T002 [Plan:1.1] 승인된 방식으로 RFC 8785 UTF-8/SHA-256 fingerprint를 구현한다.
+  - [x] P1.07a — JSON 값에 대한 공통 JCS/SHA-256 함수와 RFC 8785 입력 도메인 검증을
+    구현한다. Canonical bytes와 lowercase hex digest를 함께 반환한다.
+  - [x] P1.07b1 — 승인된 version-1 execution payload field contract와 typed snapshot
+    serializer를 구현한다. Actual sample producer는 설계 표본이 생성되는 P2.03에서 연결한다.
+  - [x] P1.07b2 — P2.03의 sample-specific producer를 연결해 실제 입력·seed·version 변경,
+    retry 동일성, YAML bytes provenance와의 독립성을 검증한다. P2.03b producer 연결 및
+    P2.04b full manifest 검증에서 완료했다.
+  D003 미해소면 이 Step 보류.
+- [x] P1.08 — T002 [Plan:1.1] 승인 계약에 따라 `config/rqd_exploration_pilot.yml`을
   실제 검토용 초안으로 채우고 기존 DFN 모델 adapter를 연결한다.
   `src/test/test_rqd_exploration_config.py`에서 승인값·경계·잘못된 YAML/NaN/Inf/
   안전 정수 초과·값 누락을 검증한다. **종료 증거:** 사용자 검토용 설정과 오류 사례 결과.
+  **구현:** `adapter.py`의 `build_generation_case`는 검증된 geometry/measurement와 실제
+  sampled `ExecutionJointSet`을 기존 `CaseSpec`으로 변환한다. 입력 순서대로 정수 set ID
+  1부터 부여하며 고정 Jn과 실제 표본값을 보존한다. 사용자 승인 Jr=1/Ja=1 compatibility
+  placeholder는 `generation-only-jr`/`generation-only-ja`로 식별하고 후처리 분석에는
+  사용하지 않는다. 기존 generator/model은 변경하지 않았다. Face advance는 별도 새 측정
+  경로에서 사용하며 기존 Q′Face 굴진 순회를 호출하지 않는다. LHS/manifest/pilot 실행은 미수행.
 
 ### Phase 2 — 실행 전 목표 ledger·LHS·manifest
 
 **상위:** T003 / Plan 2.1 / REQ-001,002,007,009,011.
-**진입:** Phase 1의 승인 입력/타입/fingerprint. **종료:** 10개 작업과 물리 위치·목표를
+**진입:** Phase 1의 승인 입력/타입과 P1.07의 typed execution snapshot serializer.
+Sample-specific producer는 표본 생성 후 P2.03에서 연결한다. **종료:** 10개 작업과 물리 위치·목표를
 재현 가능한 payload로 제시할 수 있다. Simulation·독립 manifest 파일은 만들지 않는다.
 
-- [ ] P2.01 — T003 [Plan:2.1] `src/rqd_exploration/design.py`에 고정 Jn별 목표
+- [x] P2.01 — T003 [Plan:2.1] `src/rqd_exploration/design.py`에 고정 Jn별 목표
   ledger를 구성한다. 여섯 동등 high-bin 목표와 Jn 0.5의 5개/Jn 1의 1개 산술 도달성을
   검산한다. 66개 scenario 전체 보존과 초기 목표 우선순위를 구별한다.
-- [ ] P2.02 — T003 [Plan:2.1] block당 N=5, design seeds 39/36의 randomized LHS를
+  **증거:** `build_target_ledger`는 design/block별 66개 scenario와 YAML의 목표 ID/scenario
+  정보를 분리해 보존한다. `high_bin_reachability`는 연속 calculation RQD `[10,100]`에서
+  `RQD > 400 × Jn × Ja / Jr`를 계산한다. 내부 Fraction 연산으로 strict 도달성을 판정한
+  뒤 threshold/max Q′를 float로 반환한다. 도달 목표는 Jn 0.5에서 5개, Jn 1에서 1개이며
+  나머지 61/65개 scenario도 유지한다. Jn 2 이상은 모두 비도달이다. 이는 관측 보장이 아니며
+  2단위 정적 RQD 격자, 무교차 convention 또는 목표 RQD를 DFN 생성에 사용하지 않는다.
+- [x] P2.02 — T003 [Plan:2.1] block당 N=5, design seeds 39/36의 randomized LHS를
   생성한다. P32 로그 변환, 반경쌍 정렬/order-statistic 의미, 전체 방향 bounds,
   별도 α/κ RNG stream과 signature별 공통 값을 승인 규칙 그대로 구현한다.
+  **사용자 승인 재현 계약 (2026-10-29):** YAML set 순서마다 P32, log-radius A/B,
+  mean dip, mean dip direction의 5개 축을 배치한다. 방향 bounds는 block 공통이며 실제
+  방향값은 set별로 생성한다. SciPy `LatinHypercube(scramble=True, strength=1,
+  optimization=None, rng=default_rng(design_seed))`를 사용하고 표본 행을 재배열하지 않는다.
+  α/κ는 각각 `SeedSequence(design_seed, spawn_key=(1,))`와 `(2,)`의 별도 Generator에서
+  균등 추출해 signature 안의 모든 set에 공유한다. Realization seed는 설계 생성에 사용하지
+  않는다. 음수 design seed는 NumPy RNG가 지원하지 않으므로 변환하지 않고 명시적 오류로
+  거부한다. 반경 로그 변환 후 작은/큰 값 배정만 수행하며 동일 반경이면 오류로 중단한다.
+  `LHSDesign`은 원 design 입력, ordered axes/bounds, 0-based sample index, 변환 전
+  `[0,1)` 좌표, 최종 joint-set 입력, NumPy/SciPy 및 생성 알고리즘 version/RNG 방식을
+  immutable records로 보존한다. 반경 정렬 후 주변분포에 LHS 층화를 주장하지 않는다.
+  Manifest payload 구성은 P2.03에 남기며 DB 영속화는 T006에서 수행한다.
+  Signature는 기존 composite sample key로 식별하며 별도 opaque ID를 추가하지 않는다.
 
-- [ ] P2.03 — T003 [Plan:2.1] `design.py`에서 최종 signature, SciPy/runtime 버전,
-  공통 realization seed 43, 계획 BH interval/face station·예정 support, text 설계 ID,
-  job·위치 식별 관계 및 목표 목록을 DB용 frozen JSON payload로 구성한다.
-- [ ] P2.04 — T003 [Plan:2.1] `src/test/test_rqd_exploration_design.py`에서 동일 입력의
+- [x] P2.03 — T003 [Plan:2.1] `design.py`에서 표본별 실제 signature inputs와 공통
+  realization seed 43으로 execution snapshot을 구성하고, 확인된 generator/measurement
+  version 및 backend/device/runtime를 연결해 P1.07 execution digest를 생성한다. SciPy/runtime
+  버전, 계획 BH interval/face station·예정 support, text 설계 ID, job·위치 식별 관계와 목표
+  목록도 DB용 frozen JSON payload로 구성한다.
+  - [x] P2.03a — 사용자 승인(2026-10-29): 실제 LHS sample→execution snapshot/digest 및
+    DB용 frozen JSON builder 구현. Generator에 명시 version이 없고 새 measurement는 아직
+    미구현이므로 generator/measurement/boundary version, backend/device/runtime를 필수
+    호출 인자로 받아 임의 추정·기본값을 두지 않는다. 계획 BH/face 위치도 typed 필수 입력이다.
+    `records.py`에 예정 interval/station/scanline, execution job, frozen manifest records를
+    정의한다. Sample/job/location은 승인된 composite key로 연결하며 별도 signature ID를
+    만들지 않는다. `build_frozen_manifest`는 canonical UTF-8 JSON TEXT와 exact YAML bytes/
+    digest/reference 및 job별 canonical snapshot bytes/digest를 불변 반환값에 보존한다.
+    DB/독립 manifest 파일/DFN simulation은 생성하지 않는다.
+    Payload collections: `designs`, `design_samples`, `target_goals`, `target_ledger`,
+    `jobs`, `planned_locations`; design에는 ordered axes/bounds/RNG/NumPy/SciPy versions,
+    sample에는 실제 joint-set 입력과 원 LHS 좌표, job에는 snapshot 및 digest를 포함한다.
+    Typed 예정 support는 실제 관측 support나 raw RQD로 변환하지 않는다.
+  - [x] P2.03b — MLX/GPU 선택(사용자 확인 2026-10-29) 후 실제 GPU preflight에서 확인한
+    MLX/device와 installed Python/NumPy/SciPy/platform runtime, 고정 generator·measurement·
+    boundary version을 연결한다. Adapter와 measurement planner에서 전체 위치를 생성해
+    frozen manifest를 구성한다. DB나 독립 manifest 파일은 쓰지 않고 simulation도 실행하지 않는다.
+- [x] P2.04 — T003 [Plan:2.1] `src/test/test_rqd_exploration_design.py`에서 동일 입력의
   재현성, block당 5개/총 10개, 각 LHS 층화와 변환 후 분포 구분, strict radius 순서,
-  signature ID·seed·설정 변경을 검증한다. 실패 표본을 버리거나 clamp하지 않는다.
+  composite sample key·seed·설정 변경을 검증한다. 실패 표본을 버리거나 clamp하지 않는다.
   **종료 증거:** payload preview와 검증 결과. DB 영속화는 T006, 사용자 실행 승인은 별도다.
+  - [x] P2.04a — 현 단계 설계/payload 검증 (2026-10-29). 기존 테스트에 6개를 추가하여
+    geometry/측정 설정→snapshot/digest 연결, block별 N/bounds 변경과 다른 block의 불변성,
+    sample/job/location 키의 유일성과 FK 연결, job별 정확한 fixture 위치 집합, 목표-ledger
+    연결, 중복 sample key·음수/boolean index·advance/scanline 오류, `[0,1)` 위반 좌표의
+    명시적 중단 및 물리 bounds 변경 시 원 좌표 불변성을 검증했다.
+    Runtime/부분 위치 plan은 명시적 fixture이며 측정 간격 변경 테스트는 serializer 민감도
+    주입이지 pilot YAML 정책 변경 승인이 아니다. 운영 코드는 변경하지 않았다.
+    dlo-cq 관련 54개 통과: ledger/LHS 16, manifest 11, fingerprint 9, adapter 3, config 15.
+    변경 Python 파일 Pylance 진단 없음. Fixture preview: schema 1, designs 2, samples 10,
+    goals 6, jobs 10, planned locations 20; 동일 입력의 JSON/snapshot bytes/digest 재현.
+  - [x] P2.04b — P2.03b 실제 producer가 생성한 전체 위치 계획의 완전성·geometry/간격
+    일치와 canonical pilot payload를 독립 검증했다. 승인 geometry에 대해 job별 BH 60개
+    interval과 face 61개 station·scanline, 위치/job composite-key 연결, runtime snapshot,
+    YAML provenance 및 JCS fingerprint를 검증했다. Pilot 실행 승인은 별도다.
 
 ### Phase 3 — 기존 계산 경계와 독립 raw 측정
 
@@ -557,21 +857,21 @@ Stage는 별도 관리하지 않는다. 기존 중간 묶음을 제거하고 각
 **진입:** P1.05의 측정 계약. Phase 2 전체 종료는 공통 계산 작업의 선행 조건이 아니다.
 **종료:** 작은 결정론적 fixture에서 Q′ 독립 측정과 evidence 재계산이 검증된다.
 
-- [ ] P3.01 — T004 [Plan:3.1] `src/euler_campaign/profiles.py`, `geometry.py`의
+- [x] P3.01 — T004 [Plan:3.1] `src/euler_campaign/profiles.py`, `geometry.py`의
   재사용 가능한 계산을 확인하고 필요한 경우에만 최소 helper를 추출한다.
   `.pyi`, 기존 BH/face API, clipping·무교차 convention·가변 굴진장 결과를 유지한다.
   [Source: src/euler_campaign/profiles.py] [Source: src/euler_campaign/geometry.py]
-- [ ] P3.02 — T004 [Plan:3.1] 기존 `src/test/test_euler_profiles.py`,
+- [x] P3.02 — T004 [Plan:3.1] 기존 `src/test/test_euler_profiles.py`,
   `test_euler_geometry.py` 등 관련 회귀를 확인한다. `obsolete/` 원본 수정이나 구형 controller
   복원 없이 계산 경계의 동작 보존 증거를 남긴다.
 
-- [ ] P3.03 — T005 [Plan:3.1] `src/rqd_exploration/measurement.py`에 BH 1 m interval과
+- [x] P3.03 — T005 [Plan:3.1] `src/rqd_exploration/measurement.py`에 BH 1 m interval과
   전체 tunnel의 고정 face 1 m 순회를 구현한다. 시작/끝 station 포함 규칙·partial support는
   승인 계약을 따르며, Q′/Jr/Ja가 station·RQD에 영향을 주지 않게 한다.
-- [ ] P3.04 — T005 [Plan:3.1] raw RQD·실제 support·chainage/ENU·무교차와
+- [x] P3.04 — T005 [Plan:3.1] raw RQD·실제 support·chainage/ENU·무교차와
   최소 scanline evidence를 records에 연결한다. 유효 RQD가 없으면 관측 행을 조작하지 않고
   계획 위치 상태를 반환한다. `runner.py`에는 단일 DFN factory 연결 경계만 마련한다.
-- [ ] P3.05 — T005 [Plan:3.1] `src/test/test_rqd_exploration_measurement.py`에서
+- [x] P3.05 — T005 [Plan:3.1] `src/test/test_rqd_exploration_measurement.py`에서
   교차 없음/중복/endpoint/0.1 m piece, clipping·support 없음·polyline vertex,
   evidence 재계산 및 Jr/Ja 변경 불변성을 검증한다.
   **종료 증거:** 위치·관측·evidence 대응 fixture와 기존 회귀 결과.
@@ -582,29 +882,48 @@ Stage는 별도 관리하지 않는다. 기존 중간 묶음을 제거하고 각
 **진입:** 통합 저장 계약. Runner 통합은 T003,T005,T006 완료 후.
 **종료:** 작은 격리 fixture에서 저장·중단/재개·확인 gate가 검증된다. Pilot 자동 실행은 제외.
 
-- [ ] P4.01 — T006 [Plan:4.1] `src/rqd_exploration/store.py`에 승인 DDL과
+- [x] P4.01 — T006 [Plan:4.1] `src/rqd_exploration/store.py`에 승인 DDL과
   transaction 경계를 구현한다. 원 YAML bytes·fingerprints·DB manifest payload와
   작업/attempt/계획 위치/유효 관측/evidence를 저장하고 FK·NULL/check를 실제 검증한다.
-- [ ] P4.02 — T006 [Plan:4.1] 부분 실패의 이미 산출된 유효 관측 보존, 원자적 완료
-  checkpoint, resume 조회·불일치 거부를 구현한다. 중단 시 `running` attempt 복구와
-  재시도 자료 선택은 D004의 결정대로 처리한다. 단일 거대 rollback으로 유효 관측을 잃지 않는다.
-- [ ] P4.03 — T006 [Plan:4.1] `src/test/test_rqd_exploration_store.py`에서 임시 SQLite
+  Schema v1 및 composite-key/FK, provenance/JCS fingerprint projection, manifest,
+  attempt/status, raw observation/evidence transaction writer를 구현했다. 임시 SQLite에서
+  제약·원자성 테스트 통과; 실제 pilot DB는 만들지 않았다.
+- [x] P4.02 — T006 [Plan:4.1] 부분 실패의 이미 산출된 유효 관측 보존, 원자적 완료
+  checkpoint, resume 조회·불일치 거부를 구현한다. D004에 따라 같은 attempt ID를 재사용하고
+  완료/미완료 위치 상태를 반환한다. 활성 runtime 구간 누적과 재개 시 lower-bound 표기도
+  구현했다. 실제 monotonic timer 연결은 P4.04 범위다.
+- [x] P4.03 — T006 [Plan:4.1] `src/test/test_rqd_exploration_store.py`에서 임시 파일 DB
   재열기·부분 실패·transaction 경계·중복 완료·손상 상태·fingerprint mismatch를 검증한다.
-  관측 없는 `unavailable`과 실패 attempt의 유효 관측을 별도로 확인한다.
+  관측 없는 `unavailable`, 실패 attempt의 유효 관측 보존 및 runtime 누적/하한 표시도 확인했다.
 
-- [ ] P4.04 — T007 [Plan:4.1] `src/rqd_exploration/runner.py`에 frozen job 목록의
-  실행·resume를 연결한다. 완료 job은 재생성하지 않고 seed 재시도는 별도 attempt로 남긴다.
-  신규 후보 생성·임의 seed 교체·자동 retry는 승인 범위 밖이면 실행하지 않는다.
-- [ ] P4.05 — T007 [Plan:4.1] 필수 maximum simulation 검증·카운트·상한 도달 시
-  미완료 목표의 `unresolved_at_budget`을 구현한다. MLX preflight 오류를 명시하고 CPU fallback은
-  금지한다. `src/test/test_rqd_exploration_runner.py`에서 중단/재개·실패·예산을 검증한다.
+- [x] P4.04 — T007 [Plan:4.1] `src/rqd_exploration/runner.py`에 frozen job 목록의
+  실행·resume를 연결했다. 성공 job은 건너뛰고 동일 `running` attempt ID를 이어간다.
+  이미 저장된 location 결과는 보존하고 `planned` 결과만 저장한다. active runtime은 monotonic
+  clock으로 누적하며 `KeyboardInterrupt`에서는 checkpoint 후 attempt를 running으로 남기고,
+  일반 예외는 failed로 기록한다. 실패 attempt는 자동 retry하지 않는다. 임시 SQLite 재열기
+  통합 테스트가 완료 job skip, 동일 attempt 재개, 기존 상태 보존, 실패 자동 재시도 금지를
+  검증한다. 아직 CLI와 real pilot execution은 연결하지 않았다.
+- [x] P4.05 — T007 [Plan:4.1] `execute_frozen_jobs`에 필수 `maximum_simulations` 양의 정수
+  입력을 추가하고 명령 실행 1회에서 시작한 simulation 수를 센다. 예산은 완료 job 사이에서
+  검사하며 cap 도달 시 다음 eligible job을 시작하지 않고 `budget_exhausted`와 모든 frozen
+  target goal의 `unresolved_at_budget` 상태를 요약으로 반환한다. 상한에 도달해도 더 실행할 job이
+  없으면 `jobs_complete`로 구별한다. 사용자 결정(2026-10-29): 예산은 명령 실행 1회에 적용하고
+  resume 명령은 새 상한을 받는다. 검증 테스트는 정확한 cap, cap 종료, 잘못된 값 거부 및 목표
+  상태를 다룬다. 요약 상태는 현재 반환값이며 SQLite에는 별도 실행/목표 상태로 저장하지 않는다.
 
-- [ ] P4.06 — T007 [Plan:4.1] `src/rqd_exploration/cli.py`에 승인 CLI 계약에 따른
-  validate/preview/run/resume 분기와 exit status를 구현한다. Root script는 얇은 shim을 유지한다.
-  설정·manifest·예산 확인 전 backend 실행 0회를 검증하고 거절/잘못된 입력을 명시적으로 처리한다.
-- [ ] P4.07 — T007 [Plan:4.1] `src/test/test_rqd_exploration_cli.py`에서 subprocess
-  오류·미확인 실행 거부·예산 누락·DB mismatch·정상 preview를 검증한다.
-  **종료 증거:** 임시 DB 통합 시나리오와 사용자가 검토할 실행 명령. Simulation 실행 승인 아님.
+- [x] P4.06 — T007 [Plan:4.1] `src/rqd_exploration/cli.py`에 validate/preview/run/resume와
+  exit status를 구현했다. Validate는 YAML 검증, preview는 MLX manifest preflight만 수행한다.
+  Run은 새 DB 경로만 허용하며 resume은 기존 schema-v1 DB의 manifest JSON이 현재 구성/런타임
+  payload와 정확히 일치하는지 검사한다. 두 실행 명령은 양의 `--maximum-simulations`와
+  `--confirm-execution`을 요구하고, 명시 확인 전에는 DB를 열거나 backend factory를 만들지
+  않는다. MLX GPU preflight는 명시적으로 수행하며 CPU fallback은 없다. 예산/goal 종료 summary를
+  JSON으로 출력하고 root script는 얇은 shim을 유지한다. validate/preview/refusal CLI smoke 검증
+  완료; 상세 subprocess 및 DB mismatch 계약은 P4.07에서 검증한다.
+- [x] P4.07 — T007 [Plan:4.1] subprocess CLI 테스트로 validate/preview, 확인 전 run 거부,
+  최대 예산 누락/비유효, 새 DB 및 임시 DB resume, schema·manifest/runtime mismatch,
+  budget 종료 상태 출력을 검증했다. Runner는 모의해 실제 DFN/simulation은 실행하지 않았다.
+  run/resume 실행 명령은 readme에 기록했다. 실제 pilot DB/DFN/simulation은 별도 사용자
+  실행 승인 전까지 수행하지 않는다.
 
 ### Phase 5 — 66 scenario·대응 분석·재분석
 
@@ -686,6 +1005,75 @@ import 경계 변경 시 기존 회귀로 확장한다. 모델·store·CLI의 �
 | 시각 | Step / 상위 T-ID | 상태 | 변경·산출물 | 검증 명령·결과 / 사용자 확인 | 관련 D-ID / 다음 Step |
 |---|---|---|---|---|---|
 | 2026-10-28 | 계획 상세화만 수행 | 문서 검증 완료 | §1.1·§5.1 및 두 checkpoint | Python/PyYAML 문서 검사: 13 REQ·11 T-ID·36 Step 대응, 의존성 cycle 없음, YAML 파싱·로컬 링크 28개 통과. 기능 구현·simulation 미실행 | D001 문서 정합화; 첫 착수 P1.01 |
+| 2026-10-29 | P1.01 / T001 | 완료 (문서 대조) | §1.1 대조표 및 전략 plan §11.4 재개 기록 | 두 기준 문서의 승인 pilot 조건, G0–G4 상태, 미결 계약·후속 정책, 제외 범위를 상호 대조했다. 문서만 수정했으며 코드·테스트·simulation은 변경/실행하지 않음 | D001 유지; D002–D006의 기존 경계 유지; 다음 P1.02 |
+| 2026-10-29 | P1.02 / T001 | 완료 (구조·기준 확인) | §1.1의 구조/회귀 기준 확인 결과 및 전략 plan §11.4 재개 기록 | 프로젝트 루트에서 `conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -v`: 84 tests, 0.731s, OK. Python 3.11.15, NumPy 2.4.3, SciPy 1.17.1, macOS 27.0.1 arm64. 코드·설정·결과 미변경 | 다음 P1.03; D002–D005는 T002 검토에서 계속 |
+| 2026-10-29 | P1.03 / T002 | 완료 (관계/키 초안) | §1.1 통합 자료 계약표; D007; 전략 plan §11.4 결정 기록 | 사용자 확인: composite PK/FK만 사용, attempt별 location status, `(manifest_id, revision_index)` dataset key. 표 초안에 반영. 전체 계약 최종 승인·field-level serialization은 P1.04–P1.05에 남김; 코드·테스트·simulation 미실행 | D007 applied (초안); 다음 P1.04 |
+| 2026-10-29 | P1.04 / T002 | 완료 (계약 경계·결정 반영) | §1.1 snapshot matrix; D008; 전략 plan §11.4 decision record | 사용자 확인: canonical snapshot bytes=BLOB, digest=lowercase hex TEXT; YAML source reference optional; evidence intersections=evidence row의 sorted numeric JSON array; revision 1 predecessor/reason NULL, 후속 revision은 바로 이전 revision과 correction reason 필수. 코드·테스트·simulation 미실행 | D008 applied; P1.05에서 통합 field/DDL 고정 |
+| 2026-10-29 | P1.05 / T002 | 완료 (통합 자료 계약·사용자 승인) | §1.1 통합 자료 계약; D009–D011 applied; 전략 plan §11.4 | 사용자 확인: manifest JSON + immutable FK projection; dataset에는 가장 높은 attempt_index의 succeeded attempt 하나만 투영; manifest/evidence JSON은 UTF-8 TEXT, method_version은 필수 TEXT, runtime은 REAL seconds; 전체 통합 field/key/null/CHECK 계약 승인. 문서만 수정했으며 records.py/DDL/테스트/simulation은 변경·실행하지 않음 | P1.05 완료; 다음 P1.06 입력 검증 코딩. D004 interrupted-running 복구와 runtime 측정 기준은 P4.02에 남김 |
+| 2026-10-29 | P1.06 / T002 | 완료 (YAML 입력 검증) | §1.1 P1.06 schema·validation contract; `config.py`; `test_rqd_exploration_config.py` | 사용자 승인 구조에 필수 `target_goals`를 추가하고 6개 승인 reachable `Q′ > 400` 조합 및 goal-design 연결을 검증. YAML bytes/SHA-256 provenance, strict schema/units/bounds/geometry validation, immutable normalized input 구현. 변경 Python 파일 Pylance diagnostics 없음; focused config tests 14개 및 전체 98개 테스트 통과; `git diff --check` 통과 | P1.06 완료; 다음 P1.07 RFC 8785/JCS fingerprint 구현. P1.08에서 검토용 YAML 작성 및 adapter 진행 |
+| 2026-10-29 | P1.07a / T002 | 완료 (공통 JCS utility; execution snapshot 통합 미완료) | `requirements.txt`; `src/rqd_exploration/fingerprint.py`; `src/test/test_rqd_exploration_fingerprint.py` | 사용자 승인 범위에 따라 exact execution snapshot contract와 producer를 정하지 않고 generic JCS/SHA-256 utility만 구현. `rfc8785==0.1.4` 사용; canonical UTF-8 bytes와 lowercase SHA-256 반환. RFC numeric formatting, UTF-16 property ordering, equivalent numeric values, safe-integer boundary, array order 및 unsupported numbers 검증. 당시 focused tests 5개 및 전체 103개 통과 | P1.07a 공통 serializer 완료; execution payload contract는 P1.07b |
+| 2026-10-29 | P1.07b1 / T002 | 완료 (승인된 execution payload serializer; sample producer는 P2.03) | `src/rqd_exploration/fingerprint.py`; `src/test/test_rqd_exploration_fingerprint.py`; 전략 plan §P1.07b1 | 사용자 승인 payload: schema/canonicalization/digest metadata; normalized geometry; fixed Jn와 ordered joint-set inputs; realization seed; measurement steps/boundary-rules version; generator·measurement versions 및 backend/device/runtime. Attempt/provenance/goal/analysis fields는 제외. Typed API와 유한 수·안전 정수 입력, seed/version/runtime 변경, retry 동일성, provenance 제외 테스트 구현. Focused fingerprint tests 9개 및 전체 107개 통과; Pylance diagnostics 없음; `git diff --check` 통과 | P1.07b1 완료; actual sample producer는 P2.03, P1.07b2에서 검증 |
+| 2026-10-29 | P1.08 / T002 | 완료 (검토용 YAML·DFN 모델 adapter) | `config/rqd_exploration_pilot.yml`; `src/rqd_exploration/adapter.py`; config/adapter tests; readme | 승인된 pilot 수치를 YAML에 명시하고 실제 sampled joint-set 입력을 기존 CaseSpec으로 변환. 사용자 승인 generation-only Jr=1/Ja=1 placeholder 및 입력 순서→정수 set ID 대응 적용. dlo-cq에서 config/adapter 18개, 기존 model/geometry 회귀를 포함한 49개 테스트 통과; 변경 Python 파일 Pylance 진단 없음; diff check 통과. LHS/manifest/pilot simulation 미실행 | 다음 P2.01 목표 ledger·Jn별 산술 도달성. P1.07b2 producer 연결은 P2.03에 남음 |
+| 2026-10-29 | P2.01 / T003 | 완료 (목표 ledger·산술 도달성) | `src/rqd_exploration/design.py`; shared rating constants in `config.py`; `src/test/test_rqd_exploration_design.py` | dlo-cq에서 ledger 6개+config 15개=21개 테스트 통과. 10 Jn × 66 Jr/Ja 조합 660개의 exact arithmetic 검산, strict Q′=400 제외, 연속 threshold 200/3, 모든 scenario 유지, 동일 Jn 복수 block·오류 사례 검증. 변경 Python 파일 Pylance 진단 없음. LHS/manifest/simulation 미수행 | 다음 P2.02 randomized LHS·별도 α/κ RNG |
+| 2026-10-29 | P2.02 / T003 | 완료 (randomized LHS·독립 shape RNG) | `src/rqd_exploration/design.py`; `src/test/test_rqd_exploration_design.py`; readme 및 두 계획 문서 | 사용자 승인 축 순서·stream 분리를 적용. dlo-cq NumPy 2.4.3/SciPy 1.17.1에서 실제 2 block × 5=10개 표본 생성 확인. `python -m unittest src.test.test_rqd_exploration_design src.test.test_rqd_exploration_adapter src.test.test_rqd_exploration_config -v`: 32개 통과(ledger/LHS 14, adapter 3, config 15). 원 좌표 층화, log/ordered-log-pair 변환, 정렬 후 주변분포 차이, seed 재현성, α/κ stream 독립·set 내 공유, radius collision 오류 검증. 변경 Python 파일 Pylance 진단 없음; diff check 통과. 전체 suite·manifest·simulation 미실행 | 다음 P2.03 실제 sample–snapshot 연결 및 frozen manifest payload. P1.07b2 통합 검증 연결 |
+| 2026-10-29 | P2.03a / T003 | 완료 (builder·실제 sample 연결; P2.03 전체 미완료) | `design.py`; `records.py`; `test_rqd_exploration_manifest.py`; readme 및 두 계획 문서 | 사용자 승인으로 필수 caller-supplied runtime/version·typed plan으로 범위 분리. 실제 LHS 10개와 fixture version/부분 위치 plan을 연결해 재현 가능한 JSON TEXT, canonical execution BLOB/digest, sample/job/location 복합키 및 목표 ledger 구성 검증. dlo-cq에서 manifest 7+ledger/LHS 14+fingerprint 9+adapter 3=33개 테스트 통과. 변경 Python 파일 Pylance 진단 없음; diff check 통과. 전체 suite, DB/manifest 파일 저장, simulation 미실행 | P2.03b는 P3 측정 구현·producer 확인 후; 다음 P2.04 현 단계 설계/payload 검증 |
+| 2026-10-29 | P2.04a / T003 | 완료 (현 단계 검증; 실제 producer 검증 유보) | design/manifest tests에 6개 추가; readme 및 두 계획 문서 | dlo-cq `python -m unittest src.test.test_rqd_exploration_manifest src.test.test_rqd_exploration_design src.test.test_rqd_exploration_fingerprint src.test.test_rqd_exploration_adapter src.test.test_rqd_exploration_config -v`: 54개, 0.802s, OK. Preview에서 schema 1, 2 designs/10 samples/6 goals/10 jobs/20 fixture locations 및 동일 입력 재현 확인. 변경 Python 파일 Pylance 진단 없음; diff check 통과. 운영 코드·전체 suite·DB/manifest 파일·simulation 미변경/미실행 | 다음 P3.01 profiles/geometry 재사용 경계 확인. P2.03b/P2.04b 및 Phase 2 전체 종료는 유보 |
+| 2026-10-29 19:54 | P3.01–P3.02 / T004 | 완료 (계산 경계 검토·회귀) | 기존 `profiles.py`/`geometry.py` 재사용 검토; Euler profile/geometry 테스트 | `conda run -n dlo-cq python -m unittest src.test.test_euler_profiles src.test.test_euler_geometry -v`: 43 tests, 0.006s, OK. BH direct RQD와 endpoint/deduplication, face scanline/무교차 처리, clipping/station/face support는 기존 API로 재사용 가능하며 추가 helper·stub 변경은 불필요했다. `rfc8785==0.1.4` 설치 확인. 이전 시도는 작업 디렉터리 오류로 `src` import 실패했으나 QSimEx 프로젝트 루트에서 재실행해 통과. 계산 소스·obsolete 원본은 변경하지 않음 | 다음 P3.03 측정 구현; 측정 producer 완료 후 P2.03b/P2.04b 검증. DB/simulation 미실행 |
+| 2026-10-29 20:14 | P3.03–P3.05 / T005 | 완료 (raw measurement producer·fixture 검증) | `measurement.py`; `runner.py`; `test_rqd_exploration_measurement.py`; readme 및 두 계획 문서 | `conda run -n dlo-cq python -m unittest src.test.test_rqd_exploration_measurement src.test.test_rqd_exploration_design src.test.test_rqd_exploration_manifest src.test.test_rqd_exploration_fingerprint src.test.test_rqd_exploration_adapter src.test.test_rqd_exploration_config src.test.test_euler_profiles src.test.test_euler_geometry -v`: 109 tests, 0.384s, OK. BH clipping/완전 1 m interval·잔여 길이, 고정 face station/vertex 방향·partial advance, invalid support 상태, 무교차·중복·endpoint·0.1 m piece, evidence 재계산 및 Jr/Ja 불변성을 검증. `runner.generate_and_measure`는 factory를 1회 호출. 변경 Python 파일 Pylance diagnostics 없음; `git diff --check` 통과. DB·pilot simulation 미실행 | 다음 P2.03b version/runtime·전체 예정 위치 producer 연결, 이후 P2.04b 최종 geometry/간격/계획/payload 검증. Phase 2 전체 완료는 유보 |
+| 2026-10-29 20:23 | P2.03b / T003 | 완료 (MLX runtime·전체 measurement plan producer 연결) | `runner.py`; `test_rqd_exploration_runner.py`; readme 및 두 계획 문서 | 사용자 선택 MLX/GPU. `require_mlx_gpu()` 실제 preflight에서 MLX 0.31.1 / `Device(gpu, 0)` 확인. CPython 3.11.15, NumPy 2.4.3, SciPy 1.17.1, macOS 27.0.1 arm64 및 generator/measurement/boundary version을 snapshot에 연결. `build_mlx_pilot_manifest`가 승인 YAML의 모든 sample adapter와 measurement planner를 이용해 10 jobs × 121 locations = 1,210개 전체 위치(600 BH interval, 610 face station)를 담은 594,315-byte canonical JSON을 메모리에서 구성했다. `conda run -n dlo-cq python -m unittest src.test.test_rqd_exploration_runner src.test.test_rqd_exploration_manifest src.test.test_rqd_exploration_measurement src.test.test_rqd_exploration_design src.test.test_rqd_exploration_config src.test.test_rqd_exploration_adapter src.test.test_rqd_exploration_fingerprint src.test.test_euler_profiles src.test.test_euler_geometry -v`: 111 tests, 0.447s, OK. Pylance diagnostics 없음; `git diff --check` 통과. GPU preflight 외 DFN generation/simulation·DB·manifest file output 미실행; elapsed attempt runtime remains T006 | Next P2.04b independent full-plan geometry/spacing/payload verification. Phase 2 completion and pilot execution approval remain pending |
+| 2026-10-29 20:34 | P2.04b / T003 | 완료 (전체 위치·geometry·canonical payload 검증) | `test_rqd_exploration_runner.py`; readme 및 두 계획 문서 | P2.03b producer manifest를 승인 YAML geometry와 독립 기대값으로 대조했다. 10 jobs 모두 BH index 0–59 / 1 m interval 및 face index 0–60 / 1 m chainage, ENU coordinates, tunnel-face support와 scanline geometry를 포함하며 각 위치의 job/seed/fingerprint key가 일치한다. 1,210개 계획 위치의 완전성, snapshot/runtime, YAML digest, canonical JSON 및 job fingerprint 연결을 검증. 실제 MLX GPU preflight preview: 10 jobs, 1,210 locations (600 BH/610 face), 594,315 bytes. `conda run -n dlo-cq python -m unittest src.test.test_rqd_exploration_runner src.test.test_rqd_exploration_manifest src.test.test_rqd_exploration_measurement src.test.test_rqd_exploration_design src.test.test_rqd_exploration_config src.test.test_rqd_exploration_adapter src.test.test_rqd_exploration_fingerprint src.test.test_euler_profiles src.test.test_euler_geometry -v`: 111 tests, 0.465s, OK. 변경 Python Pylance diagnostics 없음; `git diff --check` 통과. DFN generation, simulation, DB/persistent manifest output 미실행 | P1.07b2/P2.04/T003 및 Phase 2 설계·manifest 구현 검증 종료. Pilot 실행·T006 저장은 별도 승인/단계 |
+| 2026-10-29 20:53 | P4.01 / T006 | 완료 (SQLite schema·저장 경계) | `src/rqd_exploration/store.py`; `src/test/test_rqd_exploration_store.py` | 승인된 schema v1의 14개 table, composite PK/FK, status/attempt/observation/evidence 제약, versioned/idempotent initialization을 구현했다. Canonical manifest/YAML provenance/runtime snapshot 및 설계·목표·job·위치 FK projections를 검증해 atomic 저장하고, attempt/status·measurement/evidence writer를 savepoint transaction으로 추가했다. `conda run -n dlo-cq python -m unittest -q src.test.test_rqd_exploration_store src.test.test_rqd_exploration_runner src.test.test_rqd_exploration_manifest src.test.test_rqd_exploration_measurement src.test.test_rqd_exploration_design src.test.test_rqd_exploration_config src.test.test_rqd_exploration_adapter src.test.test_rqd_exploration_fingerprint src.test.test_euler_profiles src.test.test_euler_geometry`: 120 tests, 0.577s, OK. Pylance diagnostics 없음, syntax check 및 `git diff --check` 통과. DB 테스트는 in-memory만 사용; 실제 pilot DB/manifest·DFN·simulation 미생성 | T006 진행 중; P4.02/P4.03 남음. D004 사용자 결정: interrupted `running` 처리와 runtime 측정 구간 |
+| 2026-10-29 21:31 | P4.02–P4.03 / T006 | 완료 (resume·checkpoint storage boundary) | `src/rqd_exploration/store.py`; `src/test/test_rqd_exploration_store.py`; `.github/copilot-instructions.md`; readme; 두 계획; `checkpoints/tasks-to-impl.yaml` | 사용자 D004 합의에 따라 same-attempt 복구, persisted observation 보존, planned 위치 조회, 정확한 job fingerprint 검증, 원자적 성공 checkpoint 및 checkpointed active-runtime 누적/하한 플래그를 구현했다. P4.01 schema v1에 `runtime_is_lower_bound`와 running runtime 누계를 반영했으며 아직 실제 DB가 없어 migration은 수행하지 않았다. `conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -q`: 166 tests, 0.811s, OK. Store/test Pylance diagnostics 없음, Python syntax errors 없음, `git diff --check` 통과. Temp-file DB close/reopen 및 in-memory 검증만 수행; 실제 pilot DB/manifest·DFN·simulation 미실행 | T006 완료; 다음 P4.04 / T007. Runner가 전체 attempt monotonic timer와 실제 resume 실행을 연결 |
+| 2026-10-29 21:41 | P4.04 / T007 | 완료 (Runner resume·attempt runtime 통합) | `src/rqd_exploration/runner.py`; `src/rqd_exploration/store.py`; `src/test/test_rqd_exploration_runner.py`; `src/test/test_rqd_exploration_store.py`; readme 및 두 계획; `checkpoints/tasks-to-impl.yaml` | Frozen job 실행기를 storage resume boundary에 연결했다. 성공 job skip, 동일 running attempt ID 재개, persisted location 결과 보존 및 planned-only 기록, monotonic active runtime 누계, `KeyboardInterrupt` checkpoint, 일반 예외 failed 상태 기록, failed attempt 자동 retry 금지를 구현했다. 설정/frozen snapshot 일치 여부는 attempt 생성/재개 전에 검증한다. Focused runner/store suite: 18 tests 통과. 전체 `conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -q`: 168 tests, 0 failures. Runner와 테스트 Pylance diagnostics/syntax errors 없음; `git diff --check` 통과. Integration tests는 임시 SQLite만 사용; real pilot DB/manifest 저장, DFN generation, simulation 미실행. 저장 전 중단된 in-flight job의 DFN은 재생성될 수 있음 | 다음 P4.05 예산 제약, 이후 P4.06–P4.07 CLI/runtime 검증. T007/Phase 4 미완료 |
+| 2026-10-29 21:47 | P4.05 / T007 | 완료 (simulation budget gate) | `src/rqd_exploration/runner.py`; `src/test/test_rqd_exploration_runner.py`; readme 및 두 계획; `checkpoints/tasks-to-impl.yaml` | 사용자 결정: maximum simulation 상한은 명령 실행 1회 단위이며 resume 명령은 새 상한을 입력한다. 필수 `maximum_simulations` 양의 정수 검증, 새 generation/measurement를 시작하는 횟수 카운트, job 완료 사이 budget gate, 다음 eligible job 미실행, `budget_exhausted`와 각 frozen target goal의 `unresolved_at_budget` 요약 상태를 구현했다. 예산을 모두 사용했지만 추가 job이 없으면 `jobs_complete`로 구분한다. 예산 종료/목표 상태는 반환 summary에 포함하며 새 DB schema나 영속 run-status를 만들지 않았다. Focused runner/store suite: 20 tests 통과. 전체 `conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -q`: 170 tests, 0 failures. Runner/test Pylance diagnostics 없음, syntax checks 및 `git diff --check` 통과. 임시 SQLite 및 mocked measurement만 사용; pilot DB/manifest·DFN·simulation 미실행 | 다음 P4.06 CLI integration; P4.07 CLI/subprocess verification. T007/Phase 4 미완료 |
+| 2026-10-29 21:50 | P4.06 / T007 | 구현 완료 (CLI 실행 경계; P4.07 검증 대기) | `src/rqd_exploration/cli.py`; thin root `run_rqd_exploration.py`; `readme.md`; 두 계획; `checkpoints/tasks-to-impl.yaml` | `validate`, `preview`, `run`, `resume` 명령을 연결했다. Validate는 설정만 검증하고 preview는 MLX GPU preflight 및 immutable manifest preview를 만들되 DB write/simulation 없이 끝난다. Run/resume은 필수 manifest ID·DB path·양수 maximum simulation 및 `--confirm-execution`을 요구한다. 확인 전 DB connection/factory 생성은 하지 않는다. Run은 기존 경로를 거부하고 새 schema-v1 DB에 manifest를 저장한 뒤 Runner를 호출한다. Resume은 기존 DB에만 연결해 schema/manifest JSON 완전 일치를 확인한다. MLX만 허용하며 preflight 실패는 오류로 표시한다. CLI smoke: validate 성공, 실제 MLX preview 10 jobs/1,210 locations, confirm 없는 run 거부 및 DB 파일 미생성. Focused Runner/store 20 tests와 전체 suite(재실행 예정), Pylance/syntax/diff checks | P4.07 subprocess tests로 거절·예산 누락·DB mismatch·정상 preview 및 임시 DB run/resume 확인. Real pilot 실행은 별도 승인 필요 |
+| 2026-10-29 21:50 | P4.06 / T007 | 구현 완료 (CLI 실행 경계; P4.07 검증 대기) | `src/rqd_exploration/cli.py`; thin root `run_rqd_exploration.py`; `readme.md`; 두 계획; `checkpoints/tasks-to-impl.yaml` | `validate`, `preview`, `run`, `resume` 명령을 연결했다. Validate는 설정만 검증하고 preview는 MLX GPU preflight 및 immutable manifest preview를 만들되 DB write/simulation 없이 끝난다. Run/resume은 필수 manifest ID·DB path·양수 maximum simulation 및 `--confirm-execution`을 요구한다. 확인 전 DB connection/factory 생성은 하지 않는다. Run은 기존 경로를 거부하고 새 schema-v1 DB에 manifest를 저장한 뒤 Runner를 호출한다. Resume은 기존 DB에만 연결해 schema/manifest JSON 완전 일치를 확인한다. MLX만 허용하며 preflight 실패는 오류로 표시한다. CLI smoke: validate 성공, 실제 MLX preview 10 jobs/1,210 locations, confirm 없는 run 거부 및 DB 파일 미생성. P4.07은 subprocess tests에서 검증. 임시 SQLite/mock runner만 사용; pilot DB/DFN/simulation 미실행 | P4.07 subprocess 및 임시 DB run/resume 검증 완료 |
+| 2026-10-29 21:56 | P4.07 / T007 | 완료 (CLI/subprocess·임시 DB 통합 검증) | `src/test/test_rqd_exploration_cli.py`; `src/rqd_exploration/cli.py`; readme 및 두 계획; `checkpoints/tasks-to-impl.yaml` | 5개 CLI subprocess 테스트에서 validate/preview, 미확인 run 거부 및 DB 미생성, 필수/비유효 budget, 새 DB 경로 및 기존 DB 보호, 임시 schema-v1 run/manifest 저장, 동일 manifest resume, generator/runtime fingerprint mismatch, schema mismatch 및 budget 종료 요약 출력을 확인했다. Runner는 subprocess에서 모의 처리해 DFN 생성/simulation을 방지했다. Focused `conda run -n dlo-cq python -m unittest -q src.test.test_rqd_exploration_cli src.test.test_rqd_exploration_runner src.test.test_rqd_exploration_store`: 25 tests passed. 전체 suite 최종 결과 175 tests, 0 failures. CLI/test Pylance diagnostics 및 syntax checks 없음; `git diff --check` 통과. 임시 DB만 사용; 실제 pilot DB/manifest·DFN·simulation 미실행 | T006/T007 및 Phase 4 구현·검증 완료. 다음은 독립 T008/P5.01 분석 단계; 사용자 승인 전 미착수 |
+
+**작업 중단·재개 메모 (2026-10-29 16:35 +09:00, 사용자 요청):**
+오늘은 2단계의 현 단계 검증(P2.04a)까지 진행한 상태에서 잠시 중단한다.
+집에서 재개할 때는 **3단계 P3.01 — 기존 profiles/geometry 계산의 재사용 경계 확인**부터
+이어간다. P2.03b(실제 version/runtime·전체 예정 위치 producer 연결)와 P2.04b(최종
+pilot payload 검증)는 측정 구현 이후로 유보되어 있으며 2단계 전체 완료를 뜻하지 않는다.
+마지막 관련 검증은 conda `dlo-cq`에서 54개 테스트 통과다. DB 저장·simulation 실행은
+하지 않았으며 재개 시에도 별도 사용자 승인 없이 실행하지 않는다.
+이 메모에서는 코드 변경이나 다음 단계 착수를 하지 않았다.
+
+**재개 준비·협업 방식 추가 기록 (2026-10-29 16:37 +09:00, 사용자 요청):**
+- 집 환경에는 RFC 8785 구현 패키지가 아직 설치되어 있지 않다. P3.01 재개 전에
+  conda `dlo-cq` 환경을 확인하고 `rfc8785==0.1.4`를 설치해야 한다.
+  프로젝트 루트에서 `conda run -n dlo-cq python -m pip install -r requirements.txt`를
+  사용하고, `conda run -n dlo-cq python -m pip show rfc8785`로 설치 환경·버전을 확인한다.
+  Base 환경에 설치하지 않는다. VS Code/Pylance 선택 인터프리터도 `dlo-cq`인지 확인한다.
+  현재 환경에서는 `requirements.txt` 기준 설치를 확인했다.
+
+**다음 작업 인계 (2026-10-29 19:54 +09:00):**
+P3.01–P3.02가 완료됐다. 이어서 P3.03의 독립 측정 구현을 진행한다.
+먼저 §1.1의 승인 측정 계약과 P3.03–P3.05를 확인한 뒤, BH 1 m interval 및 고정 face 1 m
+station, 시작/끝·partial support 규칙, Q′/Jr/Ja 독립 조건을 그대로 적용한다. 기존
+`src/euler_campaign/profiles.py`의 direct RQD/intersection 처리와
+`src/euler_campaign/geometry.py`의 clipping/station/face-support API를 재사용하며 기존 API,
+`.pyi`, 무교차 convention은 변경하지 않는다. 관측/evidence와 실제 support 상태를 typed
+records에 연결하고 P3.05의 작은 결정론적 fixture 및 Euler 회귀를 검증한다.
+측정 producer 완료 후 Phase 2의 P2.03b/P2.04b로 돌아와 전체 위치·version/runtime 연결,
+geometry/간격·계획 완전성 및 최종 payload를 검증한다. 기존 P2.04a 검증은 중복 실행하지
+않는다. `dlo-cq`와 `rfc8785==0.1.4`는 확인되었다. DB 생성·pilot simulation은 실행하지 않는다.
+
+**진행 순서 합의 및 기록 선호 (2026-10-29 19:59 +09:00):**
+Phase 2는 아직 전체 완료가 아니다. P2.04a의 설계/payload 검증은 완료되어 재실행하지 않고,
+P2.03b와 P2.04b는 측정 producer가 있어야 완료할 수 있다. 따라서 지금은 P3.03–P3.05를
+먼저 구현·검증하고, 이어서 Phase 2로 돌아와 P2.03b/P2.04b를 완료한 뒤에 Phase 2를 닫는다.
+이는 단계 의존성에 따른 순서이며 이미 완료된 P2 작업을 되풀이한다는 뜻이 아니다.
+
+선생님 요청: 중요한 진행 결과·합의·재개 요청은 별도 요청이 없어도 이 문서와 관련 전략/
+체크포인트에 발견·결정 시각을 붙여 기록한다. 각 작업 후에는 수행 결과, 검증 결과와 한계,
+다음 작업을 보고한다.
+- 사용자를 “선생님”으로 부르고 존댓말을 사용한다.
+- 요청받은 범위만 실행한다. 다음 단계까지 임의로 진행하지 않는다.
+- 미정 사항을 가정하여 진행하지 않으며, 의심스럽거나 불명확한 사항·중요한 선택은
+  선생님과 상의한 뒤 진행한다.
+- 각 단계 종료 시 수행 결과, 실제 검증 결과와 남은 한계, 다음 작업을 제시하고
+  다음 진행 지시를 기다린다. 현재의 단계별 보고 포맷을 유지한다.
 
 ## 6. 대상 구조와 산출물
 
@@ -698,7 +1086,7 @@ QSimEx/
 │       ├── plan.md
 │       └── checkpoints/
 ├── config/
-│   └── rqd_exploration_pilot.yml      # 현재 주석만 있는 placeholder
+│   └── rqd_exploration_pilot.yml      # P1.08 검토용 초안; 실행 승인은 별도
 ├── run_rqd_exploration.py             # CLI 연결; 현재는 미구현 안내만 반환
 ├── src/
 │   ├── rqd_exploration/               # 신규 독립 모듈
@@ -741,8 +1129,8 @@ QSimEx/
 제외/보존 규칙은 T002 검토·승인에 따른다. 세부 모듈 책임 및 데이터 흐름도는 §3.1–3.2를
 참조한다.
 
-현재 `src/rqd_exploration/`의 모듈은 package 경로만 마련한 placeholder이며, 동작 구현은
-해당 task에서 수행한다. 신규 `src/`에는 v4 재사용 경계에 필요한 계산 코드와 일부 기존
+현재 `src/rqd_exploration/`의 입력 검증/fingerprint serializer/adapter 외 모듈은 골격이며,
+나머지 동작은 해당 task에서 구현한다. 신규 `src/`에는 v4 재사용 경계에 필요한 계산 코드와 일부 기존
 회귀 테스트만 선택적으로 복사했다. 이전 `src/` 전체는 `obsolete/src_obs/`에 원래 폴더 구조대로
 보존하며 archived code는 수정하지 않는다.
 

@@ -1,2 +1,125 @@
-# Structural placeholder only; not an executable or approved pilot configuration.
-# T002 must define and approve the input contract before values are populated.
+# Review draft of approved pilot inputs; not authorization to run simulations.
+schema_version: 1
+geometry:
+  coordinate_frame: ENU
+  domain_size_m: [60, 30, 30]
+  grid_spacing_m: [1, 1, 1]
+  tunnel_vertices_m: [[0, 15, 15], [60, 15, 15]]
+  tunnel_radius_m: 5
+  borehole:
+    start_m: [0, 15, 15]
+    direction_enu: [1, 0, 0]
+    length_m: 60
+measurements:
+  bh_interval_m: 1
+  face_advance_m: 1
+designs:
+  - design_id: jn-half
+    block_id: block-half
+    fixed_jn: 0.5
+    sample_count: 5
+    design_seed: 39
+    realization_seed: 43
+    orientation_bounds: &orientation_bounds
+      mean_dip_deg:
+        lower: 0
+        upper: 90
+        unit: degree
+        coordinate: linear
+        upper_inclusive: true
+      mean_dip_dir_deg:
+        lower: 0
+        upper: 360
+        unit: degree
+        coordinate: linear
+        upper_inclusive: false
+    shape_randomization: &shape_randomization
+      size_alpha:
+        bounds: [2.5, 4]
+        unit: "1"
+        distribution: uniform
+        rng_stream: separate_from_lhs
+      fisher_kappa:
+        bounds: [0, 50]
+        unit: "1"
+        distribution: uniform
+        rng_stream: separate_from_lhs
+    joint_sets: &joint_sets
+      - joint_set_id: set-1
+        p32:
+          lower: 0.01
+          upper: 100
+          unit: m^2/m^3
+          coordinate: log
+          upper_inclusive: true
+        size_r_min_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_r_max_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_radius_transform: ordered_log_pair
+  - design_id: jn-one
+    block_id: block-one
+    fixed_jn: 1
+    sample_count: 5
+    design_seed: 36
+    realization_seed: 43
+    orientation_bounds: *orientation_bounds
+    shape_randomization: *shape_randomization
+    joint_sets: *joint_sets
+target_goals:
+  - goal_id: high-jn-half-jr-4-ja-075
+    target_bin_id: qprime_gt_400
+    catalog_id: primary_profile_10bin_v1
+    fixed_jn: 0.5
+    jr_scenario_id: jr-4
+    jr_value: 4
+    ja_scenario_id: ja-075
+    ja_value: 0.75
+  - goal_id: high-jn-half-jr-4-ja-1
+    target_bin_id: qprime_gt_400
+    catalog_id: primary_profile_10bin_v1
+    fixed_jn: 0.5
+    jr_scenario_id: jr-4
+    jr_value: 4
+    ja_scenario_id: ja-1
+    ja_value: 1
+  - goal_id: high-jn-half-jr-3-ja-075
+    target_bin_id: qprime_gt_400
+    catalog_id: primary_profile_10bin_v1
+    fixed_jn: 0.5
+    jr_scenario_id: jr-3
+    jr_value: 3
+    ja_scenario_id: ja-075
+    ja_value: 0.75
+  - goal_id: high-jn-half-jr-3-ja-1
+    target_bin_id: qprime_gt_400
+    catalog_id: primary_profile_10bin_v1
+    fixed_jn: 0.5
+    jr_scenario_id: jr-3
+    jr_value: 3
+    ja_scenario_id: ja-1
+    ja_value: 1
+  - goal_id: high-jn-half-jr-2-ja-075
+    target_bin_id: qprime_gt_400
+    catalog_id: primary_profile_10bin_v1
+    fixed_jn: 0.5
+    jr_scenario_id: jr-2
+    jr_value: 2
+    ja_scenario_id: ja-075
+    ja_value: 0.75
+  - goal_id: high-jn-1-jr-4-ja-075
+    target_bin_id: qprime_gt_400
+    catalog_id: primary_profile_10bin_v1
+    fixed_jn: 1
+    jr_scenario_id: jr-4
+    jr_value: 4
+    ja_scenario_id: ja-075
+    ja_value: 0.75

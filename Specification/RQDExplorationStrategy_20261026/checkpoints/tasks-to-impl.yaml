@@ -1,0 +1,143 @@
+metadata:
+  generated: "2026-10-29 22:01 +09:00"
+  source_tasks: "../ImplementationPlan_v4.md#phase-4"
+  last_updated: "2026-10-29 22:01 +09:00"
+  handoff:
+    current_phase: "Phase 4 implementation and verification complete"
+    completed_work: "T006/T007 and P4.01-P4.07; 175 full-suite tests passed"
+    next_task_not_started: "T008/P5.01: implement the 66 fixed-Jn Jr/Ja score scenarios"
+    subsequent_work: "T008/P5.02; T009/P5.03-P5.05; T010/P6.01-P6.04 after analysis implementation"
+    unresolved_gate: "Resolve D005 before P5.03-P5.04"
+    deferred: "T011 adaptive batch controller awaits post-pilot policy review and separate approval"
+    execution_boundary: "No pilot DB/manifest persistence, DFN generation, or simulation has been run; explicit user approval is required"
+    resume_guidance: "Do not repeat Phase 1-4. This handoff identifies a candidate only and does not authorize starting it."
+
+summary:
+  total_tasks: 2
+  completed_tasks: 2
+  in_progress_tasks: 0
+  pending_tasks: 0
+  completion_percentage: 100.0
+
+tasks:
+  - task_id: "T006"
+    description: "Implement SQLite storage and resume boundary for RQD exploration"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/rqd_exploration/store.py"
+          changes:
+            - change_type: "modified"
+              description: "Add validated same-attempt resume, atomic completion, and active-runtime checkpoints with lower-bound marking."
+        - file: "src/test/test_rqd_exploration_store.py"
+          changes:
+            - change_type: "modified"
+              description: "Cover temporary-file reopen, partial observations, atomic completion, corrupted state, fingerprint mismatch, and runtime accumulation."
+        - file: "Specification/ImplementationPlan_v4.md"
+          changes:
+            - change_type: "modified"
+              description: "Synchronize D004, P4.02-P4.03 status, verification, and next-step handoff."
+        - file: "Specification/RQDExplorationStrategy_20261026/plan.md"
+          changes:
+            - change_type: "modified"
+              description: "Record the user-approved D004 recovery/runtime policy and completion evidence."
+    verification:
+      test_results:
+        command: "conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -q"
+        passed: 166
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Pylance diagnostics and syntax checks passed for changed Python files; git diff --check passed. No pilot DB, manifest persistence, DFN generation, or simulation."
+    upstream_trace:
+      plan_item: "4.1"
+      requirements: ["REQ-007", "REQ-008", "REQ-009", "REQ-010"]
+      full_trace: "REQ-007/008/009/010 -> Phase 4.1 -> P4.01-P4.03 -> T006 -> store.py and test_rqd_exploration_store.py"
+
+  - task_id: "T007"
+    description: "Connect frozen-job execution, resume, budget, and CLI flow"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/rqd_exploration/runner.py"
+          changes:
+            - change_type: "modified"
+              description: "Connect frozen-job execution to same-attempt resume, completed-job skipping, monotonic runtime checkpoints, failure handling, and per-command budget summaries."
+        - file: "src/rqd_exploration/cli.py"
+          changes:
+            - change_type: "modified"
+              description: "Implement validate/preview/run/resume commands with explicit confirmation, schema/manifest checks, MLX-only execution, and JSON summaries."
+        - file: "src/rqd_exploration/store.py"
+          changes:
+            - change_type: "modified"
+              description: "Expose validated persisted attempt statuses to the Runner."
+        - file: "src/test/test_rqd_exploration_runner.py"
+          changes:
+            - change_type: "modified"
+              description: "Verify temporary-database reopen/resume, successful-job skip, persisted location preservation, failed-attempt no-retry, required budget validation, and budget-exhaustion goal statuses."
+        - file: "src/test/test_rqd_exploration_cli.py"
+          changes:
+            - change_type: "created"
+              description: "Verify subprocess CLI contracts for validate/preview, confirmation/budget gates, temporary DB run/resume, schema/manifest mismatch, and run-summary output without DFN generation."
+        - file: "readme.md"
+          changes:
+            - change_type: "modified"
+              description: "Document P4.04 resume behavior, the in-flight DFN limitation, and P4.05 per-command budget semantics."
+        - file: "Specification/ImplementationPlan_v4.md"
+          changes:
+            - change_type: "modified"
+              description: "Record P4.04-P4.05 completion, verification evidence, remaining CLI work, and recovery boundary."
+        - file: "Specification/RQDExplorationStrategy_20261026/plan.md"
+          changes:
+            - change_type: "modified"
+              description: "Add timestamped P4.04-P4.05 execution evidence and next-step handoff."
+        - file: "Specification/RQDExplorationStrategy_20261026/checkpoints/tasks-to-impl.yaml"
+          changes:
+            - change_type: "modified"
+              description: "Track T007 completed with P4.04-P4.07 verification evidence."
+    verification:
+      test_results:
+        command: "conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py' -q"
+        passed: 175
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Focused CLI/runner/store suite: 25 tests passed. Full suite: 175 tests passed. Subprocess contracts verified validate/preview, confirmation and budget gates, temporary DB run/resume, exact manifest/runtime and schema rejection, and JSON budget summary. CLI/test Pylance diagnostics and syntax checks passed; git diff --check passed. The runner was mocked for confirmed CLI subprocess paths; only a temporary SQLite DB was written, with no pilot DB/manifest, DFN generation, or simulation."
+    upstream_trace:
+      plan_item: "4.1"
+      requirements: ["REQ-007", "REQ-008", "REQ-009", "REQ-010"]
+      full_trace: "REQ-007/008/009/010 -> Phase 4.1 -> P4.04-P4.07 -> T007 -> runner.py, cli.py, and their tests"
+
+pending_tasks: []
+known_limitations:
+  - "Current in-flight job DFN/intermediate state is not persisted before atomic job completion; that job may need regeneration after interruption."
+  - "The maximum simulation cap and unresolved goal status apply to one command invocation and are returned in memory; each resume invocation takes a new cap, and those run-level statuses are not persisted in schema v1."
+
+traceability_chain:
+  - chain_id: "TRACE-T006"
+    requirement: "REQ-007, REQ-008, REQ-009, REQ-010"
+    plan_phase: "Phase-4"
+    plan_item: "4.1"
+    tasks: ["T006"]
+    files:
+      - "src/rqd_exploration/store.py"
+      - "src/test/test_rqd_exploration_store.py"
+    status: "complete"
+  - chain_id: "TRACE-T007-P404-P407"
+    requirement: "REQ-007, REQ-008, REQ-009, REQ-010"
+    plan_phase: "Phase-4"
+    plan_item: "4.1"
+    tasks: ["T007"]
+    files:
+      - "src/rqd_exploration/runner.py"
+      - "src/rqd_exploration/cli.py"
+      - "src/test/test_rqd_exploration_runner.py"
+      - "src/test/test_rqd_exploration_cli.py"
+    status: "complete"
+
+validation:
+  passed: true
+  errors: []
+  warnings:
+    - "Phase 4 implementation is complete; real pilot DB/manifest persistence, DFN generation, and simulation remain unauthorized and unrun."
+  blocking_issues: []
