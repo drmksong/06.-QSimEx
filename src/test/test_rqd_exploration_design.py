@@ -14,7 +14,7 @@ from src.rqd_exploration.design import generate_lhs_design
 
 class TestExecutableJnMapping(unittest.TestCase):
     def setUp(self) -> None:
-        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
+        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot.yml"
         self.config = load_config(path)
 
     def test_configs_use_fixed_jn_to_set_count_mapping(self) -> None:
@@ -23,10 +23,37 @@ class TestExecutableJnMapping(unittest.TestCase):
             [(2.0, 1), (4.0, 2)],
         )
 
+    def test_both_pilots_preserve_jn_and_set_counts_through_generation_adapter(self) -> None:
+        root = Path(__file__).resolve().parents[2]
+        for filename, expected in (
+            ("rqd_exploration_pilot.yml", [(2.0, 1), (4.0, 2)]),
+            ("rqd_exploration_pilot2.yml", [(9.0, 3), (15.0, 4)]),
+        ):
+            config = load_config(root / "config" / filename)
+            with patch("src.euler_campaign.dfn.CaseJointFactory.generate") as generate:
+                for design, (fixed_jn, set_count) in zip(config.designs, expected):
+                    result = generate_lhs_design(design)
+                    self.assertEqual(len(result.axes), 5 * set_count)
+                    self.assertEqual(len(result.samples), 5)
+                    for sample in result.samples:
+                        with self.subTest(filename=filename, jn=fixed_jn,
+                                          sample=sample.sample_index):
+                            case = build_generation_case(
+                                config.geometry, config.measurements, design.fixed_jn,
+                                sample.joint_sets, case_id=design.design_id,
+                            )
+                            self.assertEqual(case.domain.jn, fixed_jn)
+                            self.assertEqual(len(case.joint_sets), set_count)
+                            self.assertEqual(
+                                [joint.set_id for joint in case.joint_sets],
+                                list(range(1, set_count + 1)),
+                            )
+                generate.assert_not_called()
+
 
 class TestPilotLHS(unittest.TestCase):
     def setUp(self) -> None:
-        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
+        path = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot.yml"
         self.config = load_config(path)
         self.design = self.config.designs[0]
 

@@ -26,8 +26,10 @@ from .records import FrozenManifest
 from .reporting import export_reference_profile_report, preflight_reference_profile_report
 from .runner import build_mlx_pilot_manifest, execute_frozen_jobs
 from .store import STORE_SCHEMA_VERSION, initialize_store, store_manifest
+from .p32_store import read_measured_p32
 
 _DEFAULT_CONFIG = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
+_DEFAULT_MAIN_CONFIG = Path(__file__).resolve().parents[2] / "config/rqd_exploration_main.yml"
 _DEFAULT_REPORTS_ROOT = Path(__file__).resolve().parents[2] / "results/rqd_exploration"
 _EXIT_OK = 0
 _EXIT_ERROR = 1
@@ -101,12 +103,30 @@ def _parser() -> argparse.ArgumentParser:
     )
     run.add_argument("--config", type=Path, default=_DEFAULT_CONFIG)
     run.add_argument("--database", type=Path, required=True)
-    run.add_argument("--maximum-simulations", type=int, required=True)
     run.add_argument(
         "--confirm-execution",
         action="store_true",
-        help="confirm the displayed config, database, and simulation cap",
+        help="confirm the reviewed config, database, and fixed job plan",
     )
+    measure_p32 = commands.add_parser("measure-p32", help="regenerate saved geometries and backfill in-domain P32")
+    measure_p32.add_argument("--database", type=Path, required=True)
+    measure_p32.add_argument("--confirm-execution", action="store_true")
+    measure_p32.add_argument("--verify-job", metavar="EXECUTION_FINGERPRINT",
+                             help="process only this succeeded fingerprint and verify exact RQD regeneration")
+    for name in ("validate-main", "preview-main", "run-main"):
+        command = commands.add_parser(name, help=f"{name.split('-')[0]} the approved T011 main policy")
+        command.add_argument("--config", type=Path, default=_DEFAULT_MAIN_CONFIG)
+        if name == "preview-main":
+            command.add_argument("--database", type=Path, help="optional read-only existing schema4 DB")
+        if name == "run-main":
+            command.add_argument("--database", type=Path, required=True)
+            command.add_argument("--output-dir", type=Path, default=_DEFAULT_REPORTS_ROOT)
+            command.add_argument("--confirm-execution", action="store_true")
+            command.add_argument(
+                "--recover-incomparable",
+                action="store_true",
+                help="explicitly resume a paused stability sample only after its valid BH support is restored",
+            )
     return parser
 
 
@@ -452,6 +472,7 @@ def _run_cumulative_report(args: argparse.Namespace) -> int:
             revision,
             jr_values=jr_values,
             ja_values=ja_values,
+            measured_p32=read_measured_p32(connection),
         )
         _print_payload({
             "command": "report-cumulative",
@@ -495,8 +516,6 @@ def _run_execution(args: argparse.Namespace, config: NormalizedPilotInput) -> in
             file=sys.stderr,
         )
         return _EXIT_CONFIRMATION_REQUIRED
-    if args.maximum_simulations < 1:
-        raise ValueError("--maximum-simulations must be at least 1")
     database_exists = args.database.exists()
     if database_exists and not args.database.is_file():
         raise ValueError(f"database path is not a file: {args.database}")
@@ -542,14 +561,12 @@ def _run_execution(args: argparse.Namespace, config: NormalizedPilotInput) -> in
                 "database": str(args.database.resolve()),
                 "config": _config_summary(config),
                 "manifest": _manifest_summary(manifest),
-                "maximum_simulations": args.maximum_simulations,
             })
             summary = execute_frozen_jobs(
                 connection,
                 manifest,
                 config,
                 factory,
-                maximum_simulations=args.maximum_simulations,
                 progress_callback=_print_progress,
             )
     finally:
@@ -559,9 +576,90 @@ def _run_execution(args: argparse.Namespace, config: NormalizedPilotInput) -> in
     return _EXIT_OK
 
 
+def _main_command(args: argparse.Namespace) -> int:
+    from .main_policy import load_main_config
+    from .main_controller import execute_main, preview_main
+    if args.command == "run-main" and not args.confirm_execution:
+        print("Main execution not confirmed. Review `preview-main`, then pass "
+              "--confirm-execution. No database was opened and no simulation was started.",
+              file=sys.stderr)
+        return _EXIT_CONFIRMATION_REQUIRED
+    config = load_main_config(args.config)
+    if args.command == "validate-main":
+        _print_payload({"valid": True, "config_fingerprint": config.fingerprint,
+                        "policy": asdict(config.policy)})
+        return _EXIT_OK
+    if args.command == "preview-main":
+        if args.database is None:
+            payload = preview_main(config)
+        else:
+            if not args.database.is_file():
+                raise FileNotFoundError(f"preview database does not exist: {args.database}")
+            with sqlite3.connect(f"{args.database.resolve().as_uri()}?mode=ro", uri=True) as connection:
+                connection.execute("PRAGMA foreign_keys = ON")
+                payload = preview_main(config, connection)
+        _print_payload(payload)
+        return _EXIT_OK
+    # Runtime preflight stays before DB creation and never selects a CPU factory.
+    runtime_manifest = build_mlx_pilot_manifest(config.reference_input, manifest_id="main-runtime-preflight")
+    runtime = runtime_manifest.jobs[0].snapshot.runtime
+    from src.euler_campaign.mlx_backend import MlxCaseJointFactory
+    factory = MlxCaseJointFactory()
+    exists = args.database.exists()
+    if exists and (not args.database.is_file() or args.database.stat().st_size == 0):
+        raise ValueError(f"invalid main database file: {args.database}")
+    if not exists:
+        args.database.parent.mkdir(parents=True, exist_ok=True)
+    connection = (sqlite3.connect(f"{args.database.resolve().as_uri()}?mode=rw", uri=True)
+                  if exists else sqlite3.connect(args.database))
+    try:
+        summary = execute_main(connection, config, factory, runtime, confirmed=True,
+                               output_dir=args.output_dir, progress_callback=_print_progress,
+                               recover_incomparable=args.recover_incomparable)
+        _print_payload({"command": "run-main", "main_summary": summary})
+        return _EXIT_OK if summary["reason"] in (
+            "targets_complete", "review_checkpoint") else _EXIT_ERROR
+    finally:
+        connection.close()
+
+
+def _measure_p32_command(args):
+    from .main_store import single_writer
+    from .p32_store import measure_missing_p32
+    if not args.confirm_execution:
+        print("Measured P32 regeneration not confirmed; no database opened.", file=sys.stderr)
+        return _EXIT_CONFIRMATION_REQUIRED
+    if not args.database.is_file():
+        raise FileNotFoundError(f"measurement database does not exist: {args.database}")
+    def factory_for_runtime(runtime):
+        if runtime.backend == "mlx":
+            from src.euler_campaign.mlx_backend import MlxCaseJointFactory
+            return MlxCaseJointFactory()
+        if runtime.backend == "numpy":
+            from src.euler_campaign.dfn import CaseJointFactory
+            return CaseJointFactory()
+        raise ValueError(f"unsupported recorded backend: {runtime.backend}; no CPU fallback")
+    connection = sqlite3.connect(f"{args.database.resolve().as_uri()}?mode=rw", uri=True)
+    try:
+        connection.execute("PRAGMA foreign_keys = ON")
+        with single_writer(connection):
+            payload = measure_missing_p32(connection, factory_for_runtime,
+                verify_job=args.verify_job,
+                progress_callback=lambda update: _print_progress(
+                    f"measure-p32 {update.stage}: {update.detail}"))
+        _print_payload({"command": "measure-p32", **payload})
+    finally:
+        connection.close()
+    return _EXIT_OK
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.command == "measure-p32":
+            return _measure_p32_command(args)
+        if args.command in ("validate-main", "preview-main", "run-main"):
+            return _main_command(args)
         if args.command == "analyze":
             return _run_analysis(args)
         if args.command == "analyze-cumulative":

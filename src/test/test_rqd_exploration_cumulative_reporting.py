@@ -183,6 +183,31 @@ class TestCumulativeCoverageReporting(unittest.TestCase):
                 "b" * 64,
             )
 
+    def test_planned_location_status_is_superseded_by_final_status(self) -> None:
+        revision = self._revision()
+        statuses = list(revision.location_states)
+        statuses[0] = replace(statuses[0], status="planned")
+        revision = replace(
+            revision,
+            observations=revision.observations[1:],
+            location_states=tuple(statuses),
+            raw_observation_count=2,
+        )
+
+        prepared = cumulative_reporting._prepare_report(
+            revision,
+            jr_values=(1.0,),
+            ja_values=(1.0,),
+        )
+
+        self.assertEqual(prepared.conflicts, ())
+        self.assertEqual(len(prepared.observations), 2)
+        representative = next(
+            item for item in prepared.location_states
+            if item.execution_fingerprint_digest == "a" * 64
+        )
+        self.assertEqual(representative.status, "observed")
+
     def test_conflicting_location_status_excludes_fingerprint(self) -> None:
         revision = self._revision()
         statuses = list(revision.location_states)

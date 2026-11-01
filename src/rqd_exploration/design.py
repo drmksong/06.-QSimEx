@@ -278,6 +278,7 @@ def build_frozen_manifest(
     runtime: ExecutionRuntime,
     boundary_rules_version: str,
     planned_locations: tuple[PlannedLocation, ...],
+    samples_by_design: dict[str, tuple[DesignSample, ...]] | None = None,
 ) -> FrozenManifest:
     """Build DB-ready JSON with explicit execution metadata; never infer or execute it.
 
@@ -326,6 +327,10 @@ def build_frozen_manifest(
     sample_keys: set[tuple[str, str, int]] = set()
     for design in config.designs:
         result = generate_lhs_design(design)
+        selected_samples = (
+            result.samples if samples_by_design is None
+            else samples_by_design[design.design_id]
+        )
         designs.append({
             "input": asdict(design),
             "axes": [asdict(axis) for axis in result.axes],
@@ -335,7 +340,9 @@ def build_frozen_manifest(
             "rng_scheme": result.rng_scheme,
             "radius_transform": result.radius_transform,
         })
-        for sample in result.samples:
+        if samples_by_design is not None:
+            designs[-1]["sample_source"] = "explicit_frozen_main_input"
+        for sample in selected_samples:
             sample_key = (design.design_id, design.block_id, sample.sample_index)
             if sample_key in sample_keys:
                 raise ValueError("duplicate design sample composite key")

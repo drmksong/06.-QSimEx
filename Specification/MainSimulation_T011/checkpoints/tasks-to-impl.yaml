@@ -1,0 +1,132 @@
+metadata:
+  generated: "2026-10-31 23:45 +09:00"
+  last_updated: "2026-11-01 06:19 +09:00"
+  source_tasks: "../plan.md"
+  batch_report: "../batch-report.yaml"
+  scope: "P7.02.01–09 code and mocked/temp-DB verification; not actual main execution or physical validation."
+summary:
+  total_tasks: 9
+  completed_tasks: 9
+  in_progress_tasks: 0
+  pending_tasks: 0
+  completion_percentage: 100.0
+verification: &verified
+  build_passed: true
+  test_results:
+    command: "TMPDIR=\"$PWD/.rqd-main-test-work\" conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py'"
+    scope: "Shared final full suite; create scratch directory before invocation."
+    passed: 274
+    failed: 0
+    skipped: 0
+    failures: []
+  integrity_findings_resolved: 6
+  actual_main_execution: "not_performed"
+tasks:
+  - task_id: P7.02.01
+    status: completed
+    implementation:
+      files_changed: ["src/rqd_exploration/main_policy.py", "config/rqd_exploration_main.yml", "config/rqd_exploration_jn20.yml"]
+    test_files: ["src/test/test_rqd_main_policy.py"]
+    verification: *verified
+    upstream_trace:
+      plan_item: "5.2.1"
+      requirements: ["REQ-001", "REQ-002", "REQ-005", "REQ-007", "REQ-010", "REQ-011"]
+  - task_id: P7.02.02
+    status: completed
+    implementation:
+      files_changed: ["src/rqd_exploration/main_store.py"]
+    test_files: ["src/test/test_rqd_main_store.py", "src/test/test_rqd_main_integrity.py"]
+    verification: *verified
+    upstream_trace:
+      plan_item: "5.2.2"
+      requirements: ["REQ-003", "REQ-007", "REQ-008", "REQ-009", "REQ-010", "REQ-013"]
+  - task_id: P7.02.03
+    status: completed
+    implementation:
+      files_changed: ["src/rqd_exploration/main_analysis.py", "src/rqd_exploration/dataset.py"]
+    test_files: ["src/test/test_rqd_main_analysis.py", "src/test/test_rqd_main_integrity.py"]
+    verification: *verified
+    upstream_trace:
+      plan_item: "5.2.3"
+      requirements: ["REQ-002", "REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-009", "REQ-011", "REQ-012", "REQ-013"]
+  - task_id: P7.02.04
+    status: completed
+    implementation:
+      files_changed: ["src/rqd_exploration/main_design.py", "src/rqd_exploration/design.py"]
+    test_files: ["src/test/test_rqd_main_design.py", "src/test/test_rqd_main_integrity.py"]
+    verification: *verified
+    upstream_trace:
+      plan_item: "5.2.4"
+      requirements: ["REQ-001", "REQ-002", "REQ-006", "REQ-007", "REQ-009", "REQ-011", "REQ-012", "REQ-013"]
+  - task_id: P7.02.05
+    status: completed
+    implementation:
+      files_changed: ["src/rqd_exploration/main_controller.py"]
+    test_files: ["src/test/test_rqd_main_controller.py", "src/test/test_rqd_main_integrity.py"]
+    verification: *verified
+    upstream_trace:
+      plan_item: "5.2.5"
+      requirements: ["REQ-006", "REQ-007", "REQ-009", "REQ-011", "REQ-012", "REQ-013"]
+  - task_id: P7.02.06
+    status: completed
+    implementation:
+      files_changed: ["src/rqd_exploration/runner.py", "src/rqd_exploration/adapter.py", "src/rqd_exploration/main_controller.py"]
+    test_files: ["src/test/test_rqd_main_workflow.py", "src/test/test_rqd_main_integrity.py", "src/test/test_rqd_exploration_runner.py"]
+    verification: *verified
+    upstream_trace:
+      plan_item: "5.2.6"
+      requirements: ["REQ-003", "REQ-004", "REQ-007", "REQ-008", "REQ-009", "REQ-010", "REQ-012", "REQ-013"]
+  - task_id: P7.02.07
+    status: completed
+    implementation:
+      files_changed: ["src/rqd_exploration/cli.py"]
+    test_files: ["src/test/test_rqd_main_workflow.py", "src/test/test_rqd_exploration_cli.py"]
+    verification: *verified
+    upstream_trace:
+      plan_item: "5.2.7"
+      requirements: ["REQ-006", "REQ-007", "REQ-008", "REQ-010", "REQ-011", "REQ-012"]
+  - task_id: P7.02.08
+    status: completed
+    implementation:
+      files_changed: ["src/rqd_exploration/main_controller.py", "src/rqd_exploration/cumulative_reporting.py", "readme.md"]
+    test_files: ["src/test/test_rqd_main_workflow.py", "src/test/test_rqd_main_integrity.py"]
+    verification: *verified
+    upstream_trace:
+      plan_item: "5.2.8"
+      requirements: ["REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-007", "REQ-009", "REQ-010", "REQ-013"]
+  - task_id: P7.02.09
+    status: completed
+    implementation:
+      files_changed: ["src/test/test_rqd_main_policy.py", "src/test/test_rqd_main_store.py", "src/test/test_rqd_main_analysis.py", "src/test/test_rqd_main_design.py", "src/test/test_rqd_main_controller.py", "src/test/test_rqd_main_workflow.py", "src/test/test_rqd_main_integrity.py"]
+    verification: *verified
+    upstream_trace:
+      plan_item: "5.2.9"
+      requirements: ["REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-007", "REQ-008", "REQ-009", "REQ-010", "REQ-011", "REQ-012", "REQ-013"]
+pending_tasks: []
+untracked_changes: []
+traceability_chain:
+  source_spec: "../../RQDExplorationStrategy_20261026/plan.md#2-요구사항"
+  requirement_mapping: "spec-to-plan.yaml"
+  task_mapping: "plan-to-tasks.yaml"
+  status: complete
+validation:
+  passed: true
+  scope: "274 full-suite passes, 46 new main tests, 6 reviewed fixes; code completion only."
+  errors: []
+  warnings:
+    - "Physical DFN/MLX main simulation and production DB writes were not performed or approved."
+    - "Current default excludes Jn20; initial jobs0. Expected-cost review remains active for new inputs in retained conditions."
+  blocking_issues: []
+follow_up_jn20_exclusion:
+  approved_at: "2026-11-01 06:10 +09:00"
+  verified_at: "2026-11-01 06:19 +09:00"
+  active_jn: [2, 4, 9, 15]
+  initial_jobs: 0
+  full_suite_passed: 277
+  failed: 0
+  skipped: 0
+  main_tests: 49
+  primary_bins_reachable: 10
+  jn20_support_and_raw_preserved: true
+  old_enabled_behavior_regression_passed: true
+  actual_main_execution: not_performed

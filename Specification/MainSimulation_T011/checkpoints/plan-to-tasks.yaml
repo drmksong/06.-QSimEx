@@ -1,0 +1,61 @@
+metadata:
+  generated: "2026-10-31 22:32 +09:00"
+  source_plan: "../plan.md"
+  target_tasks: "../plan.md#4-구현-순서와-작업"
+  parent_task: T011
+  parent_decomposition: P7.02
+  current_status_reference: "../../RQDExplorationStrategy_20261026/checkpoints/tasks-to-impl.yaml#current_status"
+summary:
+  total_plan_items: 9
+  covered_plan_items: 9
+  missing_plan_items: 0
+  total_tasks_generated: 9
+  orphan_tasks: 0
+  coverage_percentage: 100.0
+phases:
+  - phase_id: Phase-7
+    items:
+      - item_id: "5.2.1"
+        tasks: ["P7.02.01"]
+        requirements: ["REQ-001", "REQ-002", "REQ-005", "REQ-007", "REQ-010", "REQ-011"]
+        prerequisites: []
+      - item_id: "5.2.2"
+        tasks: ["P7.02.02"]
+        requirements: ["REQ-003", "REQ-007", "REQ-008", "REQ-009", "REQ-010", "REQ-013"]
+        prerequisites: ["P7.02.01"]
+      - item_id: "5.2.3"
+        tasks: ["P7.02.03"]
+        requirements: ["REQ-002", "REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-009", "REQ-011", "REQ-012", "REQ-013"]
+        prerequisites: ["P7.02.01"]
+      - item_id: "5.2.4"
+        tasks: ["P7.02.04"]
+        requirements: ["REQ-001", "REQ-002", "REQ-006", "REQ-007", "REQ-009", "REQ-011", "REQ-012", "REQ-013"]
+        prerequisites: ["P7.02.01", "P7.02.03"]
+      - item_id: "5.2.5"
+        tasks: ["P7.02.05"]
+        requirements: ["REQ-006", "REQ-007", "REQ-009", "REQ-011", "REQ-012", "REQ-013"]
+        prerequisites: ["P7.02.02", "P7.02.03", "P7.02.04"]
+      - item_id: "5.2.6"
+        tasks: ["P7.02.06"]
+        requirements: ["REQ-003", "REQ-004", "REQ-007", "REQ-008", "REQ-009", "REQ-010", "REQ-012", "REQ-013"]
+        prerequisites: ["P7.02.02", "P7.02.05"]
+      - item_id: "5.2.7"
+        tasks: ["P7.02.07"]
+        requirements: ["REQ-006", "REQ-007", "REQ-008", "REQ-010", "REQ-011", "REQ-012"]
+        prerequisites: ["P7.02.01", "P7.02.03", "P7.02.05", "P7.02.06"]
+      - item_id: "5.2.8"
+        tasks: ["P7.02.08"]
+        requirements: ["REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-007", "REQ-009", "REQ-010", "REQ-013"]
+        prerequisites: ["P7.02.03", "P7.02.05", "P7.02.06", "P7.02.07"]
+      - item_id: "5.2.9"
+        tasks: ["P7.02.09"]
+        requirements: ["REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-007", "REQ-008", "REQ-009", "REQ-010", "REQ-011", "REQ-012", "REQ-013"]
+        prerequisites: ["P7.02.01", "P7.02.02", "P7.02.03", "P7.02.04", "P7.02.05", "P7.02.06", "P7.02.07", "P7.02.08"]
+missing_plan_items: []
+orphan_tasks: []
+validation:
+  passed: true
+  scope: "Document mapping and acyclic dependency graph checked; all9 code tasks verified in tasks-to-impl.yaml."
+  errors: []
+  warnings:
+    - "9 tasks implemented/final274 verified. User review and actual main execution approval remain separate."

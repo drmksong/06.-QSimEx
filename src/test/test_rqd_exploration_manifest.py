@@ -258,9 +258,10 @@ class TestFrozenManifest(unittest.TestCase):
         first, second = self.config.designs
         joint_set = first.joint_sets[0]
         self.config = replace(self.config, designs=(
-            replace(first, sample_count=3, joint_sets=(replace(
-                joint_set, p32=replace(joint_set.p32, lower=0.02, upper=50),
-            ),)),
+            replace(first, sample_count=3, joint_sets=(
+                replace(joint_set, p32=replace(joint_set.p32, lower=0.02, upper=50)),
+                *first.joint_sets[1:],
+            )),
             second,
         ))
         changed = self.build()

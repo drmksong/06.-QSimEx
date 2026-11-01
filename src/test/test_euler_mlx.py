@@ -142,6 +142,47 @@ class TestMlxCaseJointFactory(unittest.TestCase):
         for normal in generated.normals.tolist():
             self.assertAlmostEqual(sum(value * value for value in normal), 1.0, places=5)
 
+    def test_legacy_generation_matches_prechange_golden(self) -> None:
+        from hashlib import sha256
+        import numpy as np
+        from src.euler_campaign.mlx_backend import MlxCaseJointFactory
+        from src.test.test_euler_dfn import _case as golden_case
+        generated = MlxCaseJointFactory().generate(golden_case(), 1234)
+        data = np.column_stack((np.array(generated.centers), np.array(generated.normals),
+                                np.array(generated.radii)))
+        self.assertEqual(generated.count, 144)
+        self.assertEqual(sha256(data.tobytes()).hexdigest(),
+                         "0899de3d8af024de5ef01f74c5112035304c2733105ac870621f25d805fc9edb")
+
+    def test_buffered_mlx_stationary_p32_and_seed_fidelity(self) -> None:
+        import numpy as np
+        from src.euler_campaign.generation import PER_JOINT_BUFFER
+        from src.euler_campaign.mlx_backend import MlxCaseJointFactory
+        from src.euler_campaign.p32 import measure_domain_p32
+        case = _case()
+        factory = MlxCaseJointFactory()
+        values = [measure_domain_p32(case, factory.generate(
+            case, seed, generation_mode=PER_JOINT_BUFFER))[""]["p32_m2_per_m3"]
+            for seed in range(32)]
+        self.assertLess(abs(np.mean(values) / .2 - 1), .10)
+        first = factory.generate(case, 44, generation_mode=PER_JOINT_BUFFER)
+        second = factory.generate(case, 44, generation_mode=PER_JOINT_BUFFER)
+        self.assertEqual(first.centers.tolist(), second.centers.tolist())
+        self.assertEqual(first.radii.tolist(), second.radii.tolist())
+        self.assertEqual(first.normals.tolist(), second.normals.tolist())
+
+    def test_fixed_domain_centers_do_not_use_radius_buffer(self) -> None:
+        from src.euler_campaign.generation import FIXED_DOMAIN
+        from src.euler_campaign.mlx_backend import MlxCaseJointFactory
+
+        generated = MlxCaseJointFactory().generate(
+            _case(), 42, generation_mode=FIXED_DOMAIN)
+        self.assertTrue(all(
+            0.0 <= value <= 10.0
+            for center in generated.centers.tolist()
+            for value in center
+        ))
+
     def test_empty_case_returns_empty_gpu_arrays(self) -> None:
         from src.euler_campaign.mlx_backend import MlxCaseJointFactory
 

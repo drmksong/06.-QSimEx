@@ -1,4 +1,6 @@
-# Review draft of approved pilot inputs; not authorization to run simulations.
+# v4 review input: Jn 9/15 correspond to three/four joint sets.
+# Jn 15 uses the approved representative four-set approximation.
+# Configuration review is not authorization to run simulations.
 schema_version: 1
 geometry:
   coordinate_frame: ENU
@@ -14,9 +16,9 @@ measurements:
   bh_interval_m: 1
   face_advance_m: 1
 designs:
-  - design_id: jn-two
-    block_id: block-two
-    fixed_jn: 2
+  - design_id: jn-nine
+    block_id: block-nine
+    fixed_jn: 9
     sample_count: 5
     design_seed: 39
     realization_seed: 43
@@ -44,7 +46,7 @@ designs:
         unit: "1"
         distribution: uniform
         rng_stream: separate_from_lhs
-    joint_sets: &joint_sets
+    joint_sets:
       - joint_set_id: set-1
         p32:
           lower: 0.01
@@ -65,9 +67,49 @@ designs:
           coordinate: log
           upper_inclusive: true
         size_radius_transform: ordered_log_pair
-  - design_id: jn-four
-    block_id: block-four
-    fixed_jn: 4
+      - joint_set_id: set-2
+        p32:
+          lower: 0.01
+          upper: 100
+          unit: m^2/m^3
+          coordinate: log
+          upper_inclusive: true
+        size_r_min_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_r_max_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_radius_transform: ordered_log_pair
+      - joint_set_id: set-3
+        p32:
+          lower: 0.01
+          upper: 100
+          unit: m^2/m^3
+          coordinate: log
+          upper_inclusive: true
+        size_r_min_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_r_max_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_radius_transform: ordered_log_pair
+  - design_id: jn-fifteen
+    block_id: block-fifteen
+    fixed_jn: 15
     sample_count: 5
     design_seed: 36
     realization_seed: 43
@@ -95,6 +137,46 @@ designs:
           upper_inclusive: true
         size_radius_transform: ordered_log_pair
       - joint_set_id: set-2
+        p32:
+          lower: 0.01
+          upper: 100
+          unit: m^2/m^3
+          coordinate: log
+          upper_inclusive: true
+        size_r_min_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_r_max_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_radius_transform: ordered_log_pair
+      - joint_set_id: set-3
+        p32:
+          lower: 0.01
+          upper: 100
+          unit: m^2/m^3
+          coordinate: log
+          upper_inclusive: true
+        size_r_min_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_r_max_m:
+          lower: 0.05
+          upper: 150
+          unit: m
+          coordinate: log
+          upper_inclusive: true
+        size_radius_transform: ordered_log_pair
+      - joint_set_id: set-4
         p32:
           lower: 0.01
           upper: 100

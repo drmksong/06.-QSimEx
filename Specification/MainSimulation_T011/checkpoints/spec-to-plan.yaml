@@ -1,0 +1,46 @@
+metadata:
+  generated: "2026-10-31 22:32 +09:00"
+  source_spec: "../../RQDExplorationStrategy_20261026/plan.md#2-요구사항"
+  approved_policy: "../plan.md#2-승인-정책"
+  target_plan: "../plan.md"
+  scope: "T011 extension; existing REQ IDs preserved. Planning coverage, not implemented code or main execution approval."
+summary:
+  total_requirements: 13
+  covered_requirements: 13
+  missing_requirements: 0
+  coverage_percentage: 100.0
+requirements:
+  - req_id: REQ-001
+    plan_items: ["5.2.1", "5.2.4", "5.2.9"]
+  - req_id: REQ-002
+    plan_items: ["5.2.1", "5.2.3", "5.2.4", "5.2.9"]
+  - req_id: REQ-003
+    plan_items: ["5.2.2", "5.2.3", "5.2.6", "5.2.8", "5.2.9"]
+  - req_id: REQ-004
+    plan_items: ["5.2.3", "5.2.6", "5.2.8", "5.2.9"]
+  - req_id: REQ-005
+    plan_items: ["5.2.1", "5.2.3", "5.2.8", "5.2.9"]
+  - req_id: REQ-006
+    plan_items: ["5.2.3", "5.2.4", "5.2.5", "5.2.7", "5.2.8", "5.2.9"]
+  - req_id: REQ-007
+    plan_items: ["5.2.1", "5.2.2", "5.2.4", "5.2.5", "5.2.6", "5.2.7", "5.2.8", "5.2.9"]
+  - req_id: REQ-008
+    plan_items: ["5.2.2", "5.2.6", "5.2.7", "5.2.9"]
+  - req_id: REQ-009
+    plan_items: ["5.2.2", "5.2.3", "5.2.4", "5.2.5", "5.2.6", "5.2.8", "5.2.9"]
+  - req_id: REQ-010
+    plan_items: ["5.2.1", "5.2.2", "5.2.6", "5.2.7", "5.2.8", "5.2.9"]
+  - req_id: REQ-011
+    plan_items: ["5.2.1", "5.2.3", "5.2.4", "5.2.5", "5.2.7", "5.2.9"]
+  - req_id: REQ-012
+    plan_items: ["5.2.3", "5.2.4", "5.2.5", "5.2.6", "5.2.7", "5.2.9"]
+  - req_id: REQ-013
+    plan_items: ["5.2.2", "5.2.3", "5.2.4", "5.2.5", "5.2.6", "5.2.8", "5.2.9"]
+missing_requirements: []
+orphan_plan_items: []
+validation:
+  passed: true
+  scope: "Document traceability checked in existing conda dlo-cq; not code validation."
+  errors: []
+  warnings:
+    - "All9 implementation tasks verified; see tasks-to-impl.yaml. No production DB writes or actual main execution approval."

@@ -259,7 +259,7 @@ class TestFrozenJobExecution(unittest.TestCase):
             )
         self.fake_factory = SimpleNamespace(generate=lambda case, seed: (case, seed))
 
-    def test_progress_callback_reports_job_start_completion_and_budget_stop(self) -> None:
+    def test_progress_callback_reports_all_job_starts_and_completions(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             connection = sqlite3.connect(Path(temp_dir) / "progress.sqlite")
             initialize_store(connection)
@@ -280,17 +280,17 @@ class TestFrozenJobExecution(unittest.TestCase):
                     self.manifest,
                     self.config,
                     self.fake_factory,
-                    maximum_simulations=1,
                     progress_callback=messages.append,
                 )
 
             self.assertIn("[1/10] start attempt=0", messages[0])
-            self.assertIn("simulation 1/1", messages[0])
+            self.assertIn("simulation 1", messages[0])
             self.assertTrue(any("heartbeat stage_elapsed=" in message for message in messages))
             self.assertTrue(any("[1/10] complete" in message for message in messages))
             self.assertTrue(any("observations=0" in message for message in messages))
-            self.assertIn("[2/10] budget exhausted", messages[-1])
-            self.assertEqual(summary.simulation_count, 1)
+            self.assertIn("[10/10] complete", messages[-1])
+            self.assertFalse(any("budget" in message for message in messages))
+            self.assertEqual(summary.simulation_count, 10)
             self.assertEqual(
                 job_attempt_statuses(connection, first_job),
                 ((0, "succeeded"),),
@@ -343,7 +343,6 @@ class TestFrozenJobExecution(unittest.TestCase):
             ), self.assertRaises(KeyboardInterrupt):
                 execute_frozen_jobs(
                     connection, self.manifest, self.config, self.fake_factory,
-                    maximum_simulations=10,
                 )
 
             self.assertEqual(len(first_calls), 2)
@@ -389,16 +388,12 @@ class TestFrozenJobExecution(unittest.TestCase):
             ):
                 summary = execute_frozen_jobs(
                     reopened, self.manifest, self.config, self.fake_factory,
-                    maximum_simulations=len(self.manifest.jobs) - 1,
                 )
 
             self.assertEqual(len(summary.skipped_completed_job_keys), 1)
             self.assertEqual(summary.skipped_completed_job_keys[0][3], 0)
             self.assertEqual(len(summary.completed_job_keys), len(self.manifest.jobs) - 1)
             self.assertEqual(summary.simulation_count, len(self.manifest.jobs) - 1)
-            self.assertEqual(
-                summary.maximum_simulations, len(self.manifest.jobs) - 1,
-            )
             self.assertEqual(summary.termination_reason, "jobs_complete")
             self.assertEqual(len(resumed_calls), len(self.manifest.jobs) - 1)
             self.assertEqual(
@@ -483,7 +478,6 @@ class TestFrozenJobExecution(unittest.TestCase):
             ):
                 summary = execute_frozen_jobs(
                     connection, self.manifest, self.config, self.fake_factory,
-                    maximum_simulations=len(self.manifest.jobs),
                 )
             self.assertEqual(summary.skipped_failed_job_keys, ((
                 job.manifest_id, job.design_id, job.block_id,
@@ -496,75 +490,68 @@ class TestFrozenJobExecution(unittest.TestCase):
             self.assertEqual(job_attempt_statuses(connection, job), ((0, "failed"),))
             connection.close()
 
-    def test_budget_stops_between_jobs_and_marks_every_goal_unresolved(self) -> None:
+    def test_runs_every_configured_job_without_an_invocation_cap(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            connection = sqlite3.connect(Path(temp_dir) / "budget.sqlite")
+            connection = sqlite3.connect(Path(temp_dir) / "all-jobs.sqlite")
             initialize_store(connection)
             store_manifest(connection, self.manifest)
             calls: list[int] = []
 
-            def measure_one_job(case, factory, seed):
+            def measure_job(case, factory, seed):
                 self.assertTrue(callable(factory.generate))
                 calls.append(seed)
-                return self._measurement_result(case, reason="within budget")
+                return self._measurement_result(case, reason="configured pilot")
 
             with patch(
                 "src.rqd_exploration.runner.generate_and_measure",
-                side_effect=measure_one_job,
+                side_effect=measure_job,
             ):
                 summary = execute_frozen_jobs(
                     connection,
                     self.manifest,
                     self.config,
                     self.fake_factory,
-                    maximum_simulations=1,
                 )
 
-            self.assertEqual(len(calls), 1)
-            self.assertEqual(summary.simulation_count, 1)
-            self.assertEqual(summary.maximum_simulations, 1)
-            self.assertEqual(summary.termination_reason, "budget_exhausted")
-            self.assertEqual(len(summary.completed_job_keys), 1)
-            self.assertEqual(
-                job_attempt_statuses(connection, self.manifest.jobs[0]),
-                ((0, "succeeded"),),
-            )
-            self.assertEqual(
-                job_attempt_statuses(connection, self.manifest.jobs[1]),
-                (),
-            )
+            self.assertEqual(len(calls), 10)
+            self.assertEqual(summary.simulation_count, 10)
+            self.assertEqual(summary.termination_reason, "jobs_complete")
+            self.assertEqual(len(summary.completed_job_keys), 10)
+            self.assertTrue(all(
+                job_attempt_statuses(connection, job) == ((0, "succeeded"),)
+                for job in self.manifest.jobs
+            ))
+            with patch(
+                "src.rqd_exploration.runner.generate_and_measure",
+                side_effect=AssertionError("completed jobs must not regenerate"),
+            ):
+                repeated = execute_frozen_jobs(
+                    connection, self.manifest, self.config, self.fake_factory,
+                )
+            self.assertEqual(repeated.simulation_count, 0)
+            self.assertEqual(len(repeated.skipped_completed_job_keys), 10)
+            self.assertEqual(repeated.completed_job_keys, ())
             connection.close()
 
-    def test_invalid_budget_is_rejected_before_creating_attempts(self) -> None:
-        for invalid_budget, error_type in (
-            (0, ValueError),
-            (-1, ValueError),
-            (True, TypeError),
-            (1.5, TypeError),
-        ):
-            with self.subTest(maximum_simulations=invalid_budget):
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    connection = sqlite3.connect(Path(temp_dir) / "invalid-budget.sqlite")
-                    initialize_store(connection)
-                    store_manifest(connection, self.manifest)
-                    calls: list[int] = []
-                    with patch(
-                        "src.rqd_exploration.runner.generate_and_measure",
-                        side_effect=lambda *args: calls.append(args[-1]),
-                    ), self.assertRaises(error_type):
-                        execute_frozen_jobs(
-                            connection,
-                            self.manifest,
-                            self.config,
-                            self.fake_factory,
-                            maximum_simulations=invalid_budget,
-                        )
-                    self.assertEqual(calls, [])
-                    self.assertEqual(
-                        connection.execute("SELECT COUNT(*) FROM attempts").fetchone()[0],
-                        0,
-                    )
-                    connection.close()
+    def test_execution_error_is_persisted_and_stops_before_next_job(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = sqlite3.connect(Path(temp_dir) / "failed-run.sqlite")
+            initialize_store(connection)
+            store_manifest(connection, self.manifest)
+            with patch(
+                "src.rqd_exploration.runner.generate_and_measure",
+                side_effect=RuntimeError("measurement fixture failed"),
+            ) as measurement, self.assertRaisesRegex(RuntimeError, "measurement fixture failed"):
+                execute_frozen_jobs(
+                    connection, self.manifest, self.config, self.fake_factory,
+                )
+            self.assertEqual(measurement.call_count, 1)
+            self.assertEqual(
+                job_attempt_statuses(connection, self.manifest.jobs[0]),
+                ((0, "failed"),),
+            )
+            self.assertEqual(job_attempt_statuses(connection, self.manifest.jobs[1]), ())
+            connection.close()
 
 
 if __name__ == "__main__":

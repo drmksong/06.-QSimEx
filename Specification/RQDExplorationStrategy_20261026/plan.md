@@ -1,5 +1,238 @@
 # v4: RQD 중심・bin 조건부 자동 탐색 및 Q′ 조합 분석 계획
 
+**메인 Jn20 제외 (2026-11-01 06:19 +09:00):** 사용자06:10 요청으로 활성 Jn2/4/9/15,
+Jn20 초기 생성/목표/참조/검증 제외를 적용했다. 기존 자료를 재사용해 초기 생성 없이
+bin10부터 시작한다. Jn20 입력/지원과 원자료는 보존한다. Primary10개 bin 모두
+도달 가능하지만 Jn20 조건/극저 Q' 일부까지 조사하는 뜻은 아니다.
+이론 최소 Q'는0.0125→약0.0167, 최대266.6667은 그대로다. 기존 관찰/충분성 구분,
+seed/10%p/예산200/비용/오류/face 관찰 정책은 유지한다. 전체277개 테스트 통과,
+public preview 쓰기0/초기0/활성4조건/10 bin 확인. 실제 DB/results/DFN 실행은 없었다.
+[현행 정책](../MainSimulation_T011/plan.md)이 이전 날짜의 Jn20 초기 보완 정책에 우선한다.
+
+**T011 구현・검증 완료 (2026-10-31 23:45 +09:00):** P7.02.01–09 확정 정책 구현 완료.
+기존 파일럿/측정/점수/원자료 계약과 face 관찰 원칙을 보존했다. 전체274개 테스트
+통과(신규 메인46개), 검토에서 발견한6건도 재현/수정/후속 확인 완료.
+[구현 결과](../MainSimulation_T011/plan.md)와
+[상세 증거](../MainSimulation_T011/batch-report.yaml)에 기록했다. 초기 Jn20 입력5개 중3개는
+기대 절리 수1000만 초과로 실제 생성 전 검토 대상이다. 구현 운영 문턱의 검증은
+물리 검증/최종 통계 충분성/G4 승인이 아니며 실제 main DB/DFN/simulation은 실행하지 않았다.
+
+**T011 전체 구현 승인 (2026-10-31 22:43 +09:00):** 사용자가 확정 정책 기반
+P7.02.01–09 전체 구현/철저한 테스트를 승인했다. [상세 계획](../MainSimulation_T011/plan.md)의
+범위에 집중하며 기존 경로는 필수 변경만 한다. 구현 batch 진행 중이며 실제 완료는
+검증 후 기록한다. 실제 메인 DB 쓰기/DFN 생성/simulation은 별도 승인이다.
+
+**메인 정책 마감・T011 계획 작성 (2026-10-31 22:32 +09:00):** 사용자22:27 최종
+정책안 승인과 구현 계획 요청에 따라, 흘러가는 제안이 아닌 확정된 내용을 한 번에 정리했다.
+[T011 상세 정책・구현 계획](../MainSimulation_T011/plan.md)을 현재 메인 실행 규칙으로 삼는다.
+두 파일럿과 누적 검토는 완료된 선행 근거이며 P7.01/P7.02 계획 단계 완료,
+P7.02.01–09 코드 작업은 미착수다. 실제 메인 생성/DB 쓰기/G4는 별도 승인 경계다.
+되돌린 상세 분석 로그를 복원하지 않고 이번 승인 내용만 기록했다.
+
+확정 요약: Jn20(5군/LHS5/design seed40/realization43) 초기 보완 후 bin10부터 하향,
+도달 가능한 bin/Jn/Jr/Ja/BH 목표별 서로 다른 입력3개와 각 입력의 반복/안정성 확인.
+그룹3개 seed・연속2회, BH 누적분포/support 비중 차이 각각10%p 이하 및 양의 support.
+기존 후보 진전1 RQD 포인트/1%p・2/3→조건부3/5 유지. 신규 후보 최대12(8/2/2),
+진전 확인 후보2/완전 안정성 입력1 배정,3회 무진전 중단/검토. P32 step0.1/10,
+반경0.1/1m, 방향5/15deg 및 기존 bounds 유지. 메인 전체200시도/재개 소비 유지,
+기대 절리 수1000만 초과는 생성 전 검토, 오류 자동재시도0. Face는 통계적 관측이며
+동반 개선 요구 금지. 검증 유효 관측도 누적 분석에 사용한다. 자동 weight/최종 경계
+산식은 이번 구현에 추가하지 않는다. 정책의 운영 문턱은 최종 통계적 충분성이 아니다.
+
+**첫 실제 파일럿 검토 완료 (2026-10-31 20:23 +09:00):** 사용자가 현행 Jn2/4
+파일럿・누적 분석・보고 명령을 실행한 뒤 검토를 요청했다. DB 읽기 전용/CSV 확인:
+10개 attempt 성공, 유효 관측1210건, 독립 DFN5개/Jn, 충돌0, revision1 및79860개
+파생 점수/정확한 bin 분류 확인. RQD가100 근처에 집중되어 bin1은 전부 비었고,
+bin2는 각 Jn의 BH3행씩/face0행으로 근거가 얇다. Jn4 bin10 및 양쪽 >400 공백은
+이론상 상한에 따른 정상 공백이다. BH/face 중앙값이 비슷해도 bin 비중은 최대
+12.333/23.683%p 차이가 난다. 충분성/물리모델 검증 완료로 확대해석하지 않는다.
+수치・제약・검토 범위는 ImplementationPlan_v4 상단에 기록했다. 다음은 별도
+승인한 Jn9/15 파일럿 및 전체 누적 검토; 이 검토에서 simulation/DB 쓰기는 하지 않았다.
+
+**CUM.08 완료 (2026-10-31 19:53 +09:00):** 사용자 요청한2번 인계를 위해 확정된
+파일럿 무상한 정책을 구현했다. CLI --maximum-simulations와 runner 상한 gate/요약
+필드를 제거하고 유한 고정 목록을 처리한다. 명시 실행 확인·오류/중단·재개·성공 skip·
+실패 자동재시도 금지·batch identity·누적 자료 계약은 유지한다. 관련16개 fixture
+테스트, 실제 도움말/두 YAML 검증, py_compile·diff 확인 통과; 실제 DB/DFN/simulation 없음.
+메인 시도 예산/자동 controller는 구현하지 않았다. 검증 결과와 첫 pilot·재개·누적
+분석/보고·검토 후 pilot2의 명령/쓰기 경계는 ImplementationPlan_v4 상단에 기록했다.
+다음은 별도 승인한 CUM.09 첫 Jn2/4 파일럿 사용자 실행이며 두 번째 파일은 자동 실행하지 않는다.
+
+**상한 적용 범위 확정 (2026-10-31 19:45 +09:00):** 고정 작업 목록의 파일럿에는
+별도 호출 상한을 요구하지 않는다. 메인 자동 탐색에는 연속 시그니처 시도를 제한하는
+유한 예산이 필요하며 수치·집계 단위·소진/전환 규칙은 추후 합의한다.
+현재 코드는 아직 필수 호출 상한을 요구하므로 정책 반영·검증 후 명령을 인계한다.
+이번은 정책 확정이며 코드 변경·실제 실행·메인 상세 정책 승인은 아니다.
+
+**Jn 불일치 해소 후 남은 작업 정리 (2026-10-31 19:35 +09:00):** 사용자 요청은
+남은 TODO 정리이며 실제 실행 호출이 아니다. 폐기된 Jn0.5/1 target_goals 제약은
+활성 경로에서 제거됐고 Jn2/4/9/15 ↔ 절리군1/2/3/4 검증은 유지한다.
+dlo-cq에서 현재 두 YAML validate를 재확인해 각각 valid=true/2 designs/10 samples 통과.
+기존 preview·227개 통합 회귀 기록과 구분하며 새 DB/manifest/DFN/simulation은 없다.
+남은 순서는 상한 숫자 합의·CUM.08 명령 인계, 별도 승인한 pilot 실행, 누적 분석/보고·
+첫 결과 검토, 별도 승인한 pilot2 실행·누적 검토다. DB 경로/순서는 이미 선택했으며
+재질문하지 않는다. 전체 bin 근거/공백 확인이 목적이지 >400 강제/모든 bin 충족 보장이 아니다.
+T011 메인 정책·구현·실행은 별도 후속 승인이다. 상세 체크리스트는 ImplementationPlan_v4 상단.
+
+**현행 파일럿 양식 검증 완료 (2026-10-31 19:32 +09:00):** dlo-cq에서 두 YAML의
+Jn/절리군/N/seed/job 수와 현행 체크포인트를 대조했고 검토 양식·bin 규칙·8개 안건
+행 및 과거 기록/미결 실행 gate 보존을 확인했다. YAML 중복 키·git diff --check 통과.
+현재 파일럿은 Jn2/4/9/15 고정 LHS이며 실제 실행 전이다. A01–A06의 지적된 문구/범위
+정정은 완료했지만 구체 메인 정책·상한 숫자는 별도 미결이다. 문서만 변경했으며
+전체 테스트 재실행·DB/DFN/simulation 없음. 다음은 사용자 지시 후 상한 합의/인계 마무리.
+
+**현행 파일럿 기준 통일 (2026-10-31 19:29 +09:00, 사용자 요청):** 현행 설명·검토 양식은
+pilot의 Jn2/4 ↔ 절리군1/2개와 pilot2의 Jn9/15 ↔ 절리군3/4개를 기준으로 한다.
+각 조건 N=5, 두 파일 합계20 jobs는 계획 수이며 실제 실행 완료 수가 아니다.
+빈을 채울 DFN→RQD 근거 확보가 우선이고 `Q′ > 400`을 필수 출발점으로 두지 않는다.
+§4.4/§4.6, §11.2/§11.2.1과 구현계획 §2/§8의 현행 요약을 정합화했다.
+과거 날짜별 Jn0.5/1 실험·설계·분석 기록은 역사로 보존하며 현행 설정으로 사용하지 않는다.
+파일럿은 고정 LHS/전체 bin 분석이고, 메인 우선순위·충분성·전환·갱신 정책과 실행 상한 숫자는
+별도 합의 전 미결이다. README·코드·YAML·DB·DFN·실제 simulation 변경/실행 없음.
+
+**Bin-filling intent clarified (2026-10-31 19:27 +09:00):** User clarified that
+requiring Q-prime >400 first was the assistant's misinterpretation; filling bins is
+the urgent objective. This resolves that intent ambiguity, not exact main ordering,
+sufficiency/skip/transition/budget/controller policy. Old mandatory >400 prose cleanup
+remains. User requested an explanation of11.2.1's missing historical scope: its Jn0.5/1
+intro and old goal/status review rows describe the original October30 pilot, not the
+prepared but unrun current Jn2/4/9/15 inputs. Preserve old history and separate an active
+all-bin review template; general observation/seed-limit cautions remain valid.
+Explanation record only, no README/code/config/actual execution or active-template rewrite.
+
+**Remaining-discrepancy recheck (2026-10-31 19:24 +09:00):** A01 is still present in
+general exploration's >400 starting rule,11.2.1 high-bin review and implementation8.
+Section11.2.1's unqualified Jn0.5/1 pilot introduction also needs a local historical/current
+scope correction (residual A03/A05 wording). Core A02-A06 changes are not a claim every
+old plan paragraph is fully cleaned. Numeric cap/main policies are unresolved decisions,
+not necessarily contradictions. Guidance recheck only, no code/config/actual execution
+or new scientific policy; detailed findings at the top of ImplementationPlan_v4.
+
+**A06 verified (2026-10-31 19:23 +09:00):** Strict YAML validation additionally found
+duplicate deferred history; both values are now preserved under distinct keys. All three
+checkpoints pass unique-key parsing, references resolve, original mapping/counts and
+outcome/deferral history are preserved, current pending work/approval gates remain intact.
+git diff --check passed in existing dlo-cq; documentation only, no full tests or actual
+execution. A06 resolved. A02-A06 corrected; A01 main starting-bin/transition treatment
+and numeric pilot-cap agreement still require discussion, not silently chosen.
+
+**A06 checkpoint reconciliation (2026-10-31 19:21 +09:00):** User selected
+approve_checkpoint_a06. All three checkpoints preserve historical mapping/task/test
+records but point to explicit current operational status. Old DB/schema2/resume guidance,
+empty pending list and obsolete warnings are historical; current schema4/run/internal IDs,
+two prepared but unrun pilots, unapproved cap and deferred T011 are distinguished.
+Duplicate pilot_outcome values preserved under separate keys; source links corrected.
+No README/code/config/DB/DFN/simulation or policy change. A02-A06 corrected; A01 specific
+starting-bin/transition policy and command-cap agreement remain unresolved separately.
+
+**A05 verification complete (2026-10-31 19:18 +09:00):** Existing dlo-cq checks
+confirmed both plans' original T001-T010 completion, historical P6.01-P6.04 scope,
+T011/P7 deferral and unchanged pending current handoff/execution/result-review TODOs.
+Checkpoint YAML and git diff --check passed. A05 resolved; documentation only,
+no full test rerun or actual execution. Next A06 awaits instruction.
+
+**A05 checklists reconciled (2026-10-31 19:16 +09:00):** User selected
+approve_historical_checklists. Both plans now mark original T001-T010 complete against
+dated parent/child evidence; implementation P6.01-P6.04 is explicitly historical Jn0.5/1
+completion, not current pilot execution. Section6 scopes the old task descriptions to
+their original contracts. Current Jn2/4/9/15 prep/tests are complete but handoff cap and
+physical execution/result review remain pending in the implementation status table and
+existing TODOs. Old DB/reports were deleted; no old goal/schema/command is restored.
+T011/P7/G4 and main policies remain deferred. No README/code/config/actual execution.
+Next is A06 operational checkpoint cleanup after instruction.
+
+**A05 checklist review (2026-10-31 19:14 +09:00):** Parent/child checkbox state
+conflicts with documented Phase1-5 and October30 T010/P6 completion. Proposed marking
+original tasks complete with explicit historical Jn0.5/1 scope, while keeping current
+Jn2/4/9/15 execution/handoff/result review pending and T011 deferred. Main policies/G4
+remain unapproved; original result deletion does not erase historical completion.
+Detailed evidence/proposal is at the top of ImplementationPlan_v4. Application pending
+user scope confirmation; no actual execution or scientific policy change.
+
+**README/log separation instruction (2026-10-31 19:11 +09:00):** User required the
+rule in .github Copilot instructions. Always-on and linked detailed guidance now prohibit
+execution/test/work logs and current run/budget status in README; separate history/log
+records hold these, with links only from README. Removed the current pilot/budget-status
+sentence and generalized a handoff warning. No scientific policy or actual execution;
+A05 remains unstarted. Full change record is in ImplementationPlan_v4.
+
+**A04 current guide corrected (2026-10-31 19:06 +09:00):** User selected
+approve_guide_a04. Root README now describes implemented fixed-LHS/manual cumulative
+workflow, both inputs/default pilot2, current commands/schema4/internal batch IDs and
+auto-resume, caps/job states and analysis/report write boundaries. Obsolete restart history
+was replaced with authoritative plan pointers; dated plan history is preserved with a
+current-guide distinction at P1.02. No code/config/DB/DFN/simulation or scientific policy
+change. Next discrepancy is A05 task checkboxes, not started; A06 remains separate.
+
+**A04 verification complete (2026-10-31 19:08 +09:00):** README's six commands match
+the actual CLI parser, local links resolve, checkpoint YAML and git diff --check pass.
+Checks ran in existing dlo-cq; documentation-only, no full test rerun or real execution.
+A04 resolved; A05 awaits user instruction.
+
+**A04 guide review (2026-10-31 19:06 +09:00):** User requested the next discrepancy
+discussion. README's unimplemented CLI, resume/manifest-ID flags, schema1/new-DB-only,
+removed target-status output and obsolete structure/restart claims conflict with current
+code. Root/run help verified in existing dlo-cq without DB/simulation. Proposed current
+guide correction is recorded at the top of ImplementationPlan_v4; approval pending.
+No README/code/config change, execution, cap, first-bin or main-policy decision.
+
+**Pilot/adaptive scope clarification (2026-10-31 18:15 +09:00):** User recalled pilot
+execution/review preceding final policy decisions and larger-scale signature-updating
+simulation from higher bins toward lower bins. This matches the documented staged strategy
+and deferred T011. Current fixed-LHS/manual cumulative workflow is the pilot/research
+foundation, not a completed adaptive controller. The handoff cap concerns current pilot
+execution; runner enforcement technically applies to every `run` invocation, so it is not
+restricted by pilot filename. It does not establish total adaptive budget or sufficient
+bin support. Removing historical `target_goals` is not abandonment of bin-guided adaptive
+research, nor reinstatement of the old high-bin goal roster. Bin priorities, sufficiency,
+signature-update and transition/budget policies remain for post-pilot review/approval.
+No numeric cap or actual execution approved; handoff clarification remains open.
+
+**Handoff budget clarification (2026-10-31 17:51 +09:00):** The user selected common DB
+`sqlite/qsimex-rqd-v4.sqlite` and pilot-first/review/pilot2 order, but did not approve a
+numeric per-command cap. User requested reconstruction of historical reasoning. Ten jobs
+originated from the 2026-10-28 14:05:13 decision of two blocks, five LHS signatures each,
+one initial seed per signature; not a scientific maximum or total exploration budget.
+P4.05/T007 added a separate mandatory per-invocation cap on 2026-10-29. On 2026-10-30
+15:44:36 the user selected 1000 for a manifest that still held only ten jobs; extra jobs
+or adaptive batches were not generated by that cap. Current YAMLs each still contain ten
+jobs with the newly approved Jn/set-count mapping. Suggested cap 10 is not approved;
+historical 1000 must not be carried forward silently. Resume generation/measurement counts
+toward the cap; skipping already succeeded jobs does not. Handoff remains in clarification,
+without DB creation or any actual execution. Historical agreements remain unchanged;
+details are recorded at the top of ImplementationPlan_v4.
+
+**Integrated acceptance complete (2026-10-31 16:54 +09:00):** The user authorized only the
+next integrated-verification TODO. Added a temporary-DB test connecting both approved pilot
+YAMLs through actual CLI/runner/store/analysis/report with mocked backend and synthetic
+measurement, no physical DFN or GPU simulation. Verified interruption/reopen/same-batch
+resume, completed-job skipping, second-config append, 20 succeeded attempts and 2,420
+location states, preserved Jn/set-count mappings, immutable prior revisions, full-catalog
+and subset re-scoring, idempotence, unchanged raw/evidence/status rows and byte-identical DB
+after read-only report. Exact preflight/CSV row counts, Q-prime arithmetic and support/fraction
+totals passed. The existing catalog has 10 primary bins plus overflow; only an incorrect
+test expectation was corrected, not scientific policy. Full `dlo-cq` suite 227 passed;
+related suite 48 passed, syntax/editor diagnostics and diff checks passed. Temporary files
+were cleaned; no production code, configuration, README or real pilot data was changed.
+Next TODO is execution-command/limitation handoff after user instruction; no automatic
+progression or actual execution approval is implied. Detailed acceptance matrix and
+timestamped verification are at the top of ImplementationPlan_v4.
+
+**Latest pilot configuration agreement (2026-10-31 16:49 +09:00):** The user requested
+`rqd_exploration_pilot.yml` as Jn 2/4 with one/two joint sets, and
+`rqd_exploration_pilot2.yml` as Jn 9/15 with three/four joint sets. Both active v4 inputs omit
+`target_goals`. This supersedes prior statements retaining the first file as historical-only
+or describing pilot2 as Jn 2/4. Existing geometry, bounds, five samples per design and seeds
+remain unchanged. Jn 15 is the previously approved representative four-set approximation,
+not a new literal Barton category claim. Input YAML schema remains 1; cumulative DB schema
+remains 4. CLI default remains pilot2; explicit `--config` selects each file.
+Both validation and memory-only previews passed: ten jobs and BH 600 + face 610 planned
+locations per file. Exact mapping/mismatch and sampled adapter checks plus the existing full
+regression suite passed (226 tests). No actual DFN/simulation or pilot DB/manifest write.
+Remaining work after the 16:54 acceptance completion is user-run handoff and subsequent authorized
+result review; automatic batch selection is still deferred. Detailed TODO is recorded at the
+top of ImplementationPlan_v4.
+
 - 작성일: 2026-10-26
 - 명칭: 사용자 합의에 따라 새 전략을 편의상 **v4**로 부른다.
   v3의 한계를 보완하는 확장·수정이며, 특정 코드 버전이나 내부 rule ID의 확정을 뜻하지 않는다.
@@ -173,19 +406,36 @@ Q′ 개선, 새 bin 관측, parent 후보 채택은 다음 시그니처 실행�
 Euler 탐색은 보존하되 새 기본 탐색기의 진행·종료를 제어하지 않는다.
 LHS는 각 설계 축의 층화이지 다차원 조합 전수 조사나 DFN–RQD 관계 규명 완료의 보장이 아니다.
 
-### 1.1 1차 범위와 제외 범위
+### 1.1 전체 v4 목표 범위와 파일럿 단계의 구분
 
-포함: bin별 요구 조건을 사용하는 초기 배분, 재현 가능한 기초 LHS, batch별 실행 전
-manifest, RQD 원자료, 후처리, 중단·재개, 조건부 coverage 진단, 관측 기반 자동
-batch 갱신, 유연한 방향/step 전환과 연구용 CSV 산출.
+**범위 구분 확정 (2026-10-31 18:56 +09:00):** 사용자는 전체 v4 목표와 파일럿의
+구현·실행 단계를 분리하는 `staged_scope`를 선택했다. 아래 구분이 이전의 모호한
+“1차 필수 범위”와 “후속 제외 철회” 표현을 대체한다.
+
+**전체 v4/메인 목표 범위:** bin별 필요 RQD 조건과 실제 DFN -> RQD 관측을 이용해
+시그니처를 설계·갱신하고 높은 쪽에서 낮은 쪽으로 탐색한다. 초기 배분, 재현 가능한
+기초 LHS, batch별 실행 전 manifest, RQD 원자료, 후처리, 중단·재개, coverage 진단,
+관측 기반 자동 batch 갱신, 유연한 방향/step 전환과 연구용 CSV 산출을 포함한다.
+기본 자동 적응 탐색은 전체 v4에서 제외되는 기능이 아니라 완성해야 할 핵심이다.
+
+**파일럿 단계:** 사전 고정한 LHS 시그니처를 생성·측정·저장·분석한다. DFN -> RQD
+관계의 초기 근거, 실행 비용 및 저장·분석 흐름을 확인해 메인 정책 결정의 자료로 삼는다.
+파일럿 결과로 다음 시그니처를 자동 선정하거나 자동 반복 탐색하지 않는다. 필요하면
+사용자와 조건을 정해 추가 파일럿을 수동 실행·누적하며, 이는 자동 갱신과 구분한다.
+점수 조합과 필요 RQD 범위는 시그니처 설계를 돕는 응답 조건이며 그 자체가 시그니처는 아니다.
+
+**메인 개발·실행 단계:** 파일럿 결과를 사용자와 검토한 뒤 갱신·배분·bin 전환·종료
+정책을 합의하고 T011을 구현·검증한다. “후속”은 전체 연구에서 제외한다는 뜻이 아니라
+파일럿 이후의 개발 단계라는 뜻이다. 파일럿 완료는 T011 정책·구현 또는 메인 실행의
+자동 승인이 아니며, 실제 simulation은 각 단계의 명시적 승인 경계를 따른다.
+이번 범위 합의로 특정 시작 bin, 예산 상한, 충분성 수치나 갱신 알고리즘을 확정하지 않는다.
 
 제외: 새 surrogate/학습 모델, Bayesian optimization, Euler 제거,
 threshold 자동 선정, PR/TR/POST의 미결 통계 방법 구현, EFPC 및 현장 안전성 판정,
 GUI 확장, 기존 결과 소급 변환.
 
-기초 자료를 사용하는 기본 적응 탐색은 1차 필수 범위다. 기존 “자동 적응 탐색은 후속”이라는
-제외를 철회한다. 구체적 알고리즘·수치 정책은 구현 전에 승인하며 복잡한 학습 기반 최적화만
-후속 제안으로 남긴다.
+구체적 알고리즘·수치 정책은 구현 전에 승인한다. 복잡한 학습 기반 최적화는 위 기본
+자동 탐색과 구별되는 별도 확장 제안으로 남긴다.
 
 ### 1.2 v4의 특징과 v3와의 차이
 
@@ -526,8 +776,11 @@ vertex는 도달 segment 방향으로 평가하고 다음 segment 방향은 새 
 ### 4.4 Bin 진단
 
 기존 `primary_profile_10bin_v1`의 정확한 경계와 `(lower, upper]` 규칙을 유지하고,
-400 초과는 별도 구간으로 집계한다. 순차 탐색에서는 이 `Q′ > 400` 구간을 첫 최고
-타겟으로 둔 뒤, 10개 주 bin을 높은 값부터 낮은 값 순으로 탐색한다. Bin은 순차 자료수집과
+400 초과는 별도 구간으로 집계하되 필수 탐색 목표나 출발점으로 강제하지 않는다.
+빈을 채우는 데 필요한 DFN→RQD 관측 근거 확보가 우선이다(2026-10-31 사용자 정정).
+현행 Jn2/4/9/15 파일럿은 사전 고정 LHS를 실행하고 전체 bin의 관측/support를 분석한다.
+메인의 높은 bin부터 낮은 bin 방향이라는 연구 접근과 구체적 시작 bin·전환 기준은
+구분하며, 상세 정책은 파일럿 검토 후 별도 합의한다. Bin은 자료수집과
 분류·보고를 위한 구간이며, Q′ 상·하한 경계
 분석은 양자화하거나 bin 대표값으로 치환하지 않은 실제 연속 Q′ 결과를 사용한다.
 다음을 서로 다른 산출물/열로 구분한다.
@@ -608,6 +861,10 @@ coverage가 낮거나 변화가 없어도 나머지 승인 표본을 실행한�
 
 ### 4.6 Bin 조건부 초기 배분과 유연한 자동 갱신
 
+**적용 범위 (2026-10-31 19:29 +09:00):** 본 절은 메인 자동 탐색의 설계 원칙이다.
+현행 Jn2/4/9/15 고정 LHS 파일럿의 자동 갱신 구현·실행 계약이 아니며,
+목표 장부·배분·상태 전이 등 메인 기능은 T011 정책 합의와 별도 구현·검증을 따른다.
+
 본 절의 원칙·판정 경계는 DesignSpec 5.9.1–5.9.5를 따른다.
 `(bin, 고정 Jn, Jr/Ja scenario)`별 수평 BH 탐색 목표와 face 대응 관측 장부에
 필요 RQD, 도달성, 우선순위,
@@ -621,8 +878,9 @@ coverage가 낮거나 변화가 없어도 나머지 승인 표본을 실행한�
 조정으로 대응한다. 기준 후보 미채택과 방향 폐기를 동일시하지 않는다.
 복합 지표 상충은 별도 기록하며 임의 가중치·무조건 step 배증을 도입하지 않는다.
 
-Q′ 타겟 구간은 `Q′ > 400`부터 시작하고, 이후 10개 주 bin을 높은 Q′에서 낮은 Q′
-방향으로 순차 탐색한다. 한 단계에서
+bin을 채우는 것이 우선이며 `Q′ > 400` 출발이나 충족을 요구하지 않는다.
+높은 Q′에서 낮은 Q′ 방향으로 조사한다는 메인 접근은 유지하되, 실제 시작 bin과
+이론적 비도달 영역 처리·bin 전환의 상세 정책은 파일럿 결과 검토 후 합의한다. 한 단계에서
 현재 목표 bin에 집중하고, 그 과정에서 관측된 다른 bin의 도달·support도 부수 성과로
 빠짐없이 기록한다. 현재 목표를 충분히 조사했다고 판정한 뒤 다음으로 낮은 bin으로
 이동하며, 여러 bin을 동시에 중구난방으로 추적하지 않는다. 다음 bin으로의 전환은
@@ -1070,66 +1328,78 @@ weight 산식·감소량·하한, 성공 근거가 쌓일 때의 회복 여부�
 해당 규칙이 승인되기 전까지 유효한 bin별 미달·거리·support 근거만 기록하고 weight를
 자동 변경하지 않는다.
 
-## 5. 구현 전 승인 게이트
+## 5. 자료·입력·구현 검증 및 실행 승인 게이트
+
+**현행 계약 요약 정정 (2026-10-31 19:04 +09:00, A03):** 사용자가 아래 구분을 승인했다.
+이미 승인·구현한 기반 계약, 현재 파일럿의 실제 실행 대기, 미결 메인 정책을 분리한다.
+과거 timestamped pilot 기록은 보존하되 현재 설정이나 실행 명령으로 적용하지 않는다.
 
 | 게이트 | 확인 항목 | 현재 상태 |
 |---|---|---|
-| G0 | 이 계획과 신규 raw-RQD/profile 자료 계약 검토 | 최초 pilot용 간소 필드 schema, YAML+단일 SQLite/manifest payload, manifest 내 target-goal 목록 승인됨. pilot 범위에서는 G0 자료 계약 승인; 장기 field-group의 pilot 후 유지·확장 여부는 결과 검토 시 판단 |
-| G1 | block별 절리군 구성·Jn·geometry·축·bounds·분포·size 제약 변환 | pilot 초기 2개 block 확정: Jn 0.5·1 각각 1 set, N=5/block; design seed는 각각 39·36(서로 다른 LHS 설계), 공통 realization seed 43, geometry 공통. BH와 전체 tunnel face profile을 10개 signature에서 산출. 크기·P32 bounds, 분포 형상 난수 규칙, 각도 bounds와 LHS 변환 확정. 후속 step 수치와 추가 block 설정은 관측 후/필요 시 결정 |
-| G2 | N, seed·재사용, 간격·예산, BH 우선 배분량·부족 정규화, 접근/충분성 지표, 참조 위치 선정·step/정체/중복/종료 정책 | pilot 공통 당초 realization seed 43, 최고 target `Q′ > 400` 확정. 실행별 최대 simulation 수 입력 및 상한 도달 시 미완료 목표의 `unresolved_at_budget` 처리만 결정; 정량 충분성·비용/시간 집계·목표별 예산 배분·step 및 bin 전환은 미결 |
-| G3 | 사용자가 기존 회귀 검증·새 모드의 소규모 검증 결과 확인 | 구현 후 |
-| G4 | benchmark·예상 출력 크기/메모리·시간 검토와 대규모 실행 승인 | 소규모 검증 후 |
+| G0 | 원관측・provenance・누적 revision 자료 계약 | 기반 계약 승인·구현·검증 완료. 활성 입력・manifest・분석・보고에서 `target_goals` 제거. YAML 입력 schema 1과 누적 SQLite schema 4는 별도 계약이며 v2/v3 DB를 자동 migration하지 않음. 메인에 필요한 자료 계약 확장은 별도 검토 |
+| G1 | 실행 Jn・절리군・기하・bounds・설계 입력 | 실행 허용 Jn `{2,4,9,15,20}`와 절리군 수 `{1,2,3,4,5}` 대응 확정. 현재 pilot은 Jn2/4, pilot2는 Jn9/15이며 각 조건 LHS 5개. Jn20은 허용값이지만 두 YAML에는 없음. Jn15/20은 승인한 대표・근사 구성. 공통 기하・bounds・design seeds 39/36・realization seed 43・측정 간격은 유지하고 두 YAML validation/preview 통과. 이는 실제 실행 승인이 아님 |
+| G2 | 파일럿 운영과 미결 메인 정책 | 파일럿은 고정 작업 목록을 별도 호출 상한 없이 처리하고 특정 bin 충족을 강제하지 않으며 전체 bin 분석. 명령 종료 `jobs_complete`와 작업/attempt의 성공·실패·미완료는 구분하며 오류/중단을 명시적으로 처리. 과거 `maximum_simulations`/`budget_exhausted`/목표별 `unresolved_at_budget`는 현재 파일럿 계약이 아님. 메인의 유한 시도 예산·충분성・배분・시그니처 갱신・bin 전환・종료/목표 상태는 파일럿 결과 검토 후 별도 합의 |
+| G3 | 구현 검증과 실제 파일럿 결과 검토 구분 | 기존 구현・통합 회귀/preview는 실제 DFN 결과와 별도. 2026-10-31 20:23 현행 Jn2/4 사용자 실행・revision1 분석/보고・내용 검토 완료:10개 성공/1210유효 관측, 낮은 bin 근거 부족. Jn9/15 실제 실행 및 전체 누적 검토는 아직 미수행. 충분성/물리모델 검증 완료는 아님. 과거 Jn0.5/1 이력은 별도 |
+| G4 | 실제 파일럿 근거 검토와 메인 실행 승인 | 실제 파일럿 결과・비용・시간・출력 규모 검토 후 정책 및 메인 구현 검증에 따라 사용자 판단. 현재 메인 실행 미승인 |
 
-일반 자동 탐색은 G1/G2 완료 전 구현 승인으로 해석하지 않는다. 사용자가 승인한 최초
-10-signature pilot은 G0 상세 schema 확인 후에만 제한적으로 준비·검증한다. 실제
-simulation은 사용자가 설정과 manifest를 확인한 뒤 직접 실행하며, 이 예외는 자동
-탐색기나 후속 batch 구현·실행을 승인하지 않는다. 새 선택/미결 설계가 드러나면
-구현자가 임의 결정하지 않고 질문한다.
+고정 LHS・수동 batch 추가/재개・누적 분석/보고 기반은 구현·검증됐지만, 메인 자동 탐색
+T011은 미결 정책 합의와 별도 구현·검증 전에는 착수/실행 승인으로 해석하지 않는다.
+실제 파일럿 simulation은 사용자 설정・예산・명령 확인 후 명시 승인에 따라 사용자가
+직접 실행한다. 새 미결 설계가 드러나면 임의로 결정하지 않고 질문한다.
 
 ## 6. 구현 단계와 작업
 
-경로는 저장소 root 기준이다. 2026-10-28 현재 신규 package·root CLI·설정/결과 위치는
-골격만 준비했으며 pilot 기능은 미구현이다. 불필요한 기존 controller 재작성이나 대규모
+경로는 저장소 root 기준이다. 2026-10-28 당시 신규 package·root CLI·설정/결과 위치는
+골격이었으나 아래 원래 작업은 후속 구현·검증 이력에 따라 완료 처리했다.
+불필요한 기존 controller 재작성이나 대규모
 추상화는 피한다. T-ID/REQ는 이 절에서 유지하고, 상세 Phase/Step·의존성과 실행 기록은
 [ImplementationPlan_v4 §5.1](../ImplementationPlan_v4.md#51-phase--step-상세-실행-계획)을 따른다.
 
+**A05 체크 범위 (2026-10-31 19:16 +09:00):** T001–T009는 기록된 원래 구현 완료,
+T010은 과거 Jn0.5/1 파일럿 완료다. 목표 장부 등 원래 task 설명은 당시 범위이며
+최신 누적 계약을 대체하지 않는다. 현재 두 파일럿의 실제 실행·결과 검토 대기는
+ImplementationPlan_v4 상단 상태표/Remaining TODO와 구분한다. T011은 계속 보류한다.
+
 ### P1.1 계약·입력 확정 — REQ-001,002,008,010
 
-- [ ] T001 [Plan:1.1] 본 계획의 G0–G2를 검토하고 `Specification/RQDExplorationStrategy_20261026/plan.md`에 승인값·미결 항목을 기록한다.
-- [ ] T002 [Plan:1.1] `src/rqd_exploration/config.py`의 새 모드 입력·원자료/manifest 자료 계약을 먼저 제시하고 승인 후 구현한다. legacy case adapter는 기존 조건 필드를 생성용 placeholder로만 취급하며 분석값과 혼동하지 않게 한다.
+- [x] T001 [Plan:1.1] 본 계획의 G0–G2를 검토하고 `Specification/RQDExplorationStrategy_20261026/plan.md`에 승인값·미결 항목을 기록한다.
+- [x] T002 [Plan:1.1] `src/rqd_exploration/config.py`의 새 모드 입력·원자료/manifest 자료 계약을 먼저 제시하고 승인 후 구현한다. legacy case adapter는 기존 조건 필드를 생성용 placeholder로만 취급하며 분석값과 혼동하지 않게 한다.
 
 ### P2.1 Bin 조건부 초기 배분·LHS와 사전 manifest — REQ-001,002,007,009,011
 
-- [ ] T003 [Plan:2.1] `src/rqd_exploration/design.py`에서 inverse 목표 장부·고정 Jn 도달성·승인 초기 배분과 조건군별 LHS·좌표변환·seed·batch manifest를 구현한다. 생성 후 유효성 검증 실패를 숨기지 않는다.
+- [x] T003 [Plan:2.1] `src/rqd_exploration/design.py`에서 inverse 목표 장부·고정 Jn 도달성·승인 초기 배분과 조건군별 LHS·좌표변환·seed·batch manifest를 구현한다. 생성 후 유효성 검증 실패를 숨기지 않는다.
 
 ### P3.1 Q′ 독립 RQD 측정 — REQ-003,004,008
 
-- [ ] T004 [Plan:3.1] `src/euler_campaign/profiles.py`의 BH/face 기하·RQD 공통 계산을 재사용 가능하게 분리한다. 기존 public 함수와 `.pyi` 계약 및 결과 의미를 보존하며 알고리즘을 중복 작성하지 않는다.
+- [x] T004 [Plan:3.1] `src/euler_campaign/profiles.py`의 BH/face 기하·RQD 공통 계산을 재사용 가능하게 분리한다. 기존 public 함수와 `.pyi` 계약 및 결과 의미를 보존하며 알고리즘을 중복 작성하지 않는다.
 - [x] T005 [Plan:3.1] `src/rqd_exploration/measurement.py`에 단일 realization의 BH/고정 face raw measurement를 구현하고 `src/rqd_exploration/runner.py`에서 기존 DFN factory를 호출해 연결한다. Raw RQD·scanline·support·무교차·경계 사유를 반환하며 Jr/Ja가 RQD나 station을 바꾸지 않게 한다.
 
 ### P4.1 저장·진행·별도 CLI — REQ-007,008,009,010
 
-- [ ] T006 [Plan:4.1] `src/rqd_exploration/store.py`에 별도 SQLite 작업·manifest·raw profile 저장, 원자적 완료 checkpoint, fingerprint 검증 및 실패 이력을 구현한다.
-- [ ] T007 [Plan:4.1] `src/rqd_exploration/runner.py`와 `run_rqd_exploration.py`에 승인 작업 목록 실행·resume·명시적 상태·예산 확인·MLX 정책을 연결한다. Euler DB와 설정을 변경하거나 자동 실행하지 않는다.
+- [x] T006 [Plan:4.1] `src/rqd_exploration/store.py`에 별도 SQLite 작업·manifest·raw profile 저장, 원자적 완료 checkpoint, fingerprint 검증 및 실패 이력을 구현한다.
+- [x] T007 [Plan:4.1] `src/rqd_exploration/runner.py`와 `run_rqd_exploration.py`에 승인 작업 목록 실행·resume·명시적 상태·예산 확인·MLX 정책을 연결한다. Euler DB와 설정을 변경하거나 자동 실행하지 않는다.
 
 ### P5.1 점수 후처리와 보고 — REQ-005,006,009
 
 - [x] T008 [Plan:5.1] `src/rqd_exploration/analysis.py`에서 저장 RQD와 고정 Jn에 Jr/Ja 66개 조합을 적용한다. `obsolete/tools/tabulate_qprime_scores.py`의 승인 점수 집합/경계 규칙은 공유해 서로 달라지지 않게 하고 정적 표 산출 동작은 보존한다. P5.01–P5.02 완료 기록은 아래 2026-10-30 handoff를 따른다.
-- [ ] T009 [Plan:5.1] 같은 분석 모듈과 `run_rqd_exploration.py`의 재분석 경로에서 scenario별 CSV, DFN–RQD 응답 요약, 실제 bin support, inverse 진단, 수평 BH 조건별 face 분포·불일치, 독립 realization/원본 support 수를 산출한다. 먼저 크기를 추정하고 66배 장기 CSV를 무조건 메모리에 전개하지 않는다.
+- [x] T009 [Plan:5.1] 같은 분석 모듈과 `run_rqd_exploration.py`의 재분석 경로에서 scenario별 CSV, DFN–RQD 응답 요약, 실제 bin support, inverse 진단, 수평 BH 조건별 face 분포·불일치, 독립 realization/원본 support 수를 산출한다. 먼저 크기를 추정하고 66배 장기 CSV를 무조건 메모리에 전개하지 않는다.
 
 ### P5.2 Bin 조건부 자동 batch 갱신 — REQ-007,009,011,012,013
 
-- [ ] T011 [Plan:5.2] **파일럿 이후 정책 승인 후 별도 착수.** `src/rqd_exploration/design.py`, `analysis.py`, `runner.py`, `store.py`에 승인된 수평 BH 목표별 거리/support/부족 평가와 집중·미조사 후보 선정, 참조 위치 선정/지속/종료 분리, 방향·step·정체/중복 전환과 결정적 checkpoint를 연결한다. 단일 parent 교체를 강제하지 않고 face 반대 변화나 새 bin 미발견만으로 거부·차단하지 않으며 승인된 예산 내에서 다음 batch를 자동 실행한다. 충분성·적격성·후보 배분 등 미결 정책을 기본값으로 추정하지 않는다.
+- [x] T011 [Plan:5.2] **P7.02.01–09 구현/최종 검증 완료.** [구현 결과](../MainSimulation_T011/plan.md)에
+  BH 목표/후보/반복・안정성/배분・참조/정체・전환/예산・비용/재개 및274개 검증을 기록했다.
+  기존 파일럿 계산・누적 계약과 face 관찰 원칙을 보존했다. 실제 실행은 별도 승인.
 
 ### P6.1 파일럿 검토·사용자 검증·인계 — REQ-003,004,005,006,007,008,009,010,011
 
-- [ ] T010 [Plan:6.1] **파일럿 기반 구현 인계.** `Specification/RQDExplorationStrategy_20261026/plan.md`의 승인·검증 기록과 `readme.md`에 파일럿 새 모드 의미·사용자 실행 명령·기존 Euler와의 차이·제한 및 미결 후속 결정을 기록한다. `obsolete/Analysis/README.md`는 과거 분석 근거로 참조만 한다. 이 작업은 pilot 준비·실행 및 pilot 산출물 검토를 인계하며 자동 batch controller의 구현을 포함하지 않는다. 아래 파일럿 수용 기준에 대한 사용자 검증 결과 확인 전 G3/G4 통과를 선언하지 않는다.
+- [x] T010 [Plan:6.1] **원래 Jn0.5/1 파일럿 인계·실행·분석 기록 완료 (2026-10-30).** 사용법은 `readme.md`, 검증·실행 로그·관측·결정/보류는 두 기준 계획과 별도 기록에 둔다. `obsolete/Analysis/README.md`는 참조만 한다. 현재 두 YAML의 실행 완료나 메인 정책/G4/T011 승인이 아니다.
 
 파일럿 의존관계: T001 → T002 → T003; T001 → T004 → T005; T002 → T006;
 T003/T005/T006 → T007; T002/T005 → T008 → T009;
 T007/T009 → T010. T004와 T006은 계약이 확정된 뒤 병렬 진행할 수 있다.
-T011은 T003/T007/T009 및 파일럿 결과 검토에 더해 미결 정책의 별도 승인을 요구하는
-후속 단계이며, pilot T010의 선행조건이 아니다. T001의 미승인 실행 수치는 수치 독립
+T011은 T003/T007/T009 및 파일럿 결과 검토에 더해 정책 승인을 요구하는
+후속 단계다. 해당 정책은22:27 승인됐으며 구현・검증/실제 실행은 별도 단계다.
+Pilot T010의 선행조건이 아니다. T001의 미승인 실행 수치는 수치 독립
 구현을 막지 않지만 simulation 승인을 대신하지 않는다.
 
 ## 7. 예정 파일 구조
@@ -1204,10 +1474,12 @@ Implementation Evidence는 예정 증거이며 현재 구현 완료를 의미하
 | REQ-012 | BH 우선 관측 기반 자동 후보 갱신 | P5.2 | T011 | design.py, analysis.py, runner.py, batch manifest |
 | REQ-013 | 참조 위치 선정·지속·종료 분리 | P5.2 | T011 | runner.py, store.py, decision history |
 
-## 10. 현재 완료 범위
+## 10. 과거 계획·자료 계약 논의 기록
 
-본 문서는 전략·계획 수립 결과다. 신규 실행 모드 구현, 코드 리팩터링, 테스트 작성/실행,
-simulation 및 threshold 산출은 수행하지 않았다. 다음 행동은 계획 검토와 G0 승인이다.
+**역사 범위 구분 (2026-10-31 19:29 +09:00):** 이 절은 초기 계획/계약 논의 당시의
+기록이다. 이후 기반 구현·누적 workflow·현재 두 파일럿의 준비/검증 완료는 문서 상단,
+§5 및 ImplementationPlan_v4의 최신 기록을 따른다. 아래의 당시 미구현·미승인 설명을
+현행 작업 상태로 사용하지 않는다.
 
 ### 10.1 G0 자료 계약 검토 경과 (2026-10-27)
 
@@ -1611,26 +1883,49 @@ simulation은 사용자가 설정·manifest 확인 후 실행한다. 본 메모�
 - **경계:** 기존 Euler·DB·설정·결과는 보존한다. 사용자가 검증·simulation을 실행한다.
   신규 자료는 exploration_only이며 threshold 자동 선정·현장 안전성 검증은 범위 밖이다.
 
-### 11.2 남은 결정과 관련 작업
+### 11.2 결정 상태와 관련 작업
+
+**현재 상태 (2026-10-31 22:32 +09:00):** 두 파일럿의 실제 사용자 실행/누적 검토 이후
+사용자가 전체 메인 정책안을 승인했다. 아래는 확정 범위/구현 연결이며 실행 허가는 아니다.
+수치와 예외의 전체 계약은 [T011 상세 계획 §2](../MainSimulation_T011/plan.md#2-승인-정책)에 둔다.
+자동 weight/최종 경계는 이번 구현에 넣지 않는다.
+
+| 순서 | 항목 | 현재 승인 상태 | 연결 작업 |
+|---|---|---|---|
+| 1 | 자료 계약 | raw/계산 RQD・evidence・provenance・schema4 유지. 메인 제어 version/상태/예산 namespace만 추가 | P7.02.01,.02,.06 |
+| 2 | 비교/실패 | 공통 유효 BH support・같은 seed, 기존 진전1 RQD 포인트/1%p・2/3→조건부3/5 유지. 오류0재시도/검토, 비교 불가 별도 | P7.02.03,.06 |
+| 3 | 참조/배분 | 거리/support 최선・co-best 유지/순환, 신규 후보12(8/2/2), 진전 확인 후보2/완전 안정성 입력1. 적격 입력3개가 있으면 검증 우선 | P7.02.04,.05 |
+| 4 | 후보/전환 | P32 step0.1/10, 반경0.1/1m, 방향5/15deg・bounds 유지/위반 생략. bin10부터 하향, 모든 도달 가능한 목표 충족 후 전환,3회 무진전 검토 | P7.02.03,.04,.05 |
+| 5 | 운영 증거/최종 경계 | 목표별 입력3개, 각 입력 그룹당seed3/연속2회・BH CDF/bin 비중 차이10%p 이하와 양의 support. 최종 통계 충분성/PR/TR/POST/굴착 경계와 구분 | P7.02.03,.08,.09 |
+| 6 | 입력/seed | 기존 파일럿 bytes/기하/bounds 보존. Jn20/5군・LHS5/design40/realization43 초기 보완, 검증44부터. α/κ는 새 LHS에서만 표본화, 변경/반복 시 고정 | P7.02.01,.04,.06 |
+| 7 | 예산/비용/종료 | 메인 전체200 시작/재개 소비 유지/재사용0. 기대 총 절리수1000만 초과 생성 전 검토. 예산/오류는 확인 절차 중에도 중단 가능. 파일럿 cap 없음 | P7.02.02,.05,.06,.07 |
+| 8 | weight/관찰 | 자동 weight 미사용. Face 동반 개선 강요 금지/통계 관찰. 유효 검증 미통과 자료도 누적하고 전환/중단/최종 상태 보고 | P7.02.03,.05,.08 |
+
+**아래19:04/19:29 문구와 미결 표는 승인 전 안건 이력이다. 현재 미결 목록이나
+재논의 요구로 해석하지 않는다. 메인 정책의 현재 계약은 위 승인 표/상세 계획이 우선한다.**
 
 아래 표의 순서는 권장 논의 순서이며 새 정책의 승인이나 기본값 지정이 아니다.
-현재는 6번 안건에 속한 최초 pilot의 설정·manifest 준비 단계다. 최초 pilot의 block 구성,
-block별 `N=5`, seeds, randomized LHS 생성 방식과 좌표·변환, geometry, 측정 간격 및
-high-bin 목표 목록은 결정되었고, 이 pilot에 한정한 G0 자료 계약은 승인되었다. 전체
-전략의 block별 N·배분과 세부 실행 정책은 여전히 미결이다. 안건 7의 실행별 상한·후보
-소진·face 보강 경계와 안건 8의 근거만 기록하는 원칙은 정리했으나, 각각의 충분성·예산
-배분과 weight 조정 산식은 미결이다. 초기 10 signatures의 simulation은 사용자가 설정과
-manifest를 확인한 뒤 직접 실행한다.
+**현재 안건 상태 (2026-10-31 19:04 +09:00, A03 정정):** §5의 현행 G0/G1 기반 계약과
+두 파일럿 YAML 준비・구현 검증은 완료했다. 각 Jn 조건 `N=5`, seeds・LHS・기하・bounds・
+측정 간격은 승인값이며, 폐기된 high-bin 목표 목록을 현재 준비 조건으로 요구하지 않는다.
+현행 파일럿은 호출 상한을 요구하지 않는다. Jn2/4 사용자 실행・첫 결과 검토는 완료했고
+Jn9/15 실제 실행・전체 누적 검토는 별도 승인 대기다.
+메인의 block별 N・배분・충분성・시그니처 갱신・bin 전환・종료 및 weight 상세 정책은
+파일럿 관측 후 별도 논의한다. 아래 표는 기반 계약과 메인 미결 정책을 구분해 읽는다.
+
+**현행 양식 갱신 (2026-10-31 19:29 +09:00):** 6/7번은 현재 Jn2/4/9/15 파일럿 입력과
+운영 계약으로 통일했다. 과거 pairing/목표 상태 논의는 날짜별 기록에 보존하며 현행
+실행 계약으로 적용하지 않는다. 메인의 추가 N·배분·종료/상태 설계는 별도 합의한다.
 
 | 순서 | 미결 항목 | 다음에 결정할 내용 | 연결 작업 |
 |---|---|---|---|
-| 1 | 자료 계약·G0 | BH 목표와 face 대응 관측, raw/계산용 RQD, support·측정법·시도/seed·오류/결측·fingerprint의 입력/저장 계약 검토; 기반 구현 승인 범위 | T001,T002 |
+| 1 | 자료 계약·G0 | 현재 raw/계산용 RQD・support・evidence・시도/seed・상태・fingerprint・누적 revision 기반 계약은 승인·구현·검증 완료. 메인 자료 계약의 추가 요구는 별도 검토하며 기존 완료 작업을 다시 미결로 돌리지 않음 | T001,T002; 확장 시 별도 검토 |
 | 2 | 비교·실패 처리의 경계 사례 | 4.15의 공통 유효 범위 비교와 범위 감소 단독 불이익 금지 원칙을 전제로, 결측·오류·재시도와 비교 불가가 seed 증거·후속 선정에 미치는 상호작용 | T002,T011 |
 | 3 | 탐색 참조 위치 | 현재 원칙 합의: 4.17의 거리 접근 최선·도달 support 최선 참조, 동률 co-best, batch 종료 시 활성 참조 갱신 및 4.11 누적 진전 기준 비초기화. 실행 기회·예산 배분은 후보 생성·전환 및 예산 안건에서 별도로 논의한다. | T003,T011 |
 | 4 | 후보 생성과 전환 | 원칙 수준 정리: 4.8의 한 축 우선·가능한 양방향·작은/큰 step·간헐적 2·3축 조합, 모든 활성 참조에서 후보 제안, bounds 밖 후보 생략, 동일 signature 중복 제거, 유효 signature·seed 결과 재사용 및 새 seed 반복, 진전 방향 유지, 복수 축 진전의 조합 귀속과 타겟 빈별 평가를 적용한다. 축별 step 실제 값은 안건 6, batch 실행 배분은 안건 7에서 논의한다. 위치 전환·혼재 재검토의 세부 기준은 미결이다. | T003,T011 |
 | 5 | 기존 기준 방법의 새 자료 적용 | 원칙 수준 정리: profile별 PR/TR/POST를 Q′BH 구간별 분포·중앙값/범위·유효 support·독립 seed 반복성으로 검토하고 실제 자료로 기준을 다듬는다. 고정 최소 profile 수·coverage 비율을 두지 않으며, 부분 coverage의 긍정 경향과 단일 profile 결과는 잠정으로 보존한다. 모든 target bin 관측은 충분성 보장이 아니며, 근거 부족 profile은 미식별로 보존해 사유와 함께 결합에서 제외한다. 초기 결합은 `min(Lᵢ)/max(Uᵢ)`이며 겹치는 경계는 midpoint를 자동 적용하지 않고 사례별 검토한다. 실제 충분성·경계 승격 기준과 추가 수집/checkpoint 세부는 batch 자료를 본 뒤 검토한다. | T003,T011 |
-| 6 | 실제 실험 설정·G1/G2 | v4 공통 geometry 출발점은 domain `60×30×30 m`/grid 1 m, x축 직선 tunnel `[0,15,15]`→`[60,15,15]`/radius 5 m, 중앙선상 x방향 borehole 길이 60 m다. 각 block 공통 적용한다. 새 모드 BH raw RQD interval과 face 평가 간격은 각각 1 m이며 기존 Q′Face 기반 가변 굴진장 동작은 보존한다. v4 `size_r_min`·`size_r_max` 반경은 각각 0.05–150 m, joint set별 P32는 [0.01,100] m²/m³로 확정했다. 이는 탐색 범위이며 block 합계나 물리적 한계를 뜻하지 않는다. 각 set의 P32는 범위 안에서 별도로 설정하며 set 간 동일값·비율 등의 추가 배분 제약과 합계 상한은 없다. `size_alpha` `[2.5,4.0]`와 `fisher_kappa` `[0,50]`은 LHS에서 제외하고 signature마다 하나씩 독립 균등 추출해 모든 joint set에 공통 적용하며, 같은 signature의 seed 반복에서는 같은 값을 유지한다. 나머지 승인 연속축은 LHS를 사용한다. 형상 파라미터는 manifest design seed의 별도 RNG stream에서 추출하고 실제 signature별 값을 manifest에 기록한다. 초기 LHS 표본 수 N은 block별로 달라질 수 있으며, 실제 N과 산정 기준은 미정이다. 초기 signature는 당초 시드 하나로 평가하고, 효과 가능성이 보인 후보만 별도 검증 시드로 4.10–4.12의 paired 확인을 한다. `mean_dip`·`mean_dip_dir` bounds는 block별·block 내 공통 적용이며 각각 전체 유효 범위 [0,90]°·[0,360]°(360° ≡ 0°)다. 방향 갱신 좌표는 실제 관측공 축–절리면 사잇각이고, 터널 segment 사잇각은 결과 해석용으로만 기록한다. 기존 case/portfolio는 참고용으로만 두고 신규 조건군에서 기존 Q′ 격자의 Jn 10개 값을 모두 Jn 평가 목표로 한다. 각 DFN block에는 해당 Jn을 고정해 그 목표에 대한 필요 RQD를 탐색하며, 동일 DFN 관측 RQD에 10개 Jn을 모두 후처리 적용하지 않는다. 같은 Jn에 복수 block을 허용하며 서로 다른 절리 구조를 표현한다. Jn 10개 × 절리군 수 1–5개의 pairing은 가능한 후보 공간으로만 유지하고, 50개 조합의 실제 block 정의나 실행 목록을 미리 만들지 않는다. 소수의 실제 block으로 시작해 필요와 관측 근거에 따라 추가한다. 타겟 Q′ bin은 최고 bin부터 가능한 한 순차적으로 낮은 bin으로 진행하고, 현재 목표 bin의 자료·support를 고려해 signature를 선정하되 사전의 미지 관계를 역산하지 않는다. 절리군 간 상호관계와 방향 regime은 별도 family 유형으로 사전 분류하지 않고 set별 방향 등 파라미터 설정으로 표현한다. 실제 초기 block 수·roster·block별 N·표본 배분/예산은 미정이다. | T001,T002,T003,T005,T007 |
-| 7 | 충분성·예산·종료 | 실행별 최대 simulation 수를 필수 입력으로 하고 상한 도달 시 `unresolved_at_budget`; 후보 없음은 충분성과 별개의 `no_eligible_candidate`; face 부족은 자동 배정 없이 보고·사용자 검토. 정량 충분성, 수치, 비용/시간 집계, 목표별 배분·조기 종료는 미결 | T001,T007,T011 |
+| 6 | 현행 파일럿 입력·G1/G2 | pilot Jn2/4 ↔ 절리군1/2개, pilot2 Jn9/15 ↔ 절리군3/4개; 조건당 LHS5개, design seeds39/36, realization seed43. domain60×30×30 m/grid1 m, tunnel/BH `[0,15,15]`→`[60,15,15]`, tunnel radius5 m, BH/face 간격1 m. set별 P32[0.01,100], 반경 각각[0.05,150]의 ordered-log-pair, dip[0,90]°/방위[0,360)°, 독립 α[2.5,4]/κ[0,50] stream은 기존 YAML/§4.1–4.2대로 유지. 같은 관측에 다른 Jn을 임의 후처리하지 않음. Jn20은 허용되지만 현재 두 파일에는 없음. 후속 조건·N·배분은 관측 후 별도 합의 | T001,T002,T003,T005,T007; 후속 T011 |
+| 7 | 충분성·예산·종료 | 고정 파일럿에는 호출 상한 없이 예정 미완료 작업을 처리. 목록 처리 완료는 `jobs_complete`, 작업/attempt 상태와 오류/중단은 별도 확인. 과거 budget/goal 상태는 현재 출력이 아님. 메인 자동 시도에는 유한 예산이 필요하나 수치·집계·소진/전환·충분성·배분은 별도 합의; face 부족은 보고 후 사용자 검토 | T001,T007,T011 |
 | 8 | 타겟 빈별 시그니처 우선순위 | 4.18의 bin × signature별 유효 증거만 기록한다. weight 산식·감소량·하한·회복 규칙 승인 전까지 자동 조정하지 않음 | T003,T011 |
 
 기본 BH 진전 수치가 확정되어도 비교 적격성이나 충분성까지 확정된 것은 아니다.
@@ -1638,20 +1933,35 @@ face 부족은 자동 배분하거나 종료 조건으로 삼지 않고, 보고 
 
 ### 11.2.1 파일럿 관측 후 검토·결정 항목
 
-초기 파일럿은 Jn 0.5·1의 두 block, 각 5 signatures, 공통 당초 realization seed 43으로
-한정된다. 파일럿 결과는 관측된 범위의 후속 설계를 돕는 자료이지, 전체 DFN–RQD 관계의
-규명·목표 충분성·독립 seed 반복성 또는 일반 전략 완료를 증명하지 않는다. 아래 항목은
-파일럿 결과와 산출물 검토 후 결정하며, 관측 전에는 값을 보충하거나 자동 규칙으로
-간주하지 않는다.
+**현행 검토 기준 (2026-10-31 19:29 +09:00):** 아래 양식은 현재 준비된 두 파일럿을
+대상으로 한다. 과거 Jn0.5/1 실험은 날짜별 역사 기록이며 현행 설정/수용 조건이 아니다.
+
+| 설정 | fixed_Jn | 절리군 수 | LHS 표본/실현 | 예정 관측 위치 |
+|---|---|---|---|---|
+| `config/rqd_exploration_pilot.yml` | 2, 4 | 각각1,2개 | 조건당5개, 총10 jobs, seed43 | BH600 + face610 |
+| `config/rqd_exploration_pilot2.yml` | 9, 15 | 각각3,4개 | 조건당5개, 총10 jobs, seed43 | BH600 + face610 |
+
+두 파일의 design seeds는 각각39/36이며 기존 기하·bounds·분포·측정 간격은 변경하지 않는다.
+총20 jobs/2,420개 위치는 양쪽을 실행했을 때의 계획 수이지 현재 관측 결과가 아니다.
+현재는 입력/preview/통합 테스트만 완료하고 실제 파일럿은 미실행이다.
+Jn15는 승인된 대표4군 근사이고 Jn20은 실행 허용값이지만 현재 두 설정에는 없다.
+사용자 선택 순서는 pilot 실행·결과 검토 후 pilot2이며, 각 실제 실행은 별도 승인이 필요하다.
+
+파일럿은 고정 LHS와 전체 bin 분석으로 DFN→RQD 근거·빈별 관측/support·자료 공백을
+확인한다. 빈을 채우는 것이 우선이며 `Q′ > 400` 필수 출발/도달 조건이나 여섯 과거
+high-bin 목표를 적용하지 않는다. RQD/Jn/Jr/Ja는 점수 조건이지 DFN 시그니처가 아니다.
+파일럿 결과는 관측 범위의 후속 설계를 돕지만 전체 관계 규명·충분성·독립 seed 반복성
+또는 메인 자동 탐색 완료를 증명하지 않는다. 다음 항목은 실제 관측 후 검토하며,
+미측정 값이나 미결 정책을 미리 채우지 않는다.
 
 | 검토 주제 | 파일럿에서 확인할 증거 | 파일럿 후 정할 사항 |
 |---|---|---|
-| 축별 step | signature별 승인 입력과 BH raw RQD·목표 거리·도달 support의 대응. 방향축에서는 관측공 축–절리면 사잇각 `β` 및 유효한 축별 차이 | `P32`, `size_r_min`, `size_r_max`, `β` 각각의 작은/큰 step 값과 적용 범위 |
-| 최고 target `Q′ > 400` | 여섯 동등 high-bin goal 각각의 산술 도달성, 실제 관측·유효 support, signature별 BH 결과. 여섯 목표 또는 한 bin이 충분하다고 미리 간주하지 않음 | 같은 high-bin에서 추가 탐색할지, 현재 근거를 사용자 검토 후 다음 낮은 bin으로 전환할지 |
-| 조건군·표본 배분 | 두 pilot block의 관측 분포와 자료 공백, Jn별/목표별 inverse 조건 및 실제 support | 추가 block/Jn/set-count의 필요성, block별 다음 N, 목표·후보 간 실제 배분 |
+| DFN→RQD·축별 step | Jn별 시그니처의 set별 P32·반경·방향·α/κ 입력과 BH/face raw RQD·실제 support 대응. LHS의 동시 축 차이를 단독 인과효과로 단정하지 않음 | 메인 후보 설계에 활용할 축·추가 확인 필요성, `P32`·반경·`β` 작은/큰 step 값과 적용 범위 |
+| 빈 채우기·자료 공백 | Jn/Jr/Ja·modality/profile별 전체 bin 관측과 유효 support, 시그니처/realization 수, 필요 RQD 점수 조건. 이론적 비도달과 관측되지 않음을 구분하고 낮은 bin 공백도 확인 | 공백 보완에 필요한 DFN 시그니처 설계·후속 표본, 메인 시작 bin·우선순위·비도달 영역 처리·전환 기준. >400 충족은 전제하지 않음 |
+| 조건군·표본 배분 | Jn2/4/9/15의 네 조건과 pilot/pilot2 출처별 관측 분포·자료 공백. 두 파일의 모든 관측이 이미 있다고 가정하지 않음 | 후속 승인 Jn/절리군 조건의 필요성, 조건당 추가 N, 목표·후보 간 실제 배분. Jn20 등 추가 설정은 별도 합의 |
 | 반복 확인 | 당초 seed에서 나타난 후보 효과 가능성과 4.10–4.12의 비교 적격성·짝비교 가능 자료 | 검증 seed를 적용할 후보와 실행 범위. 당초 seed를 검증 seed 수에 포함하지 않음 |
 | 분석 profile·경계 | profile별 PR/TR/POST 근거, Q′BH 조건별 분포·범위·유효 support·독립 시그니처/realization 수, 식별·미식별 사유 | 자료 충분성 판단과 잠정 경계 해석·추가 수집 필요성. 고정 최소 profile 수, 자동 승격/충분성 규칙은 파일럿 전에 도입하지 않음 |
-| 운영 예산·종료 | 각 pilot 작업의 실제 simulation 수, 경과시간·실패/재시도 및 출력 규모 | 일반 실행의 상한 수치·비용/시간 집계·목표별 예산 배분·조기 종료 정책. 실행별 최대 simulation 수는 필수 입력이며 상한 도달 미완료 목표는 `unresolved_at_budget` |
+| 운영 비용·완료/중단 | 호출당 생성/측정 진입 수(재개 포함, 성공 skip 제외), 고정 목록 처리 완료 `jobs_complete`, 별도 작업/attempt 상태·오류/중단, 실제 runtime·출력 규모·측정 가능한 비용/메모리와 한계 | 파일럿은 별도 호출 상한이 없음. 메인의 유한 시도 예산·집계 단위·소진/전환·충분성·배분·종료 상태는 결과 검토 후 별도 합의. 고정 표본 수나 목록 완료는 충분성 보장이 아님 |
 
 파일럿 자료를 토대로 weight 조정 산식을 검토할 수 있으나, 4.18에 따른 bin × signature
 weight는 산식·하한·회복 규칙이 별도 승인되기 전까지 변경하지 않는다. 유효한 서로 다른
@@ -1659,6 +1969,14 @@ seed에서의 미달·거리·support 증거를 보존하는 것과 우선순위
 별개의 결정이다. Face 부족은 자동 추가 배정하지 않고 보고 후 사용자 검토에 맡긴다.
 
 ### 11.2.2 파일럿 이후 자동 batch 구현 전 별도 승인
+
+**현재 승인 상태 (2026-10-31 22:32 +09:00):** 이 절의 정책 착수 gate는 사용자가
+마감한 [메인 정책](../MainSimulation_T011/plan.md#2-승인-정책)으로 충족했다.
+아래는 승인 전 경계 설명이며 실제 메인 실행의 자동 승인은 여전히 아니다.
+기존 비교/후보 원칙은 유지하고 수치/전환은 새 승인 정책이 이전 미결 기록에 우선한다.
+
+전체 v4에 기본 자동 탐색이 포함된다는 §1.1의 범위 합의와, 파일럿 이후 T011을
+별도 승인·구현한다는 개발 단계는 서로 다른 의미다(2026-10-31 18:56 +09:00).
 
 파일럿 결과를 본 뒤에도 T011 착수에 필요한 정책이 모두 자동으로 확정되는 것은 아니다.
 비교 적격성·결측/실패/재시도 상호작용, 참조·후보 간 실행 기회 배분, 충분성·종료 및
@@ -1690,6 +2008,11 @@ seed에서의 미달·거리·support 증거를 보존하는 것과 우선순위
 
 ### 11.4 재개 메모와 구현 준비 현황
 
+**과거 기록 적용 범위 (2026-10-31 19:29 +09:00):** 아래 초기 재개/구현 기록의
+Jn0.5/1·목표 장부·구형 schema/명령·미구현 상태는 각 기록 시점의 역사다.
+현행 파일럿 입력과 검토는 §5/§11.2.1의 Jn2/4/9/15 기준을 따르며 과거 재개 지시를
+실행하지 않는다. 높은 bin 출발점으로 >400을 강제했던 표현도 현행 정책이 아니다.
+
 **이전 재개 메모 (2026-10-28 14:58:51 +09:00):** 당시에는 planning/문서화만 진행했고,
 코드 구현·테스트·simulation은 수행하지 않았다. 당시 안내한 다음 작업은 아래 G0 상세 자료
 계약과 pilot 입력 초안 준비였다.
@@ -1713,7 +2036,7 @@ seed에서의 미달·거리·support 증거를 보존하는 것과 우선순위
    여섯 동등 high-bin 목표와 observation/score 관계를 대상으로 한다. 검증 결과와 남은
    선택을 다시 기록한 뒤 사용자에게 검토용으로 넘긴다.
 
-**pilot 준비 범위와 일반 안건의 구분:** 최초 10-signature pilot의 준비·검증은 승인된
+**과거 pilot 준비 범위와 일반 안건의 구분 (2026-10-28 기록):** 최초 10-signature pilot의 준비·검증은 승인된
 예외다. pilot 뒤 정할 P32·`size_r_min`·`size_r_max`·관측공 사잇각 β의 step 값 및
 `Q′ > 400` 추가 탐색/하위 bin 전환은 pilot 관측 이후 결정한다. 전체 전략의 block 구성,
 일반 N·예산과 11.2 안건 1–8의 나머지 자동 탐색 정책은 미결이다. 안건 7·8의 제한된
@@ -2775,3 +3098,211 @@ Fixture/CLI에서 duplicate·관측·상태 conflict·read-only·no-simulation �
 두지 말라고 재확인했다. 이에 README의 당일 수정 전체를 저장소 기준 버전으로 복구했고, README에
 변경 사항이 없으며 `git diff --check`가 통과했음을 확인했다. 작업 이력은 README가 아니라 본 전략
 계획과 ImplementationPlan_v4에 기록한다. CUM.08은 시작하지 않고 사용자 지시를 기다린다.
+
+**Context consistency audit (2026-10-31 18:18 +09:00):** Investigation against current
+pilot/review/policy/T011 sequence found six categories, detailed in the final audit section
+of ImplementationPlan_v4: A01 old mandatory `Q-prime > 400` starting/review target versus
+current execution-space reachability; A02 "first scope includes adaptive / later exclusion
+withdrawn" wording without a local pilot/full-v4 distinction; A03 stale current G0/G1/G2
+and goal-contract summaries; A04 stale README/structure/CLI instructions; A05 unsynchronized
+parent/child historical task checkboxes; A06 mixed-era checkpoint state and DB/resume advice.
+
+Actual current settings/constants were checked in `dlo-cq`: at RQD 100, Jr 4 and Ja 0.75,
+Jn 2/4/9/15 maximum Q-prime values are 266.6667/133.3333/59.2593/35.5556. No current pilot
+case can occupy overflow >400. This does not authorize changing the bin catalog, adding
+unsupported Jn or selecting a different starting bin; reconcile policy before adaptive
+design. Current cap remains unapproved and actual pilots remain unexecuted.
+
+Historical records are not automatically conflicting: fixed ten-job sample and per-command
+cap differ; input/DB schemas differ; batch identity and execution fingerprint differ;
+occupied/descriptive support and statistical sufficiency differ; original pilot completion
+and later deletion/new-pilot pending status differ. Mandatory automatic exploration in
+complete v4 and deferred pilot implementation may coexist, but section 1.1 needs explicit
+scope labeling. README's history prohibition does not prohibit a general command guide.
+Only audit results were added; conflicting source passages, policies, code and YAML inputs
+were not changed. Document corrections and unresolved scientific decisions require a
+separate user instruction/discussion.
+
+### Standalone theoretical Q-prime bounds (2026-10-31 18:37 +09:00)
+
+The user temporarily paused pilot/main-simulation discussion to examine theoretical
+minimum/maximum Q-prime by Jn. The user stated overflow >400 is not itself a problem
+and emphasized possible inability to reach low bins. This calculation does not select
+simulation inputs, change bin priorities/catalog or resolve the pending execution cap.
+
+Using calculation RQD in [10,100] and existing rating extrema Jr in [0.5,4],
+Ja in [0.75,20], with no additional correction or geological compatibility filtering:
+
+`Q-prime = RQD * Jr / (Jn * Ja)`
+
+`Q-prime_min(Jn) = 10 * 0.5 / (Jn * 20) = 0.25 / Jn`
+
+`Q-prime_max(Jn) = 100 * 4 / (Jn * 0.75) = (1600 / 3) / Jn`
+
+| Jn | Theoretical minimum | Theoretical maximum | Primary bins with at least one reachable Q-prime | Overflow >400 |
+|---:|---:|---:|---|---|
+| 0.5 | 0.500000 | 1066.666667 | 2-10 | Yes |
+| 1 | 0.250000 | 533.333333 | 2-10 | Yes |
+| 2 | 0.125000 | 266.666667 | 1-10 | No |
+| 3 | 0.083333 | 177.777778 | 1-10 | No |
+| 4 | 0.062500 | 133.333333 | 1-9 | No |
+| 6 | 0.041667 | 88.888889 | 1-9 | No |
+| 9 | 0.027778 | 59.259259 | 1-8 | No |
+| 12 | 0.020833 | 44.444444 | 1-8 | No |
+| 15 | 0.016667 | 35.555556 | 1-8 | No |
+| 20 | 0.012500 | 26.666667 | 1-7 | No |
+
+These ten Jn values are the theoretical score grid, not approval to run every Jn as a DFN.
+Primary bins retain `(lower,upper]`: bin 1 is (0,0.22919545389923282], bin 2
+(0.22919545389923282,0.5253055608807535], and bin 10 (174.5235314204193,400].
+"Reachable bin" means some admissible score can fall inside it, not complete coverage of
+every value in that bin or a guarantee of measured DFN support.
+
+For the low-bin concern:
+
+- Jn 0.5/1 cannot reach primary bin 1 under these bounds.
+- Jn 2/4/9/15/20 can reach bin 1, but only its portion at or above their own minimum.
+- RQD below 10 does not lower calculation Q-prime further because the calculation floor is 10.
+- For a target upper value t > 0, scores at or below t require `Jn >= 0.25 / t`.
+  Thus t=0.1 requires Jn>=2.5, t=0.05 requires Jn>=5, t=0.02 requires Jn>=12.5,
+  and t=0.01 requires Jn>=25. Within the listed grid (Jn<=20), Q-prime below 0.0125
+  is impossible. These are algebraic conditions, not recommendations to change inputs.
+- Across current theoretical Jn 2/4/9/15 cases, the score envelope union is
+  [1/60,800/3] = [0.0166667,266.6667]; it intersects every primary bin 1-10,
+  but does not cover the entire bin-1 or bin-10 numerical intervals.
+
+Verification in existing `dlo-cq`: exact rational minima/maxima were calculated from
+current constants and cross-checked against all 33,660 rows of the preserved 2026-10-26
+score grid; all ten Jn extrema match. The historical grid uses raw RQD every 2 units
+with floor 10; this new range analysis uses continuous calculation RQD in [10,100].
+For each fixed Jn, also merged the 66 intervals
+`[10*Jr/(Jn*Ja),100*Jr/(Jn*Ja)]` for existing discrete Jr/Ja values; their union is
+connected and equals the stated theoretical envelope. This continuity depends on treating
+RQD as continuous, not on the old two-unit grid or on assuming Jr/Ja are continuously varied.
+Archived files were read only; no code/config/bin/pilot data changed and no simulation ran.
+
+### Bin-conditioned Q-prime score-combination sets (2026-10-31 18:49 +09:00; terminology corrected 18:51 +09:00)
+
+User requested the parameter combinations/ranges corresponding to each bin, to guide
+design toward a target bin rather than only listing global Q-prime extrema. Restrict Jn
+to the selected execution set {2,4,9,15,20}; use the existing six Jr and eleven Ja ratings,
+and continuous calculation RQD [10,100]. No bin priority, budget or adaptive policy is
+chosen here. Pilot/main discussion remains paused.
+
+For target bin b = (L_b,U_b], the theoretical score-combination set is
+
+`S_b = {(RQD,Jn,Jr,Ja): RQD in [10,100], Jn in {2,4,9,15,20},`
+`Jr in approved grid, Ja in approved grid, L_b < RQD*Jr/(Jn*Ja) <= U_b}`.
+
+For each fixed (Jn,Jr,Ja), the required interval is exactly
+
+`RQD in [10,100] intersect (L_b*Jn*Ja/Jr, U_b*Jn*Ja/Jr]`.
+
+Overflow has no finite U_b. Empty intersection means the triple cannot contribute to
+that bin under current bounds. If the unclipped lower threshold is below 10, RQD=10
+is included; if threshold equals or exceeds 10, the lower bound is excluded.
+Never convert an empty interval to zero or a valid default.
+
+Minimum Q-prime for every selected Jn occurs at (RQD,Jr,Ja)=(10,0.5,20);
+maximum occurs at (100,4,0.75). The corresponding Jn/set-count and extrema are
+2/1: 0.125..266.666667; 4/2: 0.0625..133.333333; 9/3: 0.027778..59.259259;
+15/4: 0.016667..35.555556; 20/5: 0.0125..26.666667.
+
+Reusable generated tables:
+
+- [All bin/Jn/Jr/Ja RQD intervals](qprime_bin_score_ranges.csv):
+  3,630 rows = 11 bins (including overflow) x 5 Jn x 66 Jr/Ja triples. Includes
+  reachable/unreachable status, Jn/set count, Jr/Ja, Q-prime at RQD10/100,
+  clipped RQD endpoints, endpoint inclusion flags, exact rational endpoints and one
+  midpoint example per feasible interval. Blank interval/example fields mean unreachable.
+- [Bin/Jn summary](qprime_bin_score_summary.csv): 55 rows with feasible Jr/Ja
+  triple counts and their RQD union envelope. Envelope extrema are not a substitute
+  for the actual joint triples/intervals and must not be independently recombined.
+
+Bin-wise numbers of feasible Jr/Ja pairs, out of 66 per Jn:
+
+| Bin | Q-prime interval (rounded) | Jn2 | Jn4 | Jn9 | Jn15 | Jn20 |
+|---|---|---:|---:|---:|---:|---:|
+| 1 | (0,0.229195] | 3 | 10 | 25 | 36 | 39 |
+| 2 | (0.229195,0.525306] | 12 | 25 | 39 | 49 | 51 |
+| 3 | (0.525306,1.203976] | 26 | 39 | 51 | 50 | 49 |
+| 4 | (1.203976,2.759459] | 45 | 51 | 49 | 43 | 40 |
+| 5 | (2.759459,6.324555] | 49 | 49 | 40 | 27 | 21 |
+| 6 | (6.324555,14.495593] | 46 | 35 | 21 | 16 | 12 |
+| 7 | (14.495593,33.223241] | 35 | 21 | 12 | 5 | 4 |
+| 8 | (33.223241,76.146158] | 21 | 12 | 4 | 1 | 0 |
+| 9 | (76.146158,174.523531] | 8 | 3 | 0 | 0 | 0 |
+| 10 | (174.523531,400] | 3 | 0 | 0 | 0 | 0 |
+| Overflow | >400 | 0 | 0 | 0 | 0 | 0 |
+
+Counts describe admissible rating triples, not probabilities, independent DFNs, sample
+allocation weights or scientific sufficiency. A triple may be feasible in several bins
+at different RQD values. All-bin accounting preserves that distinction.
+
+Illustrative fixed triples and their required calculation RQD intervals (rounded):
+
+| Bin | Jn | Jr | Ja | Required RQD | Example RQD | Example Q-prime |
+|---|---:|---:|---:|---|---:|---:|
+| 1 | 20 | 0.5 | 20 | [10,100] | 40 | 0.05 |
+| 2 | 15 | 1 | 10 | (34.379318,78.795834] | 60 | 0.4 |
+| 3 | 9 | 1 | 6 | (28.366500,65.014729] | 54 | 1 |
+| 4 | 20 | 1 | 2 | (48.159059,100] | 80 | 2 |
+| 5 | 4 | 1 | 4 | (44.151349,100] | 80 | 5 |
+| 6 | 9 | 1 | 1 | (56.920998,100] | 90 | 10 |
+| 7 | 15 | 4 | 1 | (54.358475,100] | 75 | 20 |
+| 8 | 9 | 4 | 0.75 | (56.064219,100] | 90 | 53.333333 |
+| 9 | 4 | 4 | 1 | (76.146158,100] | 100 | 100 |
+| 10 | 2 | 4 | 1 | (87.261766,100] | 100 | 200 |
+
+These examples are not recommendations or exhaustive lists; CSV rows contain all triples.
+For bin1 with Jn2, only Jr=0.5 paired with Ja=12/13/20 is admissible in the selected
+ratings. Required RQD intervals respectively are [10,11.001382], [10,11.918164] and
+[10,18.335636]. This demonstrates why simply saying "Jn2 can reach bin1" hides a
+narrow joint condition.
+
+Scientific interpretation: these are Q-prime score-combination sets, not signatures.
+Signature expresses the DFN-to-RQD relationship. Jn supplies the approved set-count
+condition; RQD is a desired response
+interval, while Jr/Ja are post-processing scenarios. P32/radius/orientation/dispersion
+parameters cannot be determined from this equation alone. Use the necessary RQD intervals
+to structure candidate investigation, then relate actual DFN inputs to measured RQD and
+retain successes and misses. The same observed DFN may contribute to several scenario bins;
+do not count those as new independent DFNs. Numeric Jr/Ja Cartesian combinations are not
+proof that all contact-condition/geological categories coexist physically.
+
+Verification: exact inverse intervals constructed using rational arithmetic over the
+existing binary-float bin endpoints; no rounding in membership checks. Each reachable
+midpoint classified correctly by the existing assign_qprime_bin function. All 15,180
+selected-Jn rating/RQD-grid cases (5 x 66 x 46) belonged to exactly one inverse interval
+and matched current bin classification. Ten explicit examples also matched. Output
+row counts (3,630/55) were re-read and verified in existing conda dlo-cq. Displayed decimal
+bounds are rounded; exact CSV endpoint fields and inclusion flags preserve the contract.
+No simulation, production code/config/bin policy or archived file was changed.
+
+**User terminology correction (2026-10-31 18:51 +09:00):** Signature expresses
+DFN -> RQD, not the tuple (RQD,Jn,Jr,Ja). The 18:49 score-table description incorrectly
+introduced "score-signature"; corrected that wording and renamed the generated CSVs to
+qprime_bin_score_ranges.csv / qprime_bin_score_summary.csv. Numerical content is unchanged.
+The intended research chain is target bin -> necessary Q-prime score conditions / RQD
+response range -> design and investigate DFN-to-RQD signatures. The score-condition tables
+support signature design but are not themselves signatures. Earlier archived score-grid
+terminology is historical and was not modified.
+
+**A02 scope ambiguity resolved (2026-10-31 18:56 +09:00):** User selected `staged_scope`.
+Section 1.1 now separates complete v4/main objectives, fixed-LHS pilot with user-selected
+manual additions, and post-pilot policy approval/T011 implementation. Automatic adaptation
+is mandatory in the complete v4 objective, not an authorized current pilot loop. Score/RQD
+conditions support design of DFN -> RQD signatures without being signatures themselves.
+Section 11.2.2 explicitly preserves the later approval boundary. Only A02 is resolved;
+old gates/checklists/CLI guidance and starting-bin ambiguities remain for separate discussion.
+No budget, specific starting bin, sufficiency threshold, algorithm, actual pilot or main
+execution was approved. Handoff numeric cap remains unresolved.
+
+**A03 current-gate summary corrected (2026-10-31 19:04 +09:00):** User approved the
+G0-G4 correction and directly connected contract summaries. Section 5 and section 11.2
+now distinguish approved/implemented current contracts, two prepared pilot inputs,
+unresolved command cap, implementation tests versus unrun actual current pilots,
+and deferred main policies/execution. Old experiment logs are preserved; old pairing
+and goal-status text is explicitly historical where retained. This is not a new
+numeric budget, starting-bin choice, main algorithm or execution approval.
+Next discussion is A04 obsolete README/CLI/structure guidance. A01 remains separate.

@@ -57,6 +57,20 @@ class CumulativeRawDatasetRevision:
         return len(self.independent_execution_fingerprints)
 
 
+def read_current_cumulative_dataset(
+    connection: sqlite3.Connection,
+) -> CumulativeRawDatasetRevision:
+    """Inspect current selected raw sources without persisting a dataset revision."""
+    _require_initialized_store(connection)
+    snapshot, manifests, observations, states, sources, fingerprints = (
+        _build_current_cumulative_snapshot(connection))
+    digest = fingerprint_snapshot(snapshot).sha256_hex
+    return CumulativeRawDatasetRevision(
+        1, None, digest, snapshot, manifests, observations, states, sources, fingerprints,
+        connection.execute("SELECT COUNT(*) FROM attempts").fetchone()[0],
+        connection.execute("SELECT COUNT(*) FROM observations").fetchone()[0])
+
+
 def _observation_source_key(observation: AnalysisObservation) -> tuple[object, ...]:
     return (
         observation.design_id,

@@ -33,6 +33,7 @@ from .measurement import (
 )
 from .records import ExecutionJob, FrozenManifest
 from .store import (
+    _atomic,
     begin_attempt,
     checkpoint_attempt_runtime,
     complete_attempt,
@@ -48,8 +49,7 @@ class FrozenJobRunSummary:
     skipped_completed_job_keys: tuple[tuple[str, str, str, int, int], ...]
     skipped_failed_job_keys: tuple[tuple[str, str, str, int, int], ...]
     simulation_count: int
-    maximum_simulations: int
-    termination_reason: Literal["jobs_complete", "budget_exhausted"]
+    termination_reason: Literal["jobs_complete"]
 
 
 def build_mlx_pilot_manifest(
@@ -263,13 +263,16 @@ def _unpersisted_measurements(
     )
 
 
-def _case_for_job(config: NormalizedPilotInput, job: ExecutionJob) -> CaseSpec:
+def _case_for_job(
+    config: NormalizedPilotInput, job: ExecutionJob, *, allow_constant_radius: bool = False,
+) -> CaseSpec:
     case = build_generation_case(
         config.geometry,
         config.measurements,
         job.snapshot.fixed_jn,
         job.snapshot.joint_sets,
         case_id=job.design_id,
+        allow_constant_radius=allow_constant_radius,
     )
     if (
         case.domain.jn != job.snapshot.fixed_jn
@@ -292,14 +295,16 @@ def _case_for_job(config: NormalizedPilotInput, job: ExecutionJob) -> CaseSpec:
     return case
 
 
-def execute_frozen_jobs(
+def _execute_jobs(
     connection: sqlite3.Connection,
     manifest: FrozenManifest,
     config: NormalizedPilotInput,
     factory: JointFactory,
     *,
-    maximum_simulations: int,
     progress_callback: Callable[[str], None] | None = None,
+    before_start: Callable[[ExecutionJob, bool], None] | None = None,
+    allow_constant_radius: bool = False,
+    record_p32: bool = False,
 ) -> FrozenJobRunSummary:
     """Run pending frozen jobs and resume an interrupted attempt without repeating saved jobs."""
     if not isinstance(manifest, FrozenManifest):
@@ -308,16 +313,14 @@ def execute_frozen_jobs(
         raise TypeError("config must be a NormalizedPilotInput")
     if not callable(getattr(factory, "generate", None)):
         raise TypeError("factory must implement JointFactory")
-    if isinstance(maximum_simulations, bool) or not isinstance(maximum_simulations, int):
-        raise TypeError("maximum_simulations must be an integer")
-    if maximum_simulations < 1:
-        raise ValueError("maximum_simulations must be at least 1")
+    if record_p32:
+        from .p32_store import initialize_p32_store
+        initialize_p32_store(connection)
 
     completed: list[tuple[str, str, str, int, int]] = []
     skipped_completed: list[tuple[str, str, str, int, int]] = []
     skipped_failed: list[tuple[str, str, str, int, int]] = []
     simulation_count = 0
-    termination_reason: Literal["jobs_complete", "budget_exhausted"] = "jobs_complete"
 
     job_total = len(manifest.jobs)
     for job_number, job in enumerate(manifest.jobs, start=1):
@@ -346,49 +349,48 @@ def execute_frozen_jobs(
                     f"{job.design_id}/{job.block_id}/sample={job.sample_index}"
                 )
             continue
-        if simulation_count >= maximum_simulations:
-            termination_reason = "budget_exhausted"
-            if progress_callback is not None:
-                progress_callback(
-                    f"[{job_number}/{job_total}] budget exhausted; "
-                    f"started {simulation_count}/{maximum_simulations} simulations"
-                )
-            break
-
         started_monotonic = monotonic()
         started_at_utc = _utc_now()
-        case = _case_for_job(config, job)
-        if running:
-            resume_state = resume_attempt(connection, job)
-            attempt_index = resume_state.attempt_index
-            location_states = resume_state.location_states
-            action = f"resume attempt={attempt_index}"
-        else:
-            attempt_index = 0
-            planned_location_rows = connection.execute(
-                """
-                SELECT modality, profile_id, location_index
-                FROM planned_locations
-                WHERE manifest_id = ? AND design_id = ? AND block_id = ?
-                  AND sample_index = ? AND realization_seed = ?
-                  AND execution_fingerprint_digest = ?
-                ORDER BY modality, profile_id, location_index
-                """,
-                (
-                    job.manifest_id, job.design_id, job.block_id, job.sample_index,
-                    job.realization_seed, job.fingerprint.sha256_hex,
-                ),
-            ).fetchall()
-            if not planned_location_rows:
-                raise ValueError("execution job has no persisted planned locations")
-            begin_attempt(connection, job, attempt_index, started_at_utc)
-            location_states = tuple(
-                PlannedLocationState(
-                    modality, profile_id, location_index, "planned", None,
+        case = _case_for_job(config, job, allow_constant_radius=allow_constant_radius)
+        active_factory = factory
+        from src.euler_campaign.generation import LEGACY, generation_mode_for_version
+        if record_p32 or generation_mode_for_version(job.snapshot.runtime.generator_version) != LEGACY:
+            from .p32_store import P32RecordingFactory
+            active_factory = P32RecordingFactory(factory, job.snapshot.runtime, record_p32=record_p32)
+        with _atomic(connection):
+            if before_start is not None:
+                before_start(job, bool(running))
+            if running:
+                resume_state = resume_attempt(connection, job)
+                attempt_index = resume_state.attempt_index
+                location_states = resume_state.location_states
+                action = f"resume attempt={attempt_index}"
+            else:
+                attempt_index = 0
+                planned_location_rows = connection.execute(
+                    """
+                    SELECT modality, profile_id, location_index
+                    FROM planned_locations
+                    WHERE manifest_id = ? AND design_id = ? AND block_id = ?
+                      AND sample_index = ? AND realization_seed = ?
+                      AND execution_fingerprint_digest = ?
+                    ORDER BY modality, profile_id, location_index
+                    """,
+                    (
+                        job.manifest_id, job.design_id, job.block_id, job.sample_index,
+                        job.realization_seed, job.fingerprint.sha256_hex,
+                    ),
+                ).fetchall()
+                if not planned_location_rows:
+                    raise ValueError("execution job has no persisted planned locations")
+                begin_attempt(connection, job, attempt_index, started_at_utc)
+                location_states = tuple(
+                    PlannedLocationState(
+                        modality, profile_id, location_index, "planned", None,
+                    )
+                    for modality, profile_id, location_index in planned_location_rows
                 )
-                for modality, profile_id, location_index in planned_location_rows
-            )
-            action = f"start attempt={attempt_index}"
+                action = f"start attempt={attempt_index}"
 
         simulation_count += 1
         job_started = monotonic()
@@ -396,7 +398,7 @@ def execute_frozen_jobs(
             f"[{job_number}/{job_total}] {action} "
             f"{job.design_id}/{job.block_id}/sample={job.sample_index} "
             f"seed={job.realization_seed}; "
-            f"simulation {simulation_count}/{maximum_simulations}"
+            f"simulation {simulation_count}"
         )
         with _ProgressHeartbeat(progress_callback, progress_context) as heartbeat:
             heartbeat.update(ProgressUpdate(
@@ -406,12 +408,12 @@ def execute_frozen_jobs(
             try:
                 if progress_callback is None:
                     result = generate_and_measure(
-                        case, factory, job.realization_seed,
+                        case, active_factory, job.realization_seed,
                     )
                 else:
                     result = generate_and_measure(
                         case,
-                        factory,
+                        active_factory,
                         job.realization_seed,
                         progress_callback=heartbeat.update,
                     )
@@ -421,14 +423,14 @@ def execute_frozen_jobs(
                     f"persisting {len(pending_result.observations)} observations "
                     f"and {len(pending_result.location_states)} location states",
                 ))
-                complete_attempt(
-                    connection,
-                    job,
-                    attempt_index,
-                    pending_result,
-                    finished_at_utc=_utc_now(),
-                    runtime_seconds=max(0.0, monotonic() - started_monotonic),
-                )
+                with _atomic(connection):
+                    complete_attempt(
+                        connection, job, attempt_index, pending_result,
+                        finished_at_utc=_utc_now(),
+                        runtime_seconds=max(0.0, monotonic() - started_monotonic))
+                    if record_p32:
+                        from .p32_store import store_measured_p32
+                        store_measured_p32(connection, job, active_factory.records)
             except KeyboardInterrupt:
                 checkpoint_attempt_runtime(
                     connection,
@@ -479,6 +481,37 @@ def execute_frozen_jobs(
         tuple(skipped_completed),
         tuple(skipped_failed),
         simulation_count,
-        maximum_simulations,
-        termination_reason,
+        "jobs_complete",
     )
+
+
+def execute_frozen_job(
+    connection: sqlite3.Connection,
+    manifest: FrozenManifest,
+    config: NormalizedPilotInput,
+    factory: JointFactory,
+    *,
+    before_start: Callable[[ExecutionJob, bool], None] | None = None,
+    progress_callback: Callable[[str], None] | None = None,
+    allow_constant_radius: bool = False,
+    record_p32: bool = False,
+) -> FrozenJobRunSummary:
+    """Shared atomic one-job boundary; policy hooks run only for actual starts."""
+    if len(manifest.jobs) != 1:
+        raise ValueError("single-job execution requires exactly one frozen job")
+    return _execute_jobs(connection, manifest, config, factory,
+                         before_start=before_start, progress_callback=progress_callback,
+                         allow_constant_radius=allow_constant_radius, record_p32=record_p32)
+
+
+def execute_frozen_jobs(
+    connection: sqlite3.Connection,
+    manifest: FrozenManifest,
+    config: NormalizedPilotInput,
+    factory: JointFactory,
+    *,
+    progress_callback: Callable[[str], None] | None = None,
+) -> FrozenJobRunSummary:
+    """Fixed pilot list: no main cap, no automatic failed-attempt retry."""
+    return _execute_jobs(connection, manifest, config, factory,
+                         progress_callback=progress_callback)

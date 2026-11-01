@@ -39,9 +39,8 @@ if os.environ.get("QSIMEX_TEST_STUB_RUNNER") == "1":
     def fake_execute(*args, **kwargs):
         print("FAKE_RUNNER_CALLED")
         kwargs["progress_callback"]("CLI progress fixture")
-        reason = os.environ.get("QSIMEX_TEST_TERMINATION_REASON", "jobs_complete")
         return FrozenJobRunSummary(
-            (), (), (), 0, kwargs["maximum_simulations"], reason,
+            (), (), (), 0, "jobs_complete",
         )
 
     cli.execute_frozen_jobs = fake_execute
@@ -59,12 +58,10 @@ class TestExplorationCliSubprocess(unittest.TestCase):
         *arguments: str,
         generator_version: str = "qsimex-mlx-generation-v1",
         stub_runner: bool = False,
-        termination_reason: str = "jobs_complete",
     ) -> subprocess.CompletedProcess[str]:
         environment = os.environ.copy()
         environment["QSIMEX_TEST_GENERATOR_VERSION"] = generator_version
         environment["QSIMEX_TEST_STUB_RUNNER"] = "1" if stub_runner else "0"
-        environment["QSIMEX_TEST_TERMINATION_REASON"] = termination_reason
         return subprocess.run(
             [sys.executable, "-c", FAKE_BACKEND_SCRIPT, *arguments],
             cwd=PROJECT_ROOT,
@@ -94,42 +91,44 @@ class TestExplorationCliSubprocess(unittest.TestCase):
             self.assertFalse(payload["simulation_started"])
             self.assertFalse(result_path.exists())
 
-    def test_run_requires_confirmation_and_budget_before_touching_database(self) -> None:
+    def test_run_requires_confirmation_without_a_cap_before_touching_database(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database = Path(temp_dir) / "not-created.sqlite"
             refused = self.run_cli(
-                "run", "--database", str(database), "--maximum-simulations", "2",
+                "run", "--database", str(database),
             )
             self.assertEqual(refused.returncode, 2)
             self.assertIn("Execution not confirmed", refused.stderr)
             self.assertFalse(database.exists())
             self.assertNotIn("FAKE_RUNNER_CALLED", refused.stdout)
 
-            missing_budget = self.run_cli(
-                "run", "--database", str(database), "--confirm-execution",
-            )
-            self.assertEqual(missing_budget.returncode, 2)
-            self.assertFalse(database.exists())
-
-            invalid_budget = self.run_cli(
-                "run", "--database", str(database), "--maximum-simulations", "0",
-                "--confirm-execution",
-            )
-            self.assertEqual(invalid_budget.returncode, 1)
-            self.assertIn("at least 1", invalid_budget.stderr)
-            self.assertFalse(database.exists())
+    def test_removed_cap_argument_is_rejected_before_touching_database(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database = Path(temp_dir) / "not-created.sqlite"
+            for cap in ("0", "1", "1000"):
+                with self.subTest(cap=cap):
+                    result = self.run_cli(
+                        "run", "--database", str(database),
+                        "--maximum-simulations", cap, "--confirm-execution",
+                        stub_runner=True,
+                    )
+                    self.assertEqual(result.returncode, 2)
+                    self.assertIn("unrecognized arguments", result.stderr)
+                    self.assertFalse(database.exists())
+                    self.assertNotIn("FAKE_RUNNER_CALLED", result.stdout)
 
     def test_run_adds_batches_and_automatically_resumes_exact_unfinished_batch(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database = Path(temp_dir) / "nested" / "pilot.sqlite"
             run = self.run_cli(
-                "run", "--database", str(database), "--maximum-simulations", "3",
+                "run", "--database", str(database),
                 "--confirm-execution",
                 stub_runner=True,
             )
             self.assertEqual(run.returncode, 0, run.stderr)
             self.assertIn("FAKE_RUNNER_CALLED", run.stdout)
             self.assertIn('"batch_action": "added"', run.stdout)
+            self.assertNotIn("maximum_simulations", run.stdout)
             self.assertRegex(
                 run.stderr,
                 r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00 CLI progress fixture",
@@ -149,7 +148,7 @@ class TestExplorationCliSubprocess(unittest.TestCase):
                 )
 
             resumed = self.run_cli(
-                "run", "--database", str(database), "--maximum-simulations", "2",
+                "run", "--database", str(database),
                 "--confirm-execution",
                 stub_runner=True,
             )
@@ -157,9 +156,8 @@ class TestExplorationCliSubprocess(unittest.TestCase):
             self.assertIn("FAKE_RUNNER_CALLED", resumed.stdout)
             self.assertIn('"batch_action": "resumed"', resumed.stdout)
             resume_payload = json.loads(resumed.stdout.split("FAKE_RUNNER_CALLED\n", 1)[1])
-            self.assertEqual(
-                resume_payload["run_summary"]["maximum_simulations"], 2,
-            )
+            self.assertNotIn("maximum_simulations", resume_payload["run_summary"])
+            self.assertEqual(resume_payload["run_summary"]["termination_reason"], "jobs_complete")
             with sqlite3.connect(database) as connection:
                 self.assertEqual(
                     connection.execute("SELECT COUNT(*) FROM manifest").fetchone()[0],
@@ -174,7 +172,7 @@ class TestExplorationCliSubprocess(unittest.TestCase):
             copied_config.write_bytes(CONFIG_PATH.read_bytes())
             copied_path_resume = self.run_cli(
                 "run", "--config", str(copied_config), "--database", str(database),
-                "--maximum-simulations", "1", "--confirm-execution",
+                "--confirm-execution",
                 stub_runner=True,
             )
             self.assertEqual(copied_path_resume.returncode, 0, copied_path_resume.stderr)
@@ -184,14 +182,14 @@ class TestExplorationCliSubprocess(unittest.TestCase):
             changed_config.write_bytes(CONFIG_PATH.read_bytes() + b"\n# distinct source bytes\n")
             changed_bytes_batch = self.run_cli(
                 "run", "--config", str(changed_config), "--database", str(database),
-                "--maximum-simulations", "1", "--confirm-execution",
+                "--confirm-execution",
                 stub_runner=True,
             )
             self.assertEqual(changed_bytes_batch.returncode, 0, changed_bytes_batch.stderr)
             self.assertIn('"batch_action": "added"', changed_bytes_batch.stdout)
 
             new_runtime_batch = self.run_cli(
-                "run", "--database", str(database), "--maximum-simulations", "1",
+                "run", "--database", str(database),
                 "--confirm-execution",
                 stub_runner=True,
                 generator_version="different-generator-version",
@@ -209,7 +207,7 @@ class TestExplorationCliSubprocess(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database = Path(temp_dir) / "completed.sqlite"
             first = self.run_cli(
-                "run", "--database", str(database), "--maximum-simulations", "1",
+                "run", "--database", str(database),
                 "--confirm-execution", stub_runner=True,
             )
             self.assertEqual(first.returncode, 0, first.stderr)
@@ -235,7 +233,7 @@ class TestExplorationCliSubprocess(unittest.TestCase):
                     )
 
             duplicate = self.run_cli(
-                "run", "--database", str(database), "--maximum-simulations", "1",
+                "run", "--database", str(database),
                 "--confirm-execution", stub_runner=True,
             )
             self.assertEqual(duplicate.returncode, 1)
@@ -251,7 +249,7 @@ class TestExplorationCliSubprocess(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database = Path(temp_dir) / "ambiguous.sqlite"
             first = self.run_cli(
-                "run", "--database", str(database), "--maximum-simulations", "1",
+                "run", "--database", str(database),
                 "--confirm-execution", stub_runner=True,
             )
             self.assertEqual(first.returncode, 0, first.stderr)
@@ -277,7 +275,7 @@ class TestExplorationCliSubprocess(unittest.TestCase):
                 )
 
             ambiguous = self.run_cli(
-                "run", "--database", str(database), "--maximum-simulations", "1",
+                "run", "--database", str(database),
                 "--confirm-execution", stub_runner=True,
             )
             self.assertEqual(ambiguous.returncode, 1)
@@ -289,7 +287,7 @@ class TestExplorationCliSubprocess(unittest.TestCase):
             empty_database = Path(temp_dir) / "empty.sqlite"
             empty_database.touch()
             empty = self.run_cli(
-                "run", "--database", str(empty_database), "--maximum-simulations", "1",
+                "run", "--database", str(empty_database),
                 "--confirm-execution",
             )
             self.assertEqual(empty.returncode, 1)
@@ -299,7 +297,7 @@ class TestExplorationCliSubprocess(unittest.TestCase):
             with sqlite3.connect(incompatible) as connection:
                 connection.execute("PRAGMA user_version = 99")
             schema_error = self.run_cli(
-                "run", "--database", str(incompatible), "--maximum-simulations", "1",
+                "run", "--database", str(incompatible),
                 "--confirm-execution",
             )
             self.assertEqual(schema_error.returncode, 1)
@@ -309,7 +307,7 @@ class TestExplorationCliSubprocess(unittest.TestCase):
             with sqlite3.connect(old_schema) as connection:
                 connection.execute("PRAGMA user_version = 3")
             v3_error = self.run_cli(
-                "run", "--database", str(old_schema), "--maximum-simulations", "1",
+                "run", "--database", str(old_schema),
                 "--confirm-execution",
             )
             self.assertEqual(v3_error.returncode, 1)

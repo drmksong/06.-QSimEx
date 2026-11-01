@@ -1,11 +1,42 @@
 metadata:
   generated: "2026-10-30 11:33 +09:00"
-  source_tasks: "../ImplementationPlan_v4.md"
-  last_updated: "2026-10-30 22:40 +09:00"
+  source_tasks: "../../ImplementationPlan_v4.md"
+  last_updated: "2026-11-01 06:19 +09:00"
+  snapshot_scope: "Historical T006-T009 implementation/test records, trace chains and summary counts below are not a current whole-project inventory. Use current_status for current operational handoff and latest dated plans for scientific authority."
+  handoff_scope: "Historical decision/event journal. Older command, DB, cap, schema, status and test-count fields are not executable current guidance; current_status is the operational summary."
   handoff:
-    current_phase: "Work paused 2026-10-30 22:40 +09:00; CUM.07 complete; README restored to repository baseline; CUM.08 not started and awaits user's next instruction"
+    main_jn20_excluded: "2026-11-01 06:19 +09:00: user06:10 excluded Jn20. Default initial_input null; activeJn2/4/9/15, zeroinitial generation. Jn20 support/files/raw preserved; excluded from goals/reference/verification ledger. All10 primary bins reachable; minimumQprime .0125->1/60, maximumunchanged. Full277 pass/main49 tests, publicpreview0writes/0initial, no-initial startup/resume and optionalJn20 regressions green. No actual main DB/results/DFN execution."
+    main_implementation_verified: "2026-10-31 23:45 +09:00: all9 P7.02 tasks implemented; final full274 pass,46 new main tests,190 focused pass,6 integrity findings fixed/reviewed. Public validate/preview and confirmation no-write gate pass. See MainSimulation_T011/batch-report.yaml and implementation checkpoint. No real main DB/results/DFN/simulation, new environment/dependency or commit. Jn20 initial3of5 high-cost inputs need later runtime review; G4 unapproved."
+    main_full_batch_approved: "2026-10-31 22:43 +09:00: user authorized all9 P7.02 implementation tasks and thorough tests with surgical changes. Batch in progress, not completed. Mocked/temp DB only; no actual main writes/DFN/simulation permission."
+    main_policy_and_plan: "2026-10-31 22:32 +09:00: final main policies approved by user22:27; consolidated in MainSimulation_T011/plan.md with13-REQ mapping and9 P7.02 child implementation tasks. Both actual pilots/cumulative review complete. P7.01/P7.02 planning complete; source/config/Jn20/production DB writes/main execution not performed. Main G4 permission separate; prior journal and rejected detailed review not restored."
+    cum08_no_cap_handoff_complete: "2026-10-31 19:53 +09:00: step2 requested. Removed pilot CLI/runner cap parameter/gate/summary, fixed jobs processed; failure/resume/skip/identity/cumulative contracts preserved. New tests red then related16 passed, CLI help/two YAML validate/py_compile/diff OK. LSP no errors/warnings; signature helper flagged7 mock-fixture sites, production compatible/runtime tests pass. Main budget not implemented. Commands and write boundaries in ImplementationPlan top, README usage only. CUM.08 done; CUM.09 first pilot then approved analysis/review then pilot2 pending. No actual DB/DFN/simulation."
+    approved_pilot_main_limit_policy: "2026-10-31 19:45 +09:00: fixed-job pilots require no separate invocation cap; main adaptive trials require finite attempt budget. Main number/counting/exhaustion rules undecided. Current code still requires cap; pilot implementation/validation pending before handoff. Policy decision only, no code or actual execution."
+    remaining_pilot_todos: "2026-10-31 19:35 +09:00: user requested remaining work after yesterday Jn/goal mismatch. Legacy target_goals removed, current Jn/set validator retained; both validate commands passed valid=true/2designs/10samples in dlo-cq. Existing preview/full227 verification not rerun; no real execution. CUM.08 numeric cap then final handoff; CUM.09 explicit pilot run -> approved cumulative analysis/report/first review -> separately approved pilot2 and cumulative review. DB/order already selected. All-bin evidence/gaps, not >400 success or guaranteed filling; T011 separate. No README logs."
+    current_pilot_unification_verified: "2026-10-31 19:32 +09:00: dlo-cq checked checkpoint mappings/N/seeds/jobs against both YAMLs, active review/config/count statements, bin diagnosis/exploration no >400-first, all8 agenda rows, unique YAML keys and preserved history/cap-null/unrun pilots/T011 gates. git diff --check passed. A01-A06 named findings/local scope corrected; exact main policies remain undecided. No README/code/config/DB/DFN/simulation, full test rerun or new cap. Next finish cap agreement/handoff after instruction."
+    current_pilot_unification: "2026-10-31 19:29 +09:00: user requested current Jn2/4/9/15 unification. Active strategy4.4/4.6/11.2/11.2.1 and implementation2/8 now use pilot2/4 sets1/2 and pilot2file9/15 sets3/4, conditionN5/seeds39/36/43, planned20 jobs/2420 locations not observations. Bin filling/all-bin DFN-to-RQD evidence replaces mandatory >400/old six goals. Historical records preserved and strategy10/11.4 scoped; A01 text/local review ambiguity corrected, exact main policies/cap still unapproved. No README/code/YAML/real execution."
+    bin_filling_intent_clarified: "2026-10-31 19:27 +09:00: user clarified mandatory >400-first was assistant misinterpretation; bin filling is urgent. Intent clarified; old prose cleanup and exact main ordering/transition policies separate. Explained strategy11.2.1 old Jn0.5/1 intro/goals/status vs current unrun Jn2/4/9/15 pilots; not config failure. General observation/seed cautions remain. Explanation only, no README/active-template/code/config/real execution change."
+    remaining_discrepancy_recheck: "2026-10-31 19:24 +09:00: user asked whether discrepancies remain. Guidance recheck confirms A01 general >400 starting rule/old high-bin review/implementation8 remain; strategy11.2.1's unqualified Jn0.5/1 pilot intro is residual local A03/A05 scope cleanup. Core corrections are not full-plan prose signoff. Cap/main policies are unresolved decisions, not independent contradictions. No substantive correction/code/config/actual execution; discuss A01 and residual scope next."
+    checkpoint_verification_a06: "2026-10-31 19:23 +09:00: A06 resolved. Strict unique-key validation also found duplicate deferred; renamed one key preserving both different values. All three YAML files now parse with duplicate rejection, source/current-status/config references resolve, original mapping/counts match Git history, both identical pilot_outcome values remain, current unapproved cap/unrun execution/T011 deferral/A01 and pending work verified. git diff --check passed. Documentation only; no full tests or real execution."
+    approved_checkpoint_a06: "2026-10-31 19:21 +09:00: user selected approve_checkpoint_a06. Current operational status separated from preserved historical journal/task snapshots in all three checkpoints; old warnings scoped, current pending work explicit, duplicate pilot_outcome key distinguished without losing content. No README/code/config/DB/DFN/simulation, cap or starting-bin policy approved. A02-A06 corrected; A01 policy remains separate."
+    checklist_verification_a05: "2026-10-31 19:18 +09:00: A05 resolved. dlo-cq check confirmed both T001-T010 checked, historical P6.01-P6.04 checked, T011/P7 unchecked, current handoff/execution/review TODOs still pending. Checkpoint YAML and git diff --check passed. Documentation only; no full tests or real execution. A06 awaits instruction."
+    approved_checklists_a05: "2026-10-31 19:16 +09:00: user selected approve_historical_checklists. Both plans original T001-T010 checked against completion evidence; P6.01-P6.04 historical Jn0.5/1 only. Current Jn2/4/9/15 prep/tests done, handoff cap and physical execution/review pending; T011/P7/G4 deferred. Original DB/reports deleted October30; old goal/schema/CLI contracts not restored. README unchanged. No code/config/DB/DFN/simulation or policy. A06 operational cleanup not started."
+    checklist_review_a05: "2026-10-31 19:14 +09:00: user requested next discrepancy. Both plans' parent/P6 checkboxes conflict with dated completion. Proposed original T001-T010 completion reconciliation, P6 historical Jn0.5/1 scope, separate current Jn2/4/9/15 prep/tests vs unrun execution and pending handoff/results, T011 deferred, README logs only in separate records. Application awaits scope confirmation. No code/config/DB/DFN/simulation or policy; A06 separate."
+    readme_log_separation: "2026-10-31 19:11 +09:00: user required persistent .github rule. copilot-instructions.md and linked SKILL.md now prohibit execution/test/work logs, timestamps, task restart/completion and current run/budget status in README. Record in separate plan/history/checkpoint or approved execution-log file; README links only. Removed current pilot/budget sentence and generalized handoff warning. No code/config/actual execution; A05 unstarted."
+    guide_verification_a04: "2026-10-31 19:08 +09:00: A04 resolved. git diff --check passed; dlo-cq validation matched README six-command catalog to actual CLI AST, all README local links resolved, checkpoint YAML parsed with approval. Root/run help passed earlier. Documentation only; no full test rerun or real execution. A05 awaits instruction."
+    approved_guide_a04: "2026-10-31 19:06 +09:00: user selected approve_guide_a04. Root README corrected to current guide: implemented fixed LHS/manual cumulative, two configs/default pilot2, six commands/internal batch IDs, DB4 append/exact auto-resume, cap vs job states, analysis writes vs DB-read-only report/CSV, pending actual pilots/main. Stale README restart history replaced by plan pointers; dated P1.02 history preserved and scoped. No code/config/DB/DFN/simulation or numeric/scientific policy change. Next A05 after instruction; A06 separate."
+    guide_review_a04: "2026-10-31 19:06 +09:00: next discrepancy discussion requested. Compared README with current CLI/schema/file structure; root/run --help succeeded in dlo-cq without DB/simulation. Proposed current guide update: implemented fixed LHS/manual cumulative workflow, two configs/default pilot2, six commands/no resume or run-preview manifest-ID, DB4 append/auto-resume, cap vs job states, analysis persistence vs DB-read-only report/CSV output, no per-step README history. Preserve dated plan history; application pending user approval. No README/code/config/real execution or scientific policy changes. A05/A06 separate."
+    approved_gates_a03: "2026-10-31 19:04 +09:00: user approved A03 correction. Updated strategy G0-G4 and current 11.2 summary: target_goals removed; input1/DB4; Jn2/4/9/15/20 set counts1/2/3/4/5, Jn20 not in current YAMLs; current pilot cap numeric unresolved; termination distinguished from job states; implementation227 tests vs actual current pilots unrun; main policies/approval pending. Historical logs unchanged; old pairing/status summary labeled historical. No code/config/actual execution or new policy. Next discuss A04 after instruction; A01 separate."
+    approved_scope_a02: "2026-10-31 18:56 +09:00: user selected staged_scope. Resolved A02 via strategy 1.1/11.2.2 and implementation overview/section9: complete v4 includes automatic bin-guided DFN-to-RQD signature updates; pilot is fixed LHS plus explicitly selected manual additions; review before main policies and T011 implementation/validation. Pilot completion is not main execution approval. Score-condition tables are design aids, not signatures. Only scope wording resolved; no cap/starting-bin/algorithm/sufficiency/execution approved. Next discuss A03 stale gates/contracts after user instruction."
+    bin_score_combination_sets: "2026-10-31 18:49 +09:00 analysis; terminology corrected 18:51 +09:00 per user: signature expresses DFN -> RQD; (RQD,Jn,Jr,Ja) is a Q-prime score combination, not a signature. Tables renamed qprime_bin_score_ranges.csv (3630 rows) and qprime_bin_score_summary.csv (55). Numerical content and 15180-case validation unchanged. Necessary score/RQD conditions support DFN-to-RQD signature design but are not themselves signatures. No simulation/policy/code/config/archive changes; pilot/main handoff paused."
+    standalone_qprime_bounds: "2026-10-31 18:37 +09:00: user paused pilot/main discussion for theoretical Jn-dependent limits and low-bin reachability. RQD[10,100], Jr[0.5,4], Ja[0.75,20] give min=0.25/Jn, max=(1600/3)/Jn. All ten grid Jn extrema cross-checked against 33660 preserved rows; 66 scenario intervals per Jn with continuous RQD form connected envelopes. Bin1 cannot be reached at Jn0.5/1 but partly can at Jn>=2 in grid; total grid floor 0.0125. Full table in strategy final section. No scientific/operating-policy/code/config change or simulation; handoff remains paused, cap unresolved."
+    context_audit_result: "2026-10-31 18:18 +09:00: investigation only; six finding groups recorded at end of ImplementationPlan_v4 and strategy plan: unreachable old >400 starting goal, first-scope adaptive wording, stale gates/contracts, stale README/CLI/structure, unchecked historical parent/child tasks, mixed-era checkpoint operational fields. Current Jn 2/4/9/15 maxima verified in dlo-cq at 266.6667/133.3333/59.2593/35.5556. No source corrections, policy/code/config change or actual execution. Discuss scientific priority/scope; correct documentation only after user instruction. Cap remains unapproved."
+    pilot_adaptive_scope_clarification: "2026-10-31 18:15 +09:00: user recalled pilot/review then final policies and larger-scale higher-to-lower bin signature updating. Existing strategy/T011 deferral supports it. Current runner cap is per-invocation on all run commands, not filename-specific or total adaptive budget. Fixed LHS/manual append and all-bin reports do not implement adaptive signature selection. No cap or execution approved; command handoff still awaiting clarification."
+    current_phase: "2026-10-31 17:51 +09:00: user authorized command/limitation handoff; in clarification on per-command cap. DB path and pilot-first order selected, budget not approved. Integrated acceptance complete; no actual execution."
     completed_work: "T006/T007 P4.01-P4.07; T008 P5.01-P5.02; T009 P5.03-P5.05; CUM.02 input/Jn validation and goal-feature removal; CUM.03 multi-manifest append, append-only row protection, atomic rollback; CUM.04 single run command, internal batch IDs, exact YAML bytes+runtime identity, append/auto-resume, duplicate/ambiguous rejection; CUM.05 immutable cumulative schema-v4 dataset revisions with batch/attempt/observation provenance, retry history, duplicate realization de-duplication, and DB reopen persistence; CUM.06 immutable cumulative analysis/score persistence, selectable Jr/Ja subsets, re-analysis fingerprints and raw data immutability; CUM.07 read-only report-cumulative with exact row preflight and streaming CSV, per-signature detail/source provenance, unique fingerprint aggregation, observation/status conflict flag-and-exclude while continuing output, batch-exclusive/shared counts; entire dlo-cq suite 224 tests passed, compileall, git diff --check, YAML parsing, changed-file Pylance diagnostics passed"
-    next_task_not_started: "CUM.08 is the next plan step, not started. When the user asks to resume, perform the approved integrated regression for config/CLI/store/cumulative/reporting, review pilot2 settings and change only confirmed requirements, and document validate/preview commands and limitations. No real DFN or simulation."
+    next_task_not_started: "Finish current handoff after per-command cap clarification; do not assume suggested 10 or inherit historical 1000. Subsequent actual user-run batch/result review is not authorized or started."
+    handoff_budget_clarification: "2026-10-31 17:51 +09:00: user selected sqlite/qsimex-rqd-v4.sqlite and pilot(Jn 2/4) then review then pilot2(Jn 9/15). Budget field empty, later replies requested explanation/history; no numeric cap agreed. Ten jobs originated 2026-10-28 as two blocks x five LHS signatures x one initial seed; separate per-command cap implemented P4.05/T007 2026-10-29. Historical P6.02 cap 1000 on 2026-10-30 did not expand ten-job manifest. Current cap counts generation/measurement starts including resume, excludes succeeded skips; no auto retry/extra jobs/adaptive loop. Paused pending clarification; no production actions."
+    integrated_acceptance_result: "2026-10-31 16:54 +09:00: added test_rqd_exploration_workflow.py; actual CLI/runner/store/cumulative analysis/report with mocked backend and synthetic measurement. Two approved YAMLs, interrupted second job then reopen/resume, append second batch: 20 succeeded attempts, 2420 states, mappings 2/1 4/2 9/3 15/4. Raw/evidence/status unchanged; prior revision reproduced; full catalog 1320 scores, subset 20 scores, repeat idempotent; report DB bytes unchanged and exact CSV preflight counts/Q-prime/support sums verified (10 primary bins plus overflow). Real generation calls zero; temporary files automatically cleaned. Related tests 48 passed, full dlo-cq suite 227 passed at 16:54:56 +09:00, syntax/editor diagnostics and diff check passed. No production code/config/README change or real pilot/GPU action; next handoff not started."
+    pilot_configuration_update: "2026-10-31 16:49 +09:00: pilot is Jn 2/4 with 1/2 sets; pilot2 is Jn 9/15 with 3/4 sets (Jn 15 representative approximation). Both omit target_goals; YAML schema 1, DB schema 4; counts, seeds, bounds and geometry unchanged. CLI default remains pilot2. Both validate/preview passed with 10 jobs and 1210 planned locations each, no DB/manifest writes or simulation. Exact mapping/mismatch and LHS-to-adapter regressions added; manifest bound-change fixture preserves remaining sets. Full dlo-cq suite 226 passed, git diff --check passed. TODO recorded in both plans; README unchanged."
     cumulative_workflow_plan: "2026-10-30 22:40 +09:00: CUM.01-CUM.07 implementation and validation are documented. CUM.07 decisions: batch is a manifest/run record grouping, not a scientific sample or averaging unit; each unique signature maps to one DFN and remains individually represented; repeated execution fingerprints are not counted twice, while all raw source rows/provenance remain preserved. A descriptive profile requires at least one valid positive-support observation; sufficiency is not a hard gate. 90% confidence and 5 percentage points are candidates after pilot data, not current thresholds. User selected no fixed cumulative row cap; report-cumulative calculates exact rows before writing and streams output. Historical 127,234 is not a CUM.07 limit. If same fingerprint/location results or location statuses conflict, source rows are retained, the fingerprint is flagged and excluded from profile/bin aggregates, and the rest of the report continues. Batch-exclusive/shared counts are reported; chronological first-seen is not inferred because manifest creation time is not stored. Full suite 224 passed. No user DB, real DFN, or simulation was used; .venv was not used. At 22:40 user requested end of day after README was restored to repository baseline; README has no changes and git diff --check passed. Work records belong in ImplementationPlan_v4 and the strategy plan, not README. CUM.08 awaits the user's next instruction."
     pilot_data_cleanup: "2026-10-30 19:18 +09:00 user requested deletion of all prior results including DB. Removed sqlite/qsimex-rqd-pilot.sqlite and results/rqd_exploration/qsimex-rqd-pilot-20261030-1535/reports/; verified both absent. Preserved original/pilot2 YAML, code, and documentation."
     p6_02_review: "2026-10-30 15:44 +09:00: user-selected manifest id qsimex-rqd-pilot-20261030-1535; DB path sqlite/qsimex-rqd-pilot.sqlite; per-invocation cap 1000. Final in-memory preview SHA-256 9bc488720cbea5c8ba43b1e5fc0665327baaca0544a9e71911fb93dace834eea; 10 jobs, 600 BH + 610 face locations. User explicitly authorized run, then stated they will execute themselves."
@@ -14,22 +45,123 @@ metadata:
     p6_01_result: "2026-10-30 15:07 +09:00: dlo-cq validate and in-memory MLX preview passed; 2 designs, 10 samples, 6 goals; 10 jobs, 600 BH + 610 face locations; CPython 3.11.15/macOS 27.0.1 arm64/NumPy 2.4.3/SciPy 1.17.1/MLX 0.31.1/Device(gpu, 0); review-only manifest id p6-01-review-20261030-1507, sha256 25975ab2b6eb76d4b402e4734cc034585aa2a73fed82fd2bc29e4f7fabf040d0; no DB, report, DFN, or simulation written/run"
     p6_01_config_sha256: "33d1629f4cd8eead88920ae4b2d2c78ee5c01c734c4fb4401b0824a4f1959ada"
     p6_01_csv_row_cap_total: 127234
-    p6_01_output_root: "Reports use results/rqd_exploration/<manifest_id>/reports; pilot DB now exists at sqlite/qsimex-rqd-pilot.sqlite"
-    p6_01_resume: "Store schema version 2; selected DB exists with matching manifest; resume command is required, not run"
+    p6_01_output_root: "Historical P6.01/P6.03 record: Reports use results/rqd_exploration/<manifest_id>/reports; pilot DB now exists at sqlite/qsimex-rqd-pilot.sqlite. This was the old state; DB/reports were deleted at user request 2026-10-30 19:18 +09:00. Not a current output/DB instruction."
+    p6_01_resume: "Historical P6.03 record: Store schema version 2; selected DB exists with matching manifest; resume command is required, not run. Superseded: old pilot completed and DB was deleted. Current schema4 uses run append/auto-resume; do not execute this old instruction."
     subsequent_work: "Initial pilot and user-authorized analyze are complete. Resolve expected iterative signature-update scope before any next batch or additional DFN/simulation. T011 implementation remains deferred until policy decision/approval."
     unresolved_gate: "None for D012 P5.04 report contract: user approved multiple CSVs, literal \\N NULL, canonical JCS summary, external work-log timestamp, exact headers/order/units, and row caps/preflight at 2026-10-30 11:06:02 +09:00"
-    deferred: "T011 adaptive batch controller awaits post-pilot policy review and separate approval"
+    deferred_original_policy: "T011 adaptive batch controller awaits post-pilot policy review and separate approval"
     execution_boundary: "Initial fixed 10-job batch was explicitly user-authorized and completed via user-run resume. Assistant inspected the DB read-only, then ran analyze only after explicit user authorization; that wrote dataset revision, analysis/derived scores, and report files. No further simulation was run."
     environment: "Use existing conda dlo-cq only; use conda run -n dlo-cq for tests/checks, or activate dlo-cq and use python -u for user-run interactive pilot logs. Do not use or recreate the deleted parent .venv."
     resume_guidance: "Historical at 15:48: user was to resume manually because DB existed and first job was running. The resume has since completed all 10 jobs; do not run again. maximum_simulations=1000 was an invocation cap, not a 1000-simulation request."
     progress_logging: "2026-10-30 16:24 +09:00 (validated 16:25 +09:00): user chose a 60-second heartbeat plus DFN joint-set/materialization stages, BH interval/query-batch counters, face station counters, and persistence stage. Heartbeat includes current job identity, current stage elapsed time, and latest counters. Joint-set counts are queued array work, not GPU completion percent; face updates are station-level, not intra-station GPU percent. Full suite 209 tests, py_compile, git diff --check passed. Existing process is unaffected. Assistant did not inspect, execute, or modify the pilot DB."
-    pilot_outcome: "2026-10-30 16:42 +09:00: user supplied successful resume output; initial read-only inspection confirmed 10/10 attempts succeeded, 0 running/failed, 1,210/1,210 locations observed and valid (600 BH, 610 face; 121 each per job). Resume invocation skipped 8 completed jobs and completed resumed sample 3 plus new sample 4 (simulation_count=2; jobs_complete). Stored attempt runtime sum 2,178.96697s. Raw RQD arithmetic means/ranges: jn-half BH n=300 mean 90.5639 range 39.3058-100; face n=305 mean 93.6698 range 68.0769-100; jn-one BH n=300 mean 90.4830 range 10.1714-100; face n=305 mean 80.4399 range 1.5788-100. After explicit user authorization, P6.04 analyze created dataset revision 1 (sha256 6d18312e975fbaf079d23916e93a7b5c4d8483e7e737a73f83f756cd983efd5e), analysis_run 1 (fingerprint 2a83f1755b1d9e1fc0c41a0024b79af6986c5f80c96fe6ee112e63f9a7ea23c3), and 79,860 derived scores; raw observations unchanged and no simulation. CSV reports contain 127,232 total data rows. Six BH target fractions: 82%, 84.33%, 99%, 91%, 100%, 99%, each comparable with 300m valid support, 5 signatures and 5 realizations. No signature updates/adaptive next batch occurred; clarify intended pilot iteration before more execution."
+    pilot_outcome_preserved_copy: "2026-10-30 16:42 +09:00: user supplied successful resume output; initial read-only inspection confirmed 10/10 attempts succeeded, 0 running/failed, 1,210/1,210 locations observed and valid (600 BH, 610 face; 121 each per job). Resume invocation skipped 8 completed jobs and completed resumed sample 3 plus new sample 4 (simulation_count=2; jobs_complete). Stored attempt runtime sum 2,178.96697s. Raw RQD arithmetic means/ranges: jn-half BH n=300 mean 90.5639 range 39.3058-100; face n=305 mean 93.6698 range 68.0769-100; jn-one BH n=300 mean 90.4830 range 10.1714-100; face n=305 mean 80.4399 range 1.5788-100. After explicit user authorization, P6.04 analyze created dataset revision 1 (sha256 6d18312e975fbaf079d23916e93a7b5c4d8483e7e737a73f83f756cd983efd5e), analysis_run 1 (fingerprint 2a83f1755b1d9e1fc0c41a0024b79af6986c5f80c96fe6ee112e63f9a7ea23c3), and 79,860 derived scores; raw observations unchanged and no simulation. CSV reports contain 127,232 total data rows. Six BH target fractions: 82%, 84.33%, 99%, 91%, 100%, 99%, each comparable with 300m valid support, 5 signatures and 5 realizations. No signature updates/adaptive next batch occurred; clarify intended pilot iteration before more execution."
     jn_classification_reference: "Confirmed and documented 2026-10-30 19:40 +09:00 per user: the new cumulative exploration executable fixed_jn list excludes prior pilot values 0.5 and 1. Supported planned values are 2->1 set, 4->2, 9->3, 15->4 (representative), 20->5 (chosen crushed/earthlike approximation). Jn 3/6/12 require random-joint components and are excluded until supported. Existing 0.5/1 remain historical only, not candidates for new batches. This is a documented execution rule; validator/runtime code is not yet changed. No intersection/portal multiplier."
     accumulation_requirement: "2026-10-30 19:11 +09:00 user reasserted the central goal: run in manageable batches while changing Jn/Jr/Ja and always accumulate eligible results for improved bin coverage. Existing raw data must remain append-only with batch/config/attempt provenance. Jn changes require new DFN observations; Jr/Ja are currently post-processing axes and should re-score retained observations without rerunning DFN. Analysis must aggregate across batches while separating conditions and not counting derived scenarios or unlike modalities as independent/commensurate support. Manifest IDs are internal provenance, not a user-facing obstacle. Current run/resume/analyze CLI does not satisfy this end-to-end. 19:18 plan recorded in ImplementationPlan_v4; no code or simulation executed. 19:28 mapping revised 19:39 per user to exclude 0.5/1 from new conditions: 2/4/9/15/20 map to 1/2/3/4/5 sets; 3/6/12 require random-joint support and are excluded."
     deferred: "T011's original autonomous adaptive controller remains distinct from the user-required cumulative workflow. Design the cumulative append/analysis path first; do not infer automatic candidate selection, sufficiency, budget, or stopping policy."
     pilot_outcome: "2026-10-30 16:42 +09:00: user supplied successful resume output; initial read-only inspection confirmed 10/10 attempts succeeded, 0 running/failed, 1,210/1,210 locations observed and valid (600 BH, 610 face; 121 each per job). Resume invocation skipped 8 completed jobs and completed resumed sample 3 plus new sample 4 (simulation_count=2; jobs_complete). Stored attempt runtime sum 2,178.96697s. Raw RQD arithmetic means/ranges: jn-half BH n=300 mean 90.5639 range 39.3058-100; face n=305 mean 93.6698 range 68.0769-100; jn-one BH n=300 mean 90.4830 range 10.1714-100; face n=305 mean 80.4399 range 1.5788-100. After explicit user authorization, P6.04 analyze created dataset revision 1 (sha256 6d18312e975fbaf079d23916e93a7b5c4d8483e7e737a73f83f756cd983efd5e), analysis_run 1 (fingerprint 2a83f1755b1d9e1fc0c41a0024b79af6986c5f80c96fe6ee112e63f9a7ea23c3), and 79,860 derived scores; raw observations unchanged and no simulation. CSV reports contain 127,232 total data rows. Six BH target fractions: 82%, 84.33%, 99%, 91%, 100%, 99%, each comparable with 300m valid support, 5 signatures and 5 realizations. No signature updates/adaptive next batch occurred; clarify intended pilot iteration before more execution."
 
+current_status:
+  updated_at: "2026-11-01 06:19 +09:00"
+  source_strategy: "../plan.md"
+  source_implementation: "../../ImplementationPlan_v4.md"
+  phase: "T011 implemented; current default Jn2/4/9/15 only, Jn20 excluded/zeroinitial, full277 verified. P7.03 user review and actual main G4 execution approval remain separate."
+  original_tasks:
+    completed: ["T001", "T002", "T003", "T004", "T005", "T006", "T007", "T008", "T009", "T010"]
+    t010_scope: "Historical Jn0.5/1 pilot only; original DB/reports deleted 2026-10-30 19:18 +09:00, not evidence of current pilot execution."
+  current_pilots:
+    - config: "../../../config/rqd_exploration_pilot.yml"
+      jn_values: [2, 4]
+      joint_set_counts: [1, 2]
+      jobs: 10
+      sample_count_per_condition: 5
+      design_seeds: [39, 36]
+      realization_seed: 43
+    - config: "../../../config/rqd_exploration_pilot2.yml"
+      jn_values: [9, 15]
+      joint_set_counts: [3, 4]
+      jobs: 10
+      sample_count_per_condition: 5
+      design_seeds: [39, 36]
+      realization_seed: 43
+  current_pilot_preparation: "Validated and memory-previewed 2026-10-31 16:49 +09:00; integrated temporary-DB/mocked-measurement test completed 16:54, full suite227 passed. Not actual pilot execution."
+  latest_input_validation: "2026-10-31 19:35 +09:00: both current CLI validate commands passed valid=true,2designs/10samples each in existing dlo-cq. No DB/manifest write or simulation."
+  execution_contract:
+    input_schema: 1
+    database_schema: 4
+    default_config: "../../../config/rqd_exploration_pilot2.yml"
+    command: "run"
+    standalone_resume_command: false
+    user_supplied_run_manifest_id: false
+    batch_identity: "Exact YAML bytes plus runtime; internal batch IDs; completed duplicates/ambiguous matches rejected."
+    selected_database: "sqlite/qsimex-rqd-v4.sqlite"
+    database_path_base: "Repository root; both pilot cumulative data verified read-only. No automatic main write/simulation permission."
+    selected_order: "pilot -> result review -> separately approved pilot2"
+    cap_status: "No pilot CLI/runner invocation cap; fixed frozen jobs processed. Main finite attempt budget is separate and not implemented."
+    pilot_cap_required_by_policy: false
+    pilot_cap_policy_implementation: "complete"
+    current_cli_cap_required: false
+    simulation_count_semantics: "Per invocation generation/measurement entries including running-job resume, excluding succeeded/failed skips; fixed plan, no extra samples or sufficiency implied."
+    termination_reasons: ["jobs_complete"]
+    job_status_note: "Command termination is separate from job/attempt success/failure; no automatic failed-attempt retry."
+    actual_current_pilot_execution: "Both pilots user-performed:20 succeeded/2420 valid observed locations. Revision2 cumulative review complete."
+    current_execution_approval: "Both pilot run/analysis/report user-performed; actual main execution approval not granted."
+  first_pilot_review:
+    verified_at: "2026-10-31 20:23 +09:00"
+    manifest_id: "batch-0b0129a9746344858e98bdfb9685dca9"
+    dataset_revision_index: 1
+    dataset_sha256: "c08f8a8d29e8a646a027185746bdac5504317b92bbb41422ca31a4b11b47b2e8"
+    report_directory: "../../../results/rqd_exploration/cumulative/revision-1/reports"
+    succeeded_attempts: 10
+    observed_valid_locations: 1210
+    bh_locations: 600
+    face_locations: 610
+    independent_dfns_per_jn: 5
+    derived_scenarios: 79860
+    conflicted_fingerprints: 0
+    stored_attempt_runtime_seconds: 402.45368983299886
+    verification: "11 CSV row counts/column widths and summary/DB identities match; all scenario scores/formula and exact bin boundaries checked. Read-only; no rerun/report regeneration."
+    scientific_findings: "High raw RQD concentration. Lowest bin empty; next-lowest only3 BH location/scenario rows per Jn, none face. Jn4 bin10 and both >400 unattainable. Medians mask BH/face bin differences up to12.333/23.683 percentage points."
+    limitations: "Not physical DFN validation or statistical sufficiency. 1210 adjacent locations/79860 derived scores are not independent DFNs; no isolated Jn/P32 causal inference."
+  cumulative_workflow:
+    implemented: "Manual append/auto-resume, immutable cumulative revisions/re-scoring, DB-read-only streaming report with exact preflight."
+    target_goals: "removed"
+    repeated_execution_fingerprints: "Keep source provenance; count once scientifically, flag/exclude conflicted fingerprint."
+    current_review: "Both actual pilots and revision2 cumulative report reviewed. Operational policy approval is not final statistical sufficiency or physical validation."
+  decisions:
+    D002: "resolved"
+    D003: "resolved"
+    D004: "verified"
+    D005: "verified"
+    D006: "approved_main_implemented"
+  main_controller:
+    task: "T011"
+    status: "implemented_verified"
+    implementation_approval: "2026-10-31 22:43 +09:00: all9 tasks approved as one batch"
+    execution_approval: "not_granted"
+    policy_gate: "Approved22:27; all final numeric policies are in source_plan. Main implementation/validation and actual G4 execution remain separate."
+    source_plan: "../../MainSimulation_T011/plan.md"
+    task_trace: "../../MainSimulation_T011/checkpoints/plan-to-tasks.yaml"
+    implementation_trace: "../../MainSimulation_T011/checkpoints/tasks-to-impl.yaml"
+    batch_report: "../../MainSimulation_T011/batch-report.yaml"
+    completed_planning_steps: ["P7.01", "P7.02"]
+    completed_implementation_steps: ["P7.02.01", "P7.02.02", "P7.02.03", "P7.02.04", "P7.02.05", "P7.02.06", "P7.02.07", "P7.02.08", "P7.02.09"]
+    pending_implementation_steps: []
+    verification: "Latest full277 pass/0fail/0skip;49 main tests including Jn20 exclusion/no-initial resume. Original full274/6 reviewed fixes retained in previous batch record. Mocked/temp DB only."
+    active_jn: [2, 4, 9, 15]
+    initial_input: null
+    jn20_support: "Preserved, currently excluded. Re-inclusion requires separate approval and changes frozen fingerprint."
+    next_step: "P7.03 user review and actual main execution/cost permission; no automatic main run."
+    finite_attempt_budget_required: true
+    attempt_budget_details: "Implemented/tested200 persisted starts including failures/reference/verification/interrupted regeneration; reuse/scoring/report0. Exhaustion is unmet stop, not success. No pilot cap."
+  audit:
+    corrected: ["A01", "A02", "A03", "A04", "A05", "A06"]
+    unresolved: []
+    a01_scope: "Bin filling intent reconciled19:29; final main bin10-first/eligible-condition transition policy approved22:27. No >400 requirement or final sufficiency claim."
+    residual_text_cleanup: "2026-10-31 19:29 strategy11.2/11.2.1 and implementation2/8 unified to prepared Jn2/4/9/15 pilots; old initial pilot/history explicitly distinguished. No config or execution change."
+    review_scope: "Reconciled named active guidance surfaces and original A01-A06 findings; not a full-code/full-document absence-of-defects signoff."
+
 summary:
+  scope: "Historical T006-T009 records in tasks below only; not current remaining-work count."
   total_tasks: 4
   completed_tasks: 4
   in_progress_tasks: 0
@@ -233,8 +365,23 @@ tasks:
       requirements: ["REQ-005", "REQ-006", "REQ-009"]
       full_trace: "REQ-005/006/009 -> Phase 5.1 -> P5.03 analysis.py -> P5.04 reporting.py -> P5.05 SQLite loader, revision provenance, derived_scores, analyze CLI and regression tests"
 
+historical_pending_tasks: []
 pending_tasks: []
-known_limitations:
+resolved_audit_tasks:
+  - task_id: "A01"
+    status: "resolved"
+    description: "Mandatory >400-first interpretation corrected; final bin10-first main policy now approved. Face remains observational."
+completed_current_tasks:
+  - task_id: "T011"
+    status: "completed"
+    description: "P7.02.01–09 implemented/final274 verified;9-task evidence in main implementation checkpoint. Actual main execution and user review separate."
+  - task_id: "CUM.09"
+    status: "completed"
+    description: "Both actual pilots/cumulative reports reviewed; main policy decisions finalized before consolidated documentation. No actual main run."
+  - task_id: "CUM.08"
+    status: "completed"
+    description: "Current pilots/config/integrated acceptance, no-cap implementation and command/limitation handoff complete. CUM.09 execution/review progress is separate."
+historical_known_limitations:
   - "Current in-flight job DFN/intermediate state is not persisted before atomic job completion; that job may need regeneration after interruption."
   - "The maximum simulation cap and unresolved goal status apply to one command invocation and are returned in memory; each resume invocation takes a new cap, and those run-level statuses are not persisted in schema v2."
   - "A legacy dataset revision without dataset_revision_observations cannot be safely assigned source attempt indices; the loader reports the missing provenance rather than guessing."
@@ -270,9 +417,44 @@ traceability_chain:
       - "src/test/test_rqd_exploration_analysis.py"
     status: "complete"
 
+known_limitations:
+  - "Fixed pilot has no cap. Both pilots executed by user; policy/plan approval does not authorize automatic main DB writes or simulation."
+  - "Uncommitted running-job DFN may regenerate on resume; succeeded jobs are skipped and failed attempts are not automatically retried."
+  - "Current schema4 does not automatically migrate schema2/3; old goal status and CSV row caps are not active cumulative contracts."
 validation:
   passed: true
+  scope: "Historical implementation checks below; current checkpoint-document consistency separately verified in dated A06 records. Not actual current pilot execution or G4 approval."
+  main_planning_check:
+    verified_date: "2026-10-31 +09:00"
+    environment: "existing conda dlo-cq"
+    passed: true
+    unique_yaml_files: 5
+    mapped_requirements: 13
+    mapped_plan_items_and_tasks: 9
+    dependency_graph_acyclic: true
+    local_references_resolve: true
+    historical_mapping_counts_preserved: true
+    diff_check_passed: true
+    source_code_tests_run: false
+    production_database_written: false
+    actual_main_execution: "not_performed"
+  current_document_check:
+    verified_at: "2026-10-31 19:55 +09:00"
+    environment: "existing conda dlo-cq"
+    unique_yaml_keys: true
+    references_resolve: true
+    original_mapping_and_counts_preserved: true
+    current_execution_gates_preserved: true
+    current_pilot_matches_both_yamls: true
+    active_review_and_bin_guidance_unified: true
+    no_cap_handoff_complete: true
+    all_checkpoint_current_cap_warnings_removed: true
+    actual_pilot_execution: "not_performed"
   errors: []
-  warnings:
+  historical_warnings:
     - "Phase 4 implementation is complete; real pilot DB/manifest persistence, DFN generation, and simulation remain unauthorized and unrun."
+  warnings:
+    - "Both actual pilots/cumulative review complete; approved operational criteria are not final statistical sufficiency."
+    - "Original Jn0.5/1 pilot completed, then original DB/reports were deleted; do not resume the old DB."
+    - "Latest default excludes Jn20 and full277 verified; P7.03 user review/actual main execution approval not granted. Expected-cost gate remains active for all new inputs."
   blocking_issues: []

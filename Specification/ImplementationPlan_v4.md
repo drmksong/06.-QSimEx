@@ -1,5 +1,632 @@
 # Implementation Plan v4: RQD Exploration and Cumulative Batch Workflow
 
+## Main controller progress logging planned (2026-11-01 21:39 +09:00)
+
+Before the next main execution, improve controller-level progress logging so operators can
+see overall budget consumption and whether each bin has accumulated enough stable profiles.
+Current `[1/1]` and `simulation 1` values describe a job-local invocation, not overall run
+progress. Include starts consumed/maximum/remaining; current bin and reachable/completed
+target counts; stable independent input histories versus the required three for each target;
+and current round/phase/input/seed/job stage. Preserve the existing completion rules:
+each target requires three stable independent inputs (each stable after two consecutive
+passing comparisons of non-overlapping three-seed groups), and a bin completes only when
+all reachable targets in it are complete.
+
+This is a planned observability-only change: do not alter target selection, random seeds,
+policy, budget, simulation results, or database schema. Do not apply it to the current
+execution; implement and validate it for a subsequent main execution.
+
+## 메인 Jn20 제외 (2026-11-01 06:19 +09:00)
+
+사용자06:10 요청을 반영해 기본 `initial_input: null`, 활성 Jn2/4/9/15로 변경했다.
+Jn20 생성/목표/참조/검증 장부를 제외하고 초기 생성 없이 bin10부터 탐색한다.
+Jn20 파일/지원과 기존 원자료는 삭제하지 않았다. 다시 포함하려면 별도 승인된
+설정 변경을 사용한다. 선택은 frozen fingerprint에 반영돼 이전 메인 정책/예산을
+묵시 변경하지 않는다. 나머지 승인 정책과 기존 파일럿은 유지한다.
+Primary10개 bin 모두 도달 가능, 최저 Q'만0.0125→약0.0167이며 최대는 동일하다.
+이는 Jn20 조사/최종 충분성 보장이 아니다.
+Red 후 전체277개 통과(메인49개), default preview 초기0/활성4/10 bin/쓰기0,
+무초기 실행/재개와 저장 Jn20 장부 제외/원자료 보존, 선택 재포함 회귀를 검증했다.
+Pylance 정책/제어 오류 없음, 목표 함수 호출2개 호환. 실제 simulation/DB/results 쓰기는 없었다.
+[현행 정책](MainSimulation_T011/plan.md)과 관련 checkpoint에 반영했다.
+
+## T011 구현・검증 완료 (2026-10-31 23:45 +09:00)
+
+P7.02.01–09 전체 완료. 정책/설정・제어 저장・BH 진전/안정성・후보/회차・실행
+연결・CLI・누적 보고를 구현했고 기존 경로는 필수 공유 경계만 변경했다.
+최종 전체274개 테스트 통과(신규 메인46개 포함), 관련190개/검토 재현10개도 통과.
+첫 전체264개 green 뒤 독립 검토에서 발견한6건을 각각 재현하고 수정했으며
+후속 검토에서 해결을 확인했다. 비악화・co-best step・정체 crash・round 이력・CSV
+보존・main 동일 반경 처리의 정책/보존 결함이며 관련 회귀를 추가했다.
+`validate-main`/`preview-main` 및 미확인 실행의 exit2/DB・output 미생성도 확인했다.
+Syntax/signatures/diff 검사 통과. [상세 증거](MainSimulation_T011/batch-report.yaml)와
+[구현 체크포인트](MainSimulation_T011/checkpoints/tasks-to-impl.yaml)를 참조한다.
+
+Jn20 초기5개 중3개는 기대 절리 수1000만을 초과하므로 실제 실행 전 별도 비용 검토가
+필요하다. 실제 pilot DB/results 변경・새 환경/의존성・DFN/메인 simulation・commit은
+하지 않았다. P7.03 사용자 결과 검토와 실제 G4 실행 승인은 남은 별도 단계다.
+
+## T011 전체 구현 승인 (2026-10-31 22:43 +09:00)
+
+사용자가 추가 필수 정책 안건 여부를 확인하고 P7.02.01–09를 한 번에 책임지고
+구현・철저히 테스트하라고 승인했다. 확정 정책에 남은 필수 결정은 없으며 새 과학적
+판단이 필요하면 묵시 결정하지 않는다. [상세 계획](MainSimulation_T011/plan.md)의9개
+코드/설정/검증 작업을 진행한다. 공유 파일은 필요한 연결만 변경하고 기존 파일럿,
+raw/누적 자료/기하/점수/물리 backend 계약을 보존한다. 테스트는 임시 DB/모의 생성기만
+사용한다. 실제 메인 DB 쓰기・Jn20/DFN 생성・메인 simulation 실행은 승인되지 않았다.
+완료/실제 테스트 결과는 검증 후 별도로 기록한다.
+
+## T011 메인 정책 승인・구현 계획 완료 (2026-10-31 22:32 +09:00)
+
+사용자가 모든 안건을 검토하고22:27 정책 마감 및 main simulation 구현 계획 작성을
+요청했다. 확정 정책・파일별 구현 순서・수용 조건・13개 REQ 추적은
+[T011 Main Simulation Implementation Plan](MainSimulation_T011/plan.md)에 정리했다.
+두 현재 파일럿의 사용자 실행・revision2 누적 검토는 완료된 선행 근거다.
+되돌린 상세 분석 로그나 미승인 대화를 복원하지 않고 이번에 승인된 계획만 기록한다.
+
+P7.01 정책 합의와 P7.02 상세 계획을 완료했으며 P7.02.01–09 구현은 모두 미착수다.
+다음은 P7.02.01 정책 타입・main/Jn20 입력 구현. 코드/입력 파일 생성・테스트 실행・
+실제 메인 DB 쓰기/DFN 생성은 이번 계획 작성에서 수행하지 않았다.
+P7.03 사용자 검증 인계 및 실제 메인 실행(G4)은 별도 단계다. README는 변경하지 않았다.
+
+## CUM.09 first real pilot and result review complete (2026-10-31 20:23 +09:00)
+
+User executed the agreed first run, analyze-cumulative and report-cumulative commands,
+then requested content review. Read-only inspection of sqlite/qsimex-rqd-v4.sqlite and
+results/rqd_exploration/cumulative/revision-1/reports confirms current Jn2/4 (not the
+deleted historical Jn0.5/1 pilot): batch-0b0129a9746344858e98bdfb9685dca9, ten succeeded
+attempts, no running/failed attempts, 1210 valid observed locations (600 BH/610 face),
+five DFN realizations per Jn, no conflicted fingerprints. Stored attempt runtimes total
+402.454s; execution timestamps span19:57:44.800 to20:04:27.301 +09:00.
+
+Revision1 dataset SHA256 c08f8a8d29e8a646a027185746bdac5504317b92bbb41422ca31a4b11b47b2e8;
+analysis fingerprint8ffc18e53c5c9d41fe6cb1c8181edd3c361e1fbdf7d08f88a91d8333451bfa6a.
+Eleven CSVs and summary JSON verified: actual row counts/column widths match summary,
+which matches the DB revision/analysis. All79860 scenario scores independently checked
+against max(rawRQD,10)*Jr/(Jn*Ja) and exact current (lower,upper] bin edges. These are
+66 postprocessing scenarios per observation, not79860 independent samples.
+
+| Jn | Modality | Locations | Raw RQD min / median / mean / max | RQD100 count | zero-cross count |
+| --- | --- | --- | --- | --- | --- |
+| 2 | BH | 300 | 36.101 / 100 / 90.547 / 100 | 183 | 180 |
+| 2 | face | 305 | 68.441 / 100 / 93.439 / 100 | 182 | 123 |
+| 4 | BH | 300 | 81.041 / 100 / 99.106 / 100 | 253 | 190 |
+| 4 | face | 305 | 95.377 / 99.980 / 99.236 / 100 | 75 | 0 |
+
+Current evidence is strongly concentrated at high RQD; no rawRQD<10, so the calculation
+floor is not exercised by this real pilot. Jn4 is higher-RQD than Jn2 in these samples,
+not proof Jn increases RQD: P32/radius/orientation and other sampled settings differ.
+No isolated causal P32/Jn inference or physical DFN validation was performed.
+
+Across the full approved Jr/Ja catalog, bin1 (0,0.229195...] is empty in both modalities.
+Bin2 (0.229195...,0.525306...] has only3 BH location/scenario rows for Jn2 (two DFNs)
+and3 for Jn4 (one DFN), none for face. Jn2 BH covers bins2-10/face3-10; Jn4 BH2-9/
+face3-9. Occupancy is descriptive, not statistical sufficiency; adjacent locations and
+derived scenarios are not independent DFNs. First-bin RQD cutoffs at Jr=.5/Ja=20 are
+18.336 (Jn2) and36.671 (Jn4), below all observed minima. Jn4 bin10 (>174.524 to400)
+is unattainable at its theoretical Q' maximum133.333; >400 is unattainable for both
+Jn2/4, not a failure or required start/target.
+
+Equal/near-equal BH/face pooled medians do not mean equal distributions. Largest
+absolute bin-support fraction differences are12.333 percentage points for Jn2
+(Jr=.5/Ja=8, bin5), and23.683 for Jn4 (Jr=1/Ja=.75, bin7). Compare normalized fractions,
+not BH meters with face square meters. Four unavailable profiles are explicit deferred/
+unmeasured metrics, not failed observations; do not interpret them as measured zeros.
+
+Conclusion: stored execution/provenance/scoring/bin assignment have no detected blocker
+to the separately approved pilot2. Low-bin evidence and raw RQD diversity remain thin.
+Adding Jn9/15 may strengthen lower Q' coverage, not guarantee low-RQD DFNs or sufficient
+bin evidence. Main adaptive policy/controller remains deferred. Review did not regenerate
+reports, write the DB, rerun simulation, change inputs/code/README, or execute pilot2.
+Only this confirmed outcome/current-state record was synchronized in plans/checkpoints.
+
+- [x] CUM.09 first Jn2/4 user-run, analysis/report and content review.
+- [ ] CUM.09 separately approved Jn9/15 run and combined analysis/report/content review.
+- [ ] T011 main-policy/controller/execution gates remain separate.
+
+## CUM.08 no-cap pilot implementation and command handoff complete (2026-10-31 19:53 +09:00)
+
+User requested step2 handoff after approving no required cap for fixed pilots.
+Removed pilot CLI --maximum-simulations and the runner cap parameter/check/summary field.
+Runner processes its finite frozen jobs; simulation_count still counts generation/
+measurement entries, including running-job resume and excluding succeeded/failed skips.
+jobs_complete describes list processing, not all attempts succeeding. Exceptions,
+interruption checkpointing, success skip, failed-attempt no-auto-retry, exact batch
+identity/duplicate rejection and immutable raw/cumulative/report contracts are unchanged.
+No main adaptive budget/controller was implemented.
+
+Verification: new no-cap runner and CLI tests first failed against the old required
+parameter/flag, then related runner/CLI/full synthetic cumulative workflow tests passed:
+16 tests. Covered all10 jobs without cap, all-completed skipping, progress/heartbeat,
+error persistence/propagation, interrupt/reopen/resume9 remaining jobs, second batch10,
+two YAML mappings20 successes/2420 states, immutable prior observations/revisions and
+DB-read-only report. Removed CLI cap values0/1/1000 explicitly rejected before DB access.
+Actual run --help has no cap; both YAML validate commands pass with unchanged hashes/
+two designs/ten samples. Changed five Python files py_compile and git diff --check pass.
+Pylance LSP reports no errors/warnings (unused-parameter hints only); signature helper
+flagged seven SimpleNamespace test-fixture call sites, while production call was compatible
+and all fixture executions passed. No claim of a clean helper result or full-suite rerun.
+
+README updated for program usage only, without execution/test/work logs. Two plans'
+active pilot gate/review/CLI guidance and checkpoint reflect implemented policy.
+No real pilot DB/manifest write, DFN generation or simulation occurred. Test DBs/reports
+were temporary and automatically cleaned. Prior real memory preview remains the dated
+16:49 evidence, not a newly executed simulation.
+
+### User-run handoff (separate actual-execution approval required)
+
+Run from the repository root in existing dlo-cq, with unbuffered live progress:
+
+```sh
+cd "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx"
+conda activate dlo-cq
+python -u run_rqd_exploration.py run --config config/rqd_exploration_pilot.yml --database sqlite/qsimex-rqd-v4.sqlite --confirm-execution
+```
+
+This is pilot Jn2/4, sets1/2, N5 each, ten planned jobs/1210 locations. No cap, no
+user-supplied manifest ID, no standalone resume. On interruption use the identical run
+command/YAML/runtime/DB to resume the unfinished batch; committed successes are skipped.
+Current uncommitted DFN may regenerate. A fully completed exact duplicate is rejected,
+and failed attempts are not automatically retried. Read stderr progress and JSON job/
+attempt summary; command termination alone is not evidence all jobs succeeded.
+
+After successful data collection and separate approval of DB analysis/CSV output:
+
+```sh
+python -u run_rqd_exploration.py analyze-cumulative --database sqlite/qsimex-rqd-v4.sqlite
+python -u run_rqd_exploration.py report-cumulative --database sqlite/qsimex-rqd-v4.sqlite
+```
+
+First command writes immutable revisions/scores to the existing DB; second reads the
+persisted latest revision with DB read-only and writes CSV to the program's default
+report directory printed by the CLI. Use the full approved Jr/Ja catalog unless a
+subset is separately requested. Review actual Jn2/4 DFN-to-RQD evidence, all-bin support/
+gaps (especially lower bins), costs/errors and source/provenance; no >400 requirement,
+all-bin filling guarantee, statistical sufficiency or automatic signature updates.
+
+Only after that first review and separate approval, run pilot2 in the same DB:
+
+```sh
+python -u run_rqd_exploration.py run --config config/rqd_exploration_pilot2.yml --database sqlite/qsimex-rqd-v4.sqlite --confirm-execution
+```
+
+This adds Jn9/15, sets3/4, another ten jobs; then separately approved cumulative analysis/
+report/review uses the same analysis commands above. Do not paste/run all stages at once
+or modify YAML/runtime between preview and resume without agreement. Main T011 policy/
+implementation/validation/execution remains separate.
+
+- [x] CUM.08 current pilot no-cap policy implemented and related acceptance verified.
+- [x] CUM.08 commands/write boundaries/limitations handed off for selected DB and order.
+- [ ] CUM.09 separately approved user-run first pilot, analysis/report and result review.
+- [ ] CUM.09 separately approved pilot2 and cumulative result review after first review.
+- [ ] T011 main-policy/implementation/execution approvals remain deferred.
+
+## Approved pilot/main attempt-limit distinction (2026-10-31 19:45 +09:00)
+
+- Decision: fixed-job pilots do not require a separate invocation cap; process configured
+  pending work with existing safe completion/resume/error boundaries.
+- Main adaptive signature trials require a finite attempt budget. Its number, counting
+  unit and exhaustion/transition rules remain for main-policy agreement.
+- Current code still requires maximum_simulations; pilot policy implementation and focused
+  validation are pending before CUM.08 command handoff. No code or actual execution changed.
+
+## Remaining pilot work after Jn/goal mismatch fix (2026-10-31 19:35 +09:00)
+
+User requested the remaining TODO list to finish yesterday's Jn/target mismatch work
+and prepare the current pilots, not an actual simulation invocation. The obsolete
+Jn0.5/1 target_goals no longer constrain active config/manifest/run/analysis/report.
+Executable Jn/set-count validation remains intentional: 2/4/9/15 -> 1/2/3/4 sets.
+Both current validate commands rechecked in existing dlo-cq at19:35:09 +09:00:
+valid=true, two designs/ten samples each. No MLX generation/DB/manifest persistence.
+Prior two memory previews and227-test integrated verification remain dated evidence;
+no full test rerun, actual new pilot results or all-bin sufficiency claim.
+
+- [x] CUM.02 legacy target-goal constraint removal and executable Jn/set consistency.
+- [x] Current two YAMLs, adapter/config regressions and memory previews prepared.
+- [x] Integrated temporary-DB execution/reopen/append/re-analysis/read-only-report test.
+- [x] Named document/contract/checkpoint discrepancies reconciled.
+- [ ] CUM.08 agree the current positive per-invocation maximum_simulations; no value yet.
+- [ ] CUM.08 finish confirmed-config/runtime/DB/cap/confirmation/analysis/report command
+  handoff. DB sqlite/qsimex-rqd-v4.sqlite and pilot-first/review/pilot2 order already selected;
+  do not ask for those again, assume a cap or silently decide new output/execution choices.
+- [ ] CUM.09 separately approved user-run pilot Jn2/4; inspect actual job/attempt and raw
+  support/evidence status. No standalone resume or run/preview manifest-ID argument.
+- [ ] CUM.09 separately approved cumulative analysis/report and first-result review:
+  analyze-cumulative writes revisions/scores to DB; report-cumulative reads DB but writes
+  CSV. Review DFN-to-RQD evidence, all-bin support/gaps (including low bins) and costs,
+  not mandatory >400 success or statistical sufficiency from N5.
+- [ ] CUM.09 after first review, separately approve/run pilot2 Jn9/15 in the same selected
+  DB and review cumulative results/provenance. If input changes are needed, consult first;
+  do not automatically run or change pilot2.
+- [ ] T011 deferred: agree main policies and then separately approve controller
+  implementation/validation/main execution. Fixed pilot jobs do not update signatures
+  automatically or guarantee all bins filled.
+
+Immediate next step is numeric-cap agreement and CUM.08 handoff, not more Jn-fix code
+or a real execution now. README receives no logs.
+
+## Current Jn2/4/9/15 pilot guidance unified (2026-10-31 19:29 +09:00)
+
+Verification complete (2026-10-31 19:32 +09:00): existing dlo-cq checks matched current
+checkpoint Jn/set counts, N5, seeds39/36/43 and10 jobs/file against both YAMLs; all three
+checkpoints have unique YAML keys. Active review has both configs/planned2420 locations,
+no old initial-pilot constraint/high-target row/goal status. Strategy11.2 retains all
+eight agenda rows; active4.4/4.6 no longer mandate >400-first; implementation2/8 matches.
+Dated history remains, cap null/unrun pilots/T011 deferral and pending CUM.08/CUM.09
+remain intact. git diff --check passed. Documentation-only; no full test rerun or actual
+simulation. Named A01-A06 findings/local scope cleanup resolved; exact main policies are
+still decisions, not implemented defaults. Next is numeric-cap agreement to finish the
+current handoff, only after user instruction.
+
+User requested unification to the currently prepared pilots. Updated this plan2/8 and
+strategy4.4/4.6/11.2/11.2.1 to current Jn2/4->sets1/2 and Jn9/15->sets3/4, N5 per
+condition, seeds39/36/43 and unchanged geometry/bounds/measurement. Planned20 jobs
+and2420 locations are not observed results; current physical execution is unperformed.
+Review now uses all-bin DFN-to-RQD evidence/gaps, not old six high-bin goals or >400-first.
+Historical dated experiments remain; strategy10/11.4 explicitly scope old summaries
+and restart instructions as history. Current termination is separate from job/attempt
+states; cap number, main sufficiency/priority/transition/update/budget remain unapproved.
+No README, code, YAML or real DB/DFN/simulation change. A01 intent/prose and local
+past/current review ambiguity corrected within these active surfaces; not approval of
+exact main starting-bin or transition policies.
+
+## Bin-filling intent clarified; historical pilot scope explained (2026-10-31 19:27 +09:00)
+
+User clarified that mandatory Q-prime >400-first exploration was the assistant's
+misinterpretation; filling bins is the urgent objective. Treat this as clarified intent,
+not a still-unanswered request to justify reaching400. It does not choose exact main
+starting-bin, per-bin sufficiency, skip/transition, budget or controller policies.
+Old >400-first operational prose needs correction to this intent; no such prose rewrite
+or actual execution was requested in this explanation turn.
+
+Strategy11.2.1 still says the initial pilot is limited to Jn0.5/1, two blocks/N5/seed43,
+without a historical date/scope label. That refers to the October30 completed original
+pilot, whose DB/reports were deleted19:18; it does not describe the current two YAMLs
+(Jn2/4 with sets1/2; Jn9/15 with sets3/4), which are prepared/tested but unrun.
+The repeated N5/seed43 can hide the changed Jn/set mapping. The same section's old six
+high-bin goals and unresolved_at_budget row also need historical/current separation;
+adding a date only to the first sentence would not fully update the review template.
+General cautions about limited observations, sufficiency and independent seeds remain
+valid. This is a documentation-scope issue, not proof of wrong config or simulation.
+
+Explanation/decision record only; README, active review prose, code/config and real data
+unchanged. Next cleanup should preserve old experimental history and make the active
+review template match current pilots/all-bin evidence without inventing main policies.
+
+## Remaining-discrepancy recheck (2026-10-31 19:24 +09:00)
+
+User asked whether discrepancies remain. Rechecked active guidance against the current
+checkpoint and latest approved scope. A01 remains concrete: strategy's general exploration
+text still starts at Q-prime >400, strategy11.2.1 still reviews six old high-bin goals,
+and implementation8 still asks whether to keep exploring >400. These conflict with the
+selected Jn range and the user's statement that exceeding400 is not required.
+
+Also found residual local historical/current ambiguity: strategy11.2.1 introduces the
+pilot as Jn0.5/1, two blocks/five signatures, without a local historical-scope label.
+This is an incomplete wording cleanup linked to A03/A05, not evidence current YAMLs or
+execution mapping reverted. Earlier A02-A06 core corrections do not mean every old
+paragraph in the large plans has been fully reconciled. Dated historical decisions may
+remain; unqualified operational prose still needs explicit scope or correction.
+
+Numeric pilot cap, main sufficiency/allocation/update/transition policies and actual
+execution approvals are unresolved decisions, not independently proven contradictions.
+No new code/config/runtime discrepancy found in the checked guidance surfaces; this
+was not a fresh full-code/full-document audit. No substantive source correction or
+policy/execution approval on this question; next discuss A01 and residual local scope.
+
+## A06 checkpoints reconciled (2026-10-31 19:21 +09:00)
+
+Verification complete (2026-10-31 19:23 +09:00): strict duplicate-rejecting YAML check
+found an additional duplicate deferred key; distinguished it while preserving both
+different policy-history strings. All three YAML files then passed unique-key parsing;
+source/current-status/config links resolve; original mapping/counts match Git history;
+both identical pilot_outcome values and both deferral records remain. Current cap null,
+unrun execution, T011 deferral, A01 and pending work verified; git diff --check passed.
+Existing dlo-cq only; no full test rerun or actual execution. A06 resolved.
+
+User selected approve_checkpoint_a06. Three checkpoint files now distinguish historical
+mapping/task/test/event snapshots from authoritative current operational handoff.
+tasks-to-impl current_status records schema4/run/internal IDs, selected DB/order without
+execution permission, unapproved numeric cap, current two prepared but unrun pilots,
+completed original tasks, cumulative implementation and deferred main policies/T011.
+Current pending_tasks is explicit; old empty list and obsolete limitations/warnings
+are preserved as historical fields. Mapping counts remain historical, not current totals.
+
+Scoped old DB-exists/schema2/resume fields as superseded; old DB/reports were deleted.
+Renamed one duplicate pilot_outcome key while preserving both identical values, so YAML
+does not silently overwrite the earlier record. Corrected checkpoint-relative source
+links while adding a shared current-status reference from both mapping checkpoints.
+No README/code/config change, DB access, DFN generation, simulation or new scientific
+policy. A02-A06 corrected; A01 specific main starting-bin/transition policy and numeric
+handoff cap remain separate unresolved issues. A06 is the last numbered audit category,
+not completion of all research/approval decisions.
+
+## A05 historical checklists reconciled (2026-10-31 19:16 +09:00)
+
+Verification complete (2026-10-31 19:18 +09:00): in existing dlo-cq, confirmed both
+plans have T001-T010 checked and T011 unchecked; P6.01-P6.04 checked with historical
+scope; P7 remains unchecked; current handoff and actual execution/result-review TODOs
+remain unchecked. Checkpoint YAML and git diff --check passed. Documentation-only:
+no full test rerun or actual execution. A05 resolved.
+
+User selected approve_historical_checklists. Synced completed T001-T009 parents across
+both plans to the completed child/evidence records. Marked original T010/P6.01-P6.04
+complete with explicit historical Jn0.5/1 scope and dated evidence references. Current
+pilot preparation/tests, unresolved numeric-cap handoff and unrun physical pilots/result
+review are separate below. No old target_goals, schema or command contract is restored.
+P6.04 means recorded analysis/limitations/decisions/deferrals, not all main policies resolved.
+README received no edits or logs. Next is A06 checkpoint operational-field reconciliation
+after instruction; no code/config/actual execution or policy approval.
+
+| Work scope | Current status |
+|---|---|
+| Original T001-T009 implementation/verification | Complete; original contracts evolved under later cumulative decisions |
+| Original T010/P6.01-P6.04, Jn0.5/1 pilot | Historical completion: preparation October30 15:07/15:44, execution 16:32, formal analysis/recording 16:42 +09:00; original DB/reports deleted 19:18 at user request |
+| Current Jn2/4 and Jn9/15 YAML preparation/preview | Complete October31 16:49; no actual pilot execution |
+| Current integrated regression | Complete October31 16:54, full suite227; temporary DB/mocked measurements only |
+| Current command/limitation handoff | Pending numeric-cap agreement; DB path/order selected, not execution approval |
+| Current pilot and pilot2 physical execution/result review | Not performed; pilot first, review, then separately approved pilot2 |
+| T011/P7/main policies and execution | Deferred; separate policy/implementation/validation/execution approvals |
+
+## A05 checklist reconciliation proposal (2026-10-31 19:14 +09:00)
+
+User requested the next discrepancy. Read parent/child checklists in both plans and
+the dated completion evidence. Implementation plan T006/T007/T009 remain unchecked
+despite completed P4/P5 children; strategy T001-T004/T006/T007/T009 remain unchecked
+despite documented Phase1-5 completion. Both T010 parents and P6.01-P6.04 remain
+unchecked despite October30 preparation, ten-job execution and formal analysis records.
+
+Proposed reconciliation: mark those original tasks complete against the dated evidence,
+explicitly scope T010/P6 completion to the historical Jn0.5/1 pilot, and distinguish
+current Jn2/4/9/15 preparation/tests from unrun physical pilots in a current status table.
+Keep the existing current handoff/result-review TODOs pending and T011/P7 deferred.
+Historical P6.04 completion means observations/limits/decisions/deferrals were recorded,
+not that every main research policy was resolved or G4 approved. Original DB/reports
+were deleted at user request on October30; completion is historical, not present artifacts.
+P6.01/T010 wording must also obey the new README/log separation rule.
+
+Application awaits user confirmation of the original-versus-current checklist scope.
+No checklist change, code/config/DB/DFN/simulation, new budget or main policy yet.
+A06 checkpoint operational cleanup is a separate next item.
+
+## README/log separation made explicit (2026-10-31 19:11 +09:00)
+
+User required a persistent .github Copilot instruction: README is a program guide,
+not a place for execution results or work logs. Added the always-on rule to
+.github/copilot-instructions.md and synchronized the linked .github/SKILL.md guidance.
+Execution/test results, timestamps, task completion/restart notes and current run/budget
+status belong in separate log/history documents (this plan, relevant strategy/checkpoints
+or an approved execution-log file). README may link to records, not reproduce their logs.
+This rule applies every step without another reminder.
+
+Removed the current pilot/budget-status sentence from README and generalized the handoff
+cap warning to usage guidance. Existing actual execution/verification history stays in
+separate records. No new log file was necessary; no code/config/execution change.
+A05 has not started.
+
+## A04 current user guide corrected (2026-10-31 19:06 +09:00)
+
+Completion verification (2026-10-31 19:08 +09:00): git diff --check passed; in dlo-cq,
+README command catalog matched the actual CLI parser's six commands, all README local
+links resolved, and checkpoint YAML parsed with the A04 approval record present.
+No full test rerun was needed for this documentation-only change. Earlier root/run
+--help checks also passed without DB/simulation. A04 is resolved.
+
+User selected approve_guide_a04. Replaced outdated root README with the current usage
+guide described in the review below. It covers two inputs/default pilot2, six commands,
+schema4/internal batch IDs/append and exact auto-resume, per-call cap versus job states,
+cumulative analysis writes versus DB-read-only report/CSV writes, scientific signature
+meaning, and implementation versus actual pilot/main execution boundaries. README now
+points to authoritative dated records instead of retaining a stale task restart log.
+Dated plan history is preserved; a pointer clarifies the P1.02 old structure snapshot.
+
+Only A04 documentation was changed. No code/config change, DB opening/creation, DFN
+generation, simulation, numeric cap or main policy approval. Next is A05 historical task
+checkbox reconciliation, after user instruction; A06 remains separate.
+
+## A04 user-guide discrepancy review (2026-10-31 19:06 +09:00)
+
+User requested discussion of the next discrepancy, not automatic remediation. Compared
+root README with current CLI parser/execution/report code, schema constant and file list.
+In existing dlo-cq, root --help and run --help both succeeded without opening a DB or
+starting a simulation. README still describes an unimplemented entry point, resume command,
+user-selected run/preview manifest ID, schema-v1/new-DB-only execution, removed target
+statuses, one draft config, and obsolete T008 restart/test status.
+
+Proposed correction: make README a current user guide for fixed-LHS/manual cumulative
+workflow, two approved YAMLs and explicit config selection (default pilot2), six current
+commands, internal batch IDs, schema4 append/auto-resume semantics, per-command cap and
+separate job states, cumulative analysis persistence versus read-only DB report/CSV writes,
+and implemented tests versus actual current pilots/main controller still pending.
+Move README's per-step restart/status function to authoritative plans/checkpoints rather
+than add more work history there. Preserve dated 2026-10-29 structure/test records in this
+plan as history, with a current-guide pointer if needed. No historical log deletion.
+
+Application awaits user approval. No README/code/config changes or real execution.
+A05 checklist reconciliation and A06 old checkpoint operations remain separate; no cap,
+starting-bin or main policy is selected by this proposal.
+
+## A03 current approval-gate/contract summary corrected (2026-10-31 19:04 +09:00)
+
+User approved updating current G0-G4 and directly linked summaries. Strategy section 5
+now separates approved/implemented raw-data and cumulative contracts (G0), current
+Jn/set-count and two YAML designs (G1), mandatory but numerically unresolved pilot cap
+and unapproved main policies (G2), 227 passing implementation tests versus unrun physical
+pilots (G3), and pending main-execution approval (G4). Section 11.2 now states current
+contract completion and explicitly scopes old Jn pairing / goal-status text as historical,
+not operational. Original timestamped experiment logs were not changed.
+
+Selected execution Jn is {2,4,9,15,20}; Jn20 is allowed but absent from the two current
+YAMLs. G0 no longer requires target_goals; input schema1/DB schema4 are distinguished.
+G2 describes current budget_exhausted/jobs_complete and stored job/attempt state, not
+the removed pilot goal-status output. This does not mean failed jobs are successful:
+job/attempt status must be inspected separately from command termination.
+Actual Jn2/4/9/15 pilot results and main execution approval remain pending.
+
+A03 summary correction only: no cap, first target bin, main algorithm, physical execution,
+input/code change or old README/checklist/checkpoint remediation was authorized.
+Next audit item is A04 obsolete README/CLI/structure guidance; wait for user instruction.
+A01 specific starting-bin policy remains unresolved.
+
+## Approved pilot/main scope distinction (2026-10-31 18:56 +09:00)
+
+User selected `staged_scope` to resolve audit finding A02 only. Strategy section 1.1
+now distinguishes the complete v4/main objective from current pilot development/execution:
+
+| Aspect | Pilot | Main simulation |
+|---|---|---|
+| Purpose | Initial DFN -> RQD evidence and execution/storage/analysis verification to inform policies | Bin-guided signature updating and cumulative investigation from higher toward lower bins |
+| Candidate inputs | Pre-fixed LHS signatures; additional conditions selected with the user | Observation-guided automatic next-signature/batch selection under approved policies |
+| Updates | No automatic result-driven updates; explicit manual additions can accumulate | T011 adaptive updates after policy agreement and implementation/verification |
+| Budget/transition | Explicit per-command cap; not statistical sufficiency or total main budget | Allocation, bin transition and stopping policies to be agreed after pilot review |
+| Approval | Explicit pilot execution boundary | Pilot completion does not authorize T011 implementation or main execution |
+
+"Adaptive is later" means a later development stage, not omission from the complete v4
+objective. Q-prime score-condition tables support DFN-to-RQD signature design; score
+tuples are not signatures. This decision resolves wording, not candidate algorithms,
+specific starting bins, sufficiency, per-command caps or actual execution.
+Existing T011 gate in section 9 remains. Other audit findings and current numeric cap
+remain unresolved. Next discussion is stale approval-gate/contract summaries (A03);
+do not correct other items or progress to simulation without user instruction.
+
+## Pilot versus adaptive-scale scope clarification (2026-10-31 18:15 +09:00)
+
+The user recalled the intended sequence: run and review the pilot before finalizing
+policies and completing larger-scale simulation with signature updates from higher bins
+toward lower bins. Existing strategy and T011 deferral support this distinction.
+The current handoff cap is a pilot execution control, not a newly agreed total research
+budget or adaptive stopping criterion. Technically the runner applies its mandatory cap
+to every `run` invocation, including manually appended batches, not only files named pilot.
+Future cumulative/adaptive budgets and bin transition/sufficiency policies remain separate
+post-pilot decisions; no numeric cap was approved by this clarification.
+
+Current implementation is fixed LHS jobs plus manual append/resume, raw-data preservation,
+re-scoring and all-bin reports. It does not select updated signatures or run a higher-to-lower
+adaptive loop. Removing historical `target_goals` does not mean abandoning bin-guided
+research; it removes that list as a prerequisite for current inputs/execution/reporting.
+The old `Q-prime > 400` target and Jn 0.5/1 choices are historical, not restored by this
+clarification. Actual next-bin priorities and adaptive policies require pilot review.
+Next remains complete pilot command handoff after cap clarification, then separately
+authorized user-run pilot/result review, then T011 policy/design/implementation approval.
+No code/config change, actual execution or new scientific policy occurred.
+
+## Handoff clarification in progress (2026-10-31 17:51 +09:00)
+
+The user authorized the next command/limitation handoff TODO and selected common DB path
+`sqlite/qsimex-rqd-v4.sqlite` with order: pilot (Jn 2/4), review, then pilot2 (Jn 9/15).
+These are handoff selections only, not permission to create a DB or run simulations.
+The budget field was empty; later replies requested explanation and historical context.
+No current numeric `maximum_simulations` has been approved. The suggested 10 is not a
+previously agreed scientific maximum and must not be silently adopted.
+
+Historical context verified from the strategy plan and implementation records:
+
+- 2026-10-28 14:05:13 +09:00: initial two blocks each had five LHS signatures and one
+  initial realization seed per signature, totaling ten jobs. This was a small starting
+  sample, not a sufficiency criterion or the total exploration limit.
+- 2026-10-29 21:47 +09:00 (P4.05/T007): implemented mandatory positive per-command
+  simulation cap; each resume invocation gets a newly specified cap.
+- 2026-10-30 15:44:36 +09:00 (T010/P6.02): user selected cap 1000 for the historical
+  ten-job pilot. The fixed manifest still had only ten jobs; a cap of 1000 did not create
+  1000 signatures or run an adaptive loop.
+- 2026-10-30 16:42 +09:00: that fixed pilot completed ten jobs, not signature update or
+  automatic next-batch exploration. Subsequent cumulative workflow allows manual changes
+  and append, while T011 automatic selection remains deferred.
+- 2026-10-31: current approved configurations preserve five signatures per Jn condition;
+  pilot has ten jobs and pilot2 another ten. They are separate user-selected commands.
+
+Current runner semantics: a job is a sampled DFN input signature plus realization seed,
+followed by BH/face measurement and storage (121 planned locations per current job).
+The cap limits generation/measurement starts within one invocation, including re-entering
+a running job. Succeeded jobs are skipped without consuming it; failed attempts are not
+automatically retried. A cap does not change sample_count, invent extra jobs, schedule
+parallel jobs, impose the total cumulative budget, or ensure scientific sufficiency.
+YAML sample_count and command cap are separate controls. Calling 10 a possible cap was
+an unapproved handoff suggestion based on current job count, not historical authorization.
+
+Handoff is paused for clarification of the current cap. Do not inherit historical 1000 or
+assume suggested 10. No command run, production data inspection, DB creation, config change
+or simulation occurred in this handoff clarification. Next action is agree the cap (or
+explicitly leave it unresolved) before finalizing executable handoff commands.
+
+## Integrated acceptance verification (2026-10-31 16:54 +09:00)
+
+User authorization was limited to the next TODO: integrated execution/resume/re-analysis/report
+acceptance verification, using existing `dlo-cq`, documenting each step and stopping before
+the next handoff. No scientific policy, configuration value or real execution was inferred.
+
+Added `src/test/test_rqd_exploration_workflow.py` to connect the two approved YAMLs through
+the actual CLI, manifest preparation, runner, SQLite store, cumulative analysis and CSV report.
+Only the backend and generation/measurement boundary are mocked. The fixture supplies one
+synthetic BH observation (RQD 80, support 1 m) per job and explicitly marks the remaining
+locations unavailable; these are test data, not physical simulation results.
+
+| Acceptance check | Observed result |
+|---|---|
+| First configuration interrupted at job 2, DB closed and reopened | One succeeded and one running attempt retained; same batch resumed, completed job skipped |
+| First batch completed, then second configuration appended | Two manifests, 20 succeeded attempts, 2,420 location states; cases preserve Jn/set counts 2/1, 4/2, 9/3, 15/4 |
+| Previous raw observation after append | Retained exactly once |
+| First-batch and cumulative immutable revisions | 10 then 20 selected observations; previous revision can be reloaded with identical analysis output |
+| Full Jr/Ja catalog and changed subset | 660 then 1,320 full-catalog score rows; subset gives 20 rows and a distinct analysis fingerprint; repeat is idempotent |
+| Re-analysis immutability | Observations, evidence and location-status rows unchanged |
+| Report DB immutability | Database bytes unchanged; report reports no DB modification |
+| Exact report output | Every CSV row count matches preflight; 1,320 scenario rows and 2,904 bin rows |
+| Q-prime values and coverage totals | Checked against `80 / Jn * Jr / Ja`; each Jn/scenario has bins 1-10 plus overflow, support sum 5 m and fraction sum 1 |
+| Real-generation exclusion | Factory generation called zero times; synthetic measurement invoked 21 times (20 jobs plus interrupted job regeneration), never during analysis/report |
+
+The first focused attempt failed because the test expected only 10 bins. Existing approved
+catalog includes 10 primary bins plus `qprime_gt_400` overflow; corrected the test expectation
+to 11, without changing production code or bin policy.
+
+Verification in `dlo-cq`: related acceptance/config/CLI/runner/dataset/analysis/report suite
+48 passed; full `python -m unittest discover -s src/test -p 'test_*.py' -q` suite 227 passed
+(2026-10-31 16:54:56 +09:00). Syntax compilation, editor diagnostics and `git diff --check`
+passed. Existing regressions also cover confirmation/budget/schema-v2/v3 rejection,
+duplicate/ambiguous batch rejection, retry provenance, raw immutability, conflict exclusion
+and heartbeat. Temporary DB/report files are cleaned by `TemporaryDirectory`.
+
+This completes the integrated acceptance TODO only. Next is command/limitation and user-run
+handoff for both configurations, after user instruction; full CUM.08 closure awaits that
+remaining documentation/handoff work. Actual pilot DB creation, manifest persistence, real
+DFN/GPU simulation, README changes and T011 automatic selection were not performed.
+
+## Latest configuration update (2026-10-31 16:49 +09:00)
+
+The user requested conversion of both pilot YAMLs to the active v4 workflow:
+
+| Configuration | DFN Jn / joint-set count | Samples |
+|---|---|---|
+| `config/rqd_exploration_pilot.yml` | 2 / 1; 4 / 2 | 5 per design |
+| `config/rqd_exploration_pilot2.yml` | 9 / 3; 15 / 4 | 5 per design |
+
+This supersedes historical statements that the first YAML is retained as deprecated input and
+that pilot2 contains Jn 2/4. Both now omit `target_goals`; geometry, parameter bounds, sampling
+counts and seeds remain unchanged. Jn 15 retains the approved representative four-set
+approximation. YAML `schema_version: 1` is the supported input schema, not the workflow or
+SQLite schema version; the cumulative DB remains schema v4. The CLI default remains pilot2,
+so users must select the first configuration explicitly with `--config`.
+
+Verification: both `validate --config ...` commands passed. Both memory-only `preview --config ...`
+commands passed with 10 jobs and 1,210 planned locations each (BH 600, face 610), with
+`database_written=false` and `simulation_started=false`. Added exact four-case mapping,
+mismatch-rejection and LHS-to-adapter tests; preserved all other joint sets in the manifest
+bound-change regression. Full `dlo-cq` unittest suite: 226 passed; `git diff --check` passed.
+No real DFN, simulation, pilot DB or manifest persistence occurred.
+
+Remaining TODO:
+
+- [x] Convert both YAMLs and validate Jn/set-count consistency through sampled adapter inputs.
+- [x] Re-run both memory-only previews and the existing full regression suite.
+- [x] Finish the integrated CLI-to-cumulative-report acceptance review using temporary fixtures
+  (2026-10-31 16:54 +09:00); full CUM.08 closure still awaits command/limitation handoff.
+- [ ] Prepare user-run handoff for the two configurations, explicit DB/budget/confirmation and
+  cumulative analysis/report commands.
+- [ ] After explicit execution approval and user-run batches, review stored results read-only
+  and distinguish cumulative coverage from batch-specific sources/shared fingerprints.
+
+Work and verification history stays in the plans/checkpoint, not README. Actual simulation and
+T011 automatic batch selection remain outside this configuration-change authorization.
+
 - 작성일: 2026-10-28
 - 상태 (2026-10-30 22:30 +09:00): 초기 고정 10-signature pilot과 P6.04 분석 완료.
   누적 workflow CUM.01–CUM.07 구현·검증 완료. 다음은 CUM.08 통합 회귀·설정 준비·문서화다.
@@ -395,6 +1022,10 @@ bin occupancy를 지원량 외에 어떤 측정 단위/최소 표본으로 표�
 
 #### P1.02 현재 구조·회귀 기준 확인 결과 (2026-10-29)
 
+**현행 안내 구분 (2026-10-31 19:06 +09:00, A04):** 아래는 2026-10-29 당시의
+골격·placeholder·84개 기준 시험 기록으로 보존한다. 현재 구현·입력·CLI 사용법은
+[루트 README](../readme.md)와 이 문서의 최신 기록이 우선하며 아래 상태를 재개 지시로 쓰지 않는다.
+
 프로젝트 루트 `06. QSimEx`에서 README의 표준 명령을 실행하고 현재 파일·저장 경계를
 확인했다.
 
@@ -605,13 +1236,20 @@ RQD/profile 계산을 재사용하되, 새 모드의 1 m face station 순회 및
 중단/재개 및 후처리가 가능하도록 하고, 고정 Jn에 Jr/Ja 66개 조합을 적용하는 분석 CSV와
 요약을 산출한다.
 
-초기 pilot 설정은 계획서의 승인 조건(두 block: Jn 0.5 및 1, 각각 1 set·N=5,
-design seed 39 및 36, 공통 당초 realization seed 43, 총 10개 signatures, 여섯 동등
-`Q′ > 400` target goals, domain/tunnel/BH 형상, 1 m BH/face 간격, 승인 bounds·분포)을
-그대로 사용한다. Pilot manifest 생성과 자료 계약 검토는 허용되지만 사용자가 설정과 DB 내
-manifest payload를 확인하기 전 simulation을 실행하지 않는다. 실행마다 최대 simulation
-수를 명시해야 하며, 승인된 10개 작업 목록·재시도 처리와의 일관성을 실행 전에 확인한다.
-첫 pilot만으로 충분성·반복성·전체 관계 규명 또는 후속 자동 탐색을 선언하지 않는다.
+현행 입력은 `config/rqd_exploration_pilot.yml`의 Jn2/4(절리군1/2개)와
+`config/rqd_exploration_pilot2.yml`의 Jn9/15(절리군3/4개)다. 조건당 LHS5개,
+파일당10 jobs, design seeds39/36·realization seed43이며 기존 기하·1 m BH/face 간격·
+bounds·분포를 유지한다. 총20 jobs/2,420개 위치는 두 파일의 계획 합계이며 현재 실제
+관측은 없다. Jn15는 대표4군 근사, Jn20은 허용값이지만 현재 설정에는 없다.
+기본 config는 pilot2이므로 첫 파일은 명시 선택하고, 사용자 선택 순서대로 pilot 검토 후
+별도 승인한 pilot2를 실행한다. 고정 파일럿에는 별도 호출 상한이 없으며 명시 확인 전 실제
+DB/manifest 저장·DFN/simulation을 수행하지 않는다.
+
+고정 LHS/수동 누적 기반은 구현·검증 완료했고 현재 실제 파일럿 실행은 대기 중이다.
+빈을 채우는 데 필요한 DFN→RQD 근거와 전체 bin support를 분석하며 `target_goals`나
+`Q′ > 400` 필수 출발 조건을 두지 않는다. 누적 SQLite schema4와 YAML 입력 schema1은
+별도다. 파일럿만으로 충분성·독립 반복성·전체 관계 규명·후속 자동 탐색 완료를 선언하지
+않으며, 정확한 메인 시작 bin·우선순위·전환/갱신 정책과 실행은 별도 합의한다.
 
 ## 3. 기술적 맥락
 
@@ -679,7 +1317,7 @@ src/core/joint_models.py        # required DFN factory dependency
 | `design.py` | 승인 target ledger, 고정 pilot block LHS, 좌표 변환, 독립 α/κ stream, 재현 가능한 signature 및 manifest payload 생성 | DFN simulation·DB 접근을 하지 않는다. T011의 다음 batch 후보 선택과 adaptive updates는 포함하지 않는다. |
 | `measurement.py` | 단일 DFN realization에서 raw BH interval과 Q′/Jr/Ja 독립 face station의 RQD·support·scanline evidence를 산출 | Jr/Ja score 분석, SQLite 저장, batch 정책을 하지 않는다. 공통 산식만 Euler profiles/geometry와 공유한다. |
 | `store.py` | 새 SQLite DB schema, manifest/provenance, 작업·attempt·location 상태·raw observation, atomic checkpoint와 재개 조회 | 기존 Euler DB/store를 열거나 수정하지 않는다. 입력 fingerprint 불일치를 성공형 fallback으로 처리하지 않는다. |
-| `runner.py` | 승인된 pilot 작업을 순서대로 수행하고 예산/attempt 상태를 적용하며 `measurement`와 `store`를 조정 | CLI argument parsing/CSV rendering과 목표별 adaptive 후보 선택을 맡지 않는다. 실행에 필요한 최대 simulation 수는 필수 사용자 입력이다. |
+| `runner.py` | 승인된 유한 pilot 작업 목록을 순서대로 처리하고 attempt 상태를 보존하며 `measurement`와 `store`를 조정 | CLI parsing/CSV rendering·메인 adaptive 후보 선택/시도 예산을 맡지 않는다. 고정 파일럿에는 별도 호출 상한이 없다. |
 | `analysis.py` | 저장 raw data를 읽어 고정 Jn의 Jr/Ja 66개 파생 점수, reachability/support diagnostics, 요약 및 CSV 생성 | raw observation 또는 실행 manifest를 변경하지 않는다. 재분석은 simulation을 재호출하지 않는다. |
 | `cli.py` + root script | 명령·옵션 처리, validate/preview/run/resume/analyze 진입과 명시적 사용자 확인, 사람이 읽을 오류/종료 코드 | 도메인 계산이나 SQL을 직접 구현하지 않는다. root script는 package CLI를 호출하는 얇은 shim만 둔다. |
 
@@ -909,6 +1547,11 @@ flowchart LR
 기존 전략 계획의 T-ID와 REQ-ID를 유지한다. 체크박스는 실행 상태 추적용이며 이 문서를
 작성하는 것으로 어떤 task가 완료되거나 구현이 승인된 것은 아니다.
 
+**체크박스 범위 정정 (2026-10-31 19:16 +09:00, A05 승인):** T001–T010은 원래 작업의
+기록된 완료 상태다. T010/P6 완료는 과거 Jn0.5/1 파일럿에 한정하며 현재 Jn2/4/9/15 실행을
+뜻하지 않는다. 과거 목표 장부 등 설명은 당시 범위이며 최신 누적 계약을 대체하지 않는다.
+현재 남은 인계·실행·결과 검토는 문서 상단의 별도 상태표/Remaining TODO를 따른다.
+
 ### Phase 1 — pilot 범위 및 자료 계약 준비
 
 #### Step 1.1 — 계약·승인 입력 확인
@@ -947,8 +1590,8 @@ flowchart LR
 - **Requirements:** REQ-007, REQ-008, REQ-009, REQ-010
 - **기준:** 전략 계획 §§4.5, 4.16 및 11.2.1 예산·종료 경계.
 - **완료 조건:** SQLite transaction/checkpoint로 관측과 attempt 상태를 보존하고 resume 시 이미 완료된 작업을 중복 생성하지 않는다. 입력 fingerprint 불일치는 재사용을 거부한다. 사용자 제공 최대 simulation 수를 검증하며, 설정/manifest 확인 없는 simulation 실행을 허용하지 않는다.
-- [ ] T006 [Plan:4.1] `src/rqd_exploration/store.py`에 별도 SQLite 작업·manifest·원자료 profile 저장, 원자적 완료 checkpoint, fingerprint 검증, 계획 위치 상태와 실패 attempt 이력 저장을 구현한다.
-- [ ] T007 [Plan:4.1] `src/rqd_exploration/runner.py`와 `run_rqd_exploration.py`에서 승인 작업 목록 실행·resume·명시적 상태·필수 실행별 maximum simulation 입력·MLX 정책을 연결한다. Euler DB/설정은 변경하지 않는다.
+- [x] T006 [Plan:4.1] `src/rqd_exploration/store.py`에 별도 SQLite 작업·manifest·원자료 profile 저장, 원자적 완료 checkpoint, fingerprint 검증, 계획 위치 상태와 실패 attempt 이력 저장을 구현한다. P4.01–P4.03 완료 이력에 맞춰 상위 상태 동기화.
+- [x] T007 [Plan:4.1] `src/rqd_exploration/runner.py`와 `run_rqd_exploration.py`에서 승인 작업 목록 실행·resume·명시적 상태·필수 실행별 maximum simulation 입력·MLX 정책을 연결한다. Euler DB/설정은 변경하지 않는다. P4.04–P4.07 완료 이력에 맞춰 상위 상태 동기화.
 
 ### Phase 5 — 점수 후처리 및 파일럿 보고
 
@@ -958,7 +1601,7 @@ flowchart LR
 - **기준:** 전략 계획 §§1–3, 4.5 및 §8 수용 기준.
 - **완료 조건:** 원자료는 불변이며 raw RQD와 계산 하한 적용을 분리한다. 고정 Jn별 각 raw observation에 정확히 66개 Jr/Ja 조합을 산출하고 score bin·도달성·실제 support를 구분한다. CSV 규모를 미리 추정한다.
 - [x] T008 [Plan:5.1] `src/rqd_exploration/analysis.py`에 저장 RQD와 고정 Jn을 사용한 Jr/Ja 66개 scenario 점수를 구현하고, `obsolete/tools/tabulate_qprime_scores.py`와 점수·정확한 경계 규칙을 공유한다. P5.01–P5.02 검증 완료.
-- [ ] T009 [Plan:5.1] `src/rqd_exploration/analysis.py` 및 `run_rqd_exploration.py` 재분석 경로에서 scenario CSV, DFN–RQD 요약, 실제 bin support/inverse 진단, 수평 BH별 face 대응 분포·불일치, 독립 realization 및 원본 support 수를 산출한다.
+- [x] T009 [Plan:5.1] `src/rqd_exploration/analysis.py` 및 `run_rqd_exploration.py` 재분석 경로에서 scenario CSV, DFN–RQD 요약, 실제 bin support/inverse 진단, 수평 BH별 face 대응 분포·불일치, 독립 realization 및 원본 support 수를 산출한다. P5.03–P5.05 완료 이력에 맞춰 상위 상태 동기화.
 
 ### Phase 6 — 파일럿 검증·문서화·사용자 인계
 
@@ -967,13 +1610,14 @@ flowchart LR
 - **Requirements:** REQ-003–REQ-010 (REQ-011의 초기 목표 ledger 포함)
 - **기준:** 전략 계획 §§8–11.3 및 이 문서 §7.
 - **완료 조건:** pilot 범위 테스트와 검증 명령·manifest preview를 사용자에게 제공한다. 사용자가 검토·직접 실행한 결과를 확인해 11.2.1 post-pilot decision register를 갱신한다. 이 단계의 완료는 T011 승인이나 G3/G4 통과를 뜻하지 않는다.
-- [ ] T010 [Plan:6.1] `Specification/RQDExplorationStrategy_20261026/plan.md`, `readme.md`에 새 모드의 pilot 의미·사용자 실행 절차·기존 Euler와 차이·제한 및 pilot 후 결정을 기록하고 검증 결과를 인계한다. `obsolete/Analysis/README.md`는 과거 분석 근거로 참조만 하며 새 실행 안내를 덧쓰지 않는다.
+- [x] T010 [Plan:6.1] **원래 Jn0.5/1 파일럿 인계·실행·분석 기록 완료 (2026-10-30).** 사용법은 `readme.md`, 검증 결과·실행 로그·관측·결정/보류는 두 기준 계획과 별도 기록에 둔다. `obsolete/Analysis/README.md`는 참조만 한다. 현재 두 YAML의 실제 실행 완료나 G4/T011 승인이 아니다.
 
 ### 별도 후속 단계 — 승인 후 자동 batch controller
 
 - **Requirements:** REQ-007, REQ-009, REQ-011, REQ-012, REQ-013
 - **Gate:** 파일럿 산출물 검토와 별도 사용자 승인. 충분성·비교 적격성·후보/참조 배분·종료·weight를 임의로 결정하지 않는다.
-- [ ] T011 [Plan:5.2] `src/rqd_exploration/design.py`, `analysis.py`, `runner.py`, `store.py`의 bin-conditional adaptive batch controller는 §9의 정책 gate가 승인된 후에만 별도 계획·구현한다. 현재 파일럿 구현 batch에서는 실행하지 않는다.
+- [x] T011 [Plan:5.2] [P7.02.01–09](MainSimulation_T011/plan.md) main 모듈과
+  필수 공유 경계 구현・전체274개 검증 완료. 실제 실행은 별도 승인.
 
 ### 의존성 및 순서
 
@@ -984,7 +1628,7 @@ T002 → T006
 T003 + T005 + T006 → T007
 T002 + T005 → T008 → T009
 T007 + T009 → T010
-T003 + T007 + T009 + post-pilot policy approval → T011 (deferred)
+T003 + T007 + T009 + approved post-pilot policy → T011 (implemented/verified; main execution unapproved)
 ```
 
 T004와 T006은 자료 계약 승인 후 독립적으로 진행할 수 있다. T010은 파일럿 handoff이며
@@ -1024,7 +1668,7 @@ Stage는 별도 관리하지 않는다. 기존 중간 묶음을 제거하고 각
 | 4 — 저장·실행·재개·CLI | 7 | T006,T007 | 격리 DB에서 실행/확인/재개 검증 |
 | 5 — 점수·대응 분석 | 5 | T008,T009 | 관측당 66행과 불변 원자료 재분석 |
 | 6 — 사용자 pilot·인계 | 4 | T010 | 실행 전 인계와 사용자 관측 후 결정 기록 |
-| 7 — 후속 자동 탐색 | 3 | T011 deferred | 별도 정책 승인 후 상세 재계획·구현·검증 |
+| 7 — 후속 자동 탐색 | 3 (P7.02 아래 구현9개 분해) | T011 implemented/verified | 코드9개/274개 테스트 완료; 사용자 검토/실제 실행 별도 |
 
 ### Phase 1 — 범위 확인·자료 계약·입력 기반
 
@@ -1264,31 +1908,36 @@ Sample-specific producer는 표본 생성 후 P2.03에서 연결한다. **종료
 **진입:** T003–T009의 해당 기능·검증 완료. **종료:** 사용자 pilot 산출물 검토와 후속
 결정 기록. 사용자 실행 전에는 `실행 전 인계 완료 / pilot 검증 대기`로 구별한다.
 
-- [ ] P6.01 — T010 [Plan:6.1] 두 기준 문서와 `readme.md`에 승인 설정·DB manifest
-  preview·환경/버전·검증 명령/결과·예상 관측/CSV 규모·출력 위치·resume 절차를 정리한다.
-  tests pass/skip/fail 및 실제 MLX 경로 검증 여부를 구별한다.
-- [ ] P6.02 — T010 [Plan:6.1] §7 수용 기준과 D-ID를 대조해 미완료·위험·사용자
-  확인 항목을 제시한다. 사용자가 설정·manifest·maximum simulation을 확인하기 전에는 실행
-  명령을 자동 수행하지 않는다. G3는 사용자 검토 결과를 받아 기록하며 G4를 대신 통과시키지 않는다.
+**A05 완료 범위 (2026-10-31 19:16 +09:00):** 아래 체크는 원래 Jn0.5/1 파일럿의
+역사적 완료다. 당시 확인하지 못한 상세 단계 비용/메모리나 미결 정책이 완료 체크만으로
+채워지는 것은 아니다. 현재 두 YAML의 인계·실행·검토는 상단 상태표/Remaining TODO에서
+별도 대기하며 과거 DB·보고서는 사용자 요청으로 삭제됐다.
 
-- [ ] P6.03 — T010 [Plan:6.1] 사용자가 실행한 10-signature pilot의 DB/manifest/
-  분석 식별자와 실제 완료/실패·runtime·memory·출력 크기·유효 support를 확인한다.
-  실행되지 않았다면 그대로 대기한다. 단일 seed 자료로 독립 반복성을 주장하지 않는다.
-- [ ] P6.04 — T010 [Plan:6.1] 전략 §11.2.1과 이 문서 §8에 관측·제한·사용자 결정/
-  보류·후속 작업을 기록한다. T010 완료 여부와 별도로 T011은 차단 상태를 유지하고,
-  추가 simulation·대규모 실행은 별도 승인으로 분리한다.
+- [x] P6.01 — T010 [Plan:6.1] 원래 설정 validate와 메모리 MLX preview, 환경·규모·
+  검증 자료 인계 완료 (2026-10-30 15:07:50 +09:00). 사용법은 README, 결과·로그는
+  계획/별도 기록에 보존한다. 당시 preview 식별자를 현재 실행 ID로 사용하지 않는다.
+- [x] P6.02 — T010 [Plan:6.1] 원래 수용 기준·D-ID·위험·설정/예산 확인 완료
+  (2026-10-30 15:44:36 +09:00). 당시 cap1000은 현재 승인값이 아니며 G4를 대신하지 않는다.
+- [x] P6.03 — T010 [Plan:6.1] 원래 사용자 10-job 실행 결과 확인 완료
+  (2026-10-30 16:32 +09:00): succeeded10, raw observations1210. 기록된 runtime과
+  측정 한계는 당시 증거를 따르며 미측정 비용/메모리를 추정하지 않는다.
+- [x] P6.04 — T010 [Plan:6.1] 원래 정식 분석·관측/제한·결정/보류 기록 완료
+  (2026-10-30 16:42 +09:00): derived scores79860, CSV10개. 자동 갱신은 수행하지 않았고
+  미결 메인 정책/T011·추가 simulation·대규모 실행은 별도 승인으로 계속 분리한다.
 
-### Phase 7 — post-pilot 정책 승인 후 별도 자동 탐색 (deferred)
+### Phase 7 — 정책 승인 완료・메인 자동 탐색 구현 대기
 
 **상위:** T011 / Plan 5.2 / REQ-007,009,011,012,013.
-**현재 상태:** 전 Step deferred. 아래는 착수 gate와 분해 범위만 정하며 지금 구현하지 않는다.
+**현재 상태 (2026-10-31 23:45 +09:00):** P7.01 정책 및 P7.02 상세 계획/구현 완료.
+P7.02.01–09 코드와 최종274개 검증을 [상세 결과](MainSimulation_T011/plan.md)에 기록했다.
+실제 메인 실행은 승인되지 않았다.
 
-- [ ] P7.01 — T011 [Plan:5.2] 두 기준 문서에 비교 적격성·결측/실패/재시도·co-best
-  실행 배분·충분성·후보 소진/전환/종료·weight의 미결 정책을 관측 근거와 함께 결정한다.
-- [ ] P7.02 — T011 [Plan:5.2] 승인 정책을 `design.py`, `analysis.py`, `runner.py`,
-  `store.py`의 상태/전이·후보 생성·실행 배분·결정적 resume Step으로 추가 분해한다.
-  그 후에만 별도 구현 batch와 정책 검증 사례를 확정한다. 현재 계획으로 자동 구현 착수하지 않는다.
-- [ ] P7.03 — T011 [Plan:5.2] 승인 후 구현·검증 결과 및 사용자 G3/G4 검토를 기록한다.
+- [x] P7.01 — T011 [Plan:5.2] 비교/오류・배분・완료/정체・예산/비용・step/Jn20 정책을
+  사용자와 합의했다. 자동 weight 미사용과 실제 실행 별도 승인 경계를 유지한다.
+- [x] P7.02 — T011 [Plan:5.2] 승인 정책을 P7.02.01–09의 입력/저장/판정/후보/제어/
+  실행/CLI/보고/통합 검증으로 분해하고9개 자식 코드 작업/최종274개 검증을 완료했다.
+- [ ] P7.03 — T011 [Plan:5.2] 구현/최종 검증 결과는23:45 기록 완료.
+  사용자 결과 검토와 실제 메인 G4 실행 승인은 별도 대기.
   최초 pilot 완료를 일반 탐색/최종 경계/현장 안전성 완료로 승격하지 않는다.
 
 ### 실제 실행 순서와 병렬 경계
@@ -1717,7 +2366,7 @@ T008에서 정하며, 보관된 파일 자체는 변경하지 않는다.
 5. SQLite commit/resume는 부분 실패의 유효 관측·attempt 상태를 보존하고, fingerprint 불일치나
    손상된 상태를 성공형 기본값으로 처리하지 않는다.
 6. analysis는 raw observation을 바꾸지 않고 정확히 66개의 결과와 관측/score/support 관계를 보존한다.
-7. 최대 simulation 수 누락/비유효 값은 명시적 오류이며, 예산 종료와 완료·실패 상태가 혼합되지 않는다.
+7. 별도 상한 없이 고정 작업 목록을 처리하며 성공한 작업을 중복 실행하지 않는다. 목록 완료와 작업 실패 상태를 혼동하지 않고 오류/중단을 명시적으로 처리한다.
 8. CLI 설정/manifest 확인 없이 simulation을 시작하지 않으며 기존 Euler DB/설정에 쓰지 않는다.
 9. scenario CSV와 요약의 출력 규모·독립 realization 수·원자료 support 수를 표시하고, 파일럿 제한을 설명한다.
 10. pilot 결과로 충분성·일반 자동 탐색 완료·현장 안전성을 선언하지 않는다.
@@ -1725,10 +2374,14 @@ T008에서 정하며, 보관된 파일 자체는 변경하지 않는다.
 ## 8. 파일럿 이후 결정 register
 
 파일럿 산출물 검토 시 [전략 계획 §11.2.1](RQDExplorationStrategy_20261026/plan.md)의
-표를 기준으로 다음 사항을 기록한다.
+현행 Jn2/4/9/15 검토 양식을 기준으로 다음 사항을 기록한다(2026-10-31 19:29 +09:00).
+pilot/pilot2는 각각10 jobs이며 계획 합계20 jobs를 이미 관측한 자료로 취급하지 않는다.
+과거 Jn0.5/1·여섯 high-bin 목표 결과는 역사 기록이지 현행 검토 목표가 아니다.
 
 - `P32`, `size_r_min`, `size_r_max`, `β` 축별 작은/큰 step 값과 근거.
-- `Q′ > 400` 목표를 더 탐색할지, 사용자 검토 후 다음 bin으로 전환할지.
+- Jn/Jr/Ja·BH/face별 bin 관측/support와 낮은 bin을 포함한 자료 공백, 이론적 비도달과
+  미관측 구분. 빈 채우기에 필요한 후속 DFN 시그니처·메인 시작 bin/우선순위·전환 기준.
+  `Q′ > 400` 충족이나 필수 출발을 전제하지 않는다.
 - 후속 block/Jn/set-count, 각 block의 N 및 target/candidate 간 예산 배분.
 - 반복 확인이 필요한 후보와 검증 seed 계획(4.10–4.12 적용).
 - profile별 충분성·경계 해석, 추가 자료 수집 필요성과 잠정/미식별 상태.
@@ -1740,6 +2393,13 @@ T008에서 정하며, 보관된 파일 자체는 변경하지 않는다.
 독립 반복성이나 일반 충분성을 추론하지 않는다.
 
 ## 9. 자동 batch controller 착수 gate
+
+**2026-10-31 22:32 +09:00:** 아래 정책 gate는 사용자 승인으로 충족했다.
+실제 적용값과 예외/재개 규칙은 [T011 상세 계획](MainSimulation_T011/plan.md)의 §2를 따른다.
+기존 미결 문구는 승인 전 gate 정의다. T011 구현/검증은23:45 완료했으며 실제 실행 gate는 별도다.
+
+전체 v4 목표에 포함된 기본 자동 탐색을 파일럿 결과 검토 후 개발하는 단계다.
+전체 목표 범위와 현재 파일럿의 승인 범위는 구별한다(2026-10-31 18:56 +09:00, A02 해결).
 
 T011 이전에 다음 정책을 사용자와 합의하고 전략 계획 §11.2에 기록해야 한다.
 
@@ -1763,13 +2423,13 @@ analysis/CLI의 구현은 미결 자동 탐색 규칙을 추정하지 않는 범
 | REQ-004 | Q′ 독립 고정 face station | 3.1, 6.1 | T004,T005,T010 | station/support records and independence tests |
 | REQ-005 | raw RQD 기반 66 조합 점수 | 5.1, 6.1 | T008–T010 | scenario analysis and boundary tests |
 | REQ-006 | 도달성·관측·support 의미 분리 | 5.1, 6.1 | T008–T010 | audit/report outputs |
-| REQ-007 | 진행·resume·예산·실패 처리 | 2.1, 4.1, 6.1 | T003,T006,T007,T010; T011 deferred | SQLite state/checkpoint, CLI budget validation, resume tests |
+| REQ-007 | 진행·resume·예산·실패 처리 | 2.1, 4.1, 6.1; main 5.2 | T003,T006,T007,T010; T011 verified | SQLite state/checkpoint, persistent main budget, resume tests |
 | REQ-008 | 기존 Euler 보존 및 결과 구분 | 1.1, 3.1, 4.1, 6.1 | T001,T002,T004–T007,T010 | separate namespace and Euler regression suite |
-| REQ-009 | provenance·독립 realization 구분 | 2.1, 4.1, 5.1 | T003,T006–T009; T011 deferred | manifest, observation/attempt links, report counts |
+| REQ-009 | provenance·독립 realization 구분 | 2.1, 4.1, 5.1; main 5.2 | T003,T006–T009; T011 verified | manifest, observation/attempt/group links, report counts |
 | REQ-010 | 승인 경계와 사용자 실행 | 1.1, 4.1, 6.1 | T001,T002,T006,T007,T010 | explicit input/confirmation gates and documentation |
 | REQ-011 | inverse 목표·초기 배분 | 2.1, 6.1 | T003,T010; post-pilot update deferred | target ledger, reachability audit and pilot handoff |
-| REQ-012 | BH 우선 자동 후보 갱신 | deferred 5.2 | T011 deferred | requires approved adaptive selection policy |
-| REQ-013 | 참조·지속·종료 분리 | deferred 5.2 | T011 deferred | requires approved controller state/transition policy |
+| REQ-012 | BH 우선 자동 후보 갱신 | 5.2 상세 계획 | T011 / P7.02.01–09 verified | Main controller 및 BH-only/step/seed 통합 검증 |
+| REQ-013 | 참조·지속·종료 분리 | 5.2 상세 계획 | T011 / P7.02.01–09 verified | 참조/상태/회차 이력・정체/재개 검증 |
 
 ## 11. 적용 지침 및 복잡도
 
@@ -1777,3 +2437,88 @@ analysis/CLI의 구현은 미결 자동 탐색 규칙을 추정하지 않는 범
   Python 코드는 기존 repository 관례와 타입/테스트 패턴을 따른다.
 - **Complexity tracking:** constitution 위반이나 예외 계층 도입을 계획하지 않아 별도 정당화 항목 없음.
 - **중요 경계:** pilot 이외의 일반 자동 batch와 simulation은 승인된 별도 task가 아니다.
+
+## Context consistency audit (2026-10-31 18:18 +09:00)
+
+Investigation only, against the current pilot -> review -> policy approval -> adaptive
+T011 sequence. This section records findings; the conflicting source passages were not
+corrected, and no new scope, budget, bin priority or execution approval was inferred.
+Reviewed both active plans, all three checkpoint YAMLs, root README and project workflow
+instructions; checked current config/rating constants, runner cap semantics and CLI help.
+Archived source/results were not treated as current authority.
+
+| ID | Classification | Evidence in the unchanged source | Finding / consequence |
+|---|---|---|---|
+| A01 | Scientific priority requires reconciliation | Strategy section 4.4 (line 586) and post-pilot table (line 1707); this plan section 8 (line 1870) | Still require starting/continuing `Q-prime > 400` and six historical high-bin goals. Current allowed DFN Jn and approved Jr/Ja cannot reach that overflow. Historical goal decisions are superseded, but these general rules/review tables still present them as applicable. Discuss reachable starting-bin/skip/report treatment before adaptive design; do not alter bin catalog or inputs on this audit's authority. |
+| A02 | Scope wording ambiguous, not proof that policy changed | Strategy section 1.1, lines 235-245, versus section 11.2.2, line 1718, and this plan section 9 | Automatic updates are described as mandatory first scope and the earlier "adaptive is later" exclusion withdrawn; pilot-first policy approval/T011 remains deferred elsewhere. Can coexist if "first scope" means complete v4 rather than immediate pilot, but that distinction is not local to section 1.1. Do not reinterpret this as current implementation approval or cancellation of T011. |
+| A03 | Stale current approval/contract summaries | Strategy G0/G1/G2 rows, lines 1134-1136, and section 11.2.1 table; this plan section 3 file summary | G0 still mentions target-goal approval; G1 Jn 0.5/1 and two one-set blocks; G2 high-bin goals/unresolved-goal status. Current inputs are two YAMLs with Jn 2/4/9/15, sets 1/2/3/4, no target_goals. Current data/design support is implemented, adaptive policy still pending; local current-status headings lack that split. |
+| A04 | Stale user-facing feature/command guidance | README lines 3-7, 19-24, 79-92; this plan sections 3 and 6, including lines 1755 and 1797 | README/structure notes describe unimplemented runner/modules and T008 as next. README requires resume/manifest-id and fresh-only run/schema-v1 DB. Current help exposes run with append/automatic resume plus cumulative analyze/report, no resume command; actual DB is schema v4. Old instructions can fail or restart completed work if treated as current. |
+| A05 | Unsynchronized task status | This plan T009/T010 lines 1099/1108 and P6.01-P6.04 lines 1405-1415 | T009 unchecked while its P5.03-P5.05 children are checked. Historical T010/P6 children remain unchecked despite initial pilot/analyze completion records. Do not mark the new pilot executed merely to fix old checklist; separate historical completion from current renewed pilot handoff. |
+| A06 | Mixed-era machine-readable checkpoints | plan-to-tasks.yaml lines 373-377; spec-to-plan.yaml warning at line 48; tasks-to-impl.yaml lines 21-22, 240-244, 281 | Claims all 36 steps unimplemented, D002-D005 open, no pending tasks, schema-v2/goal limitations, and that old pilot DB exists/resume is required coexist with updated completed-work and deletion records. Scoped historical summaries can be preserved, but unqualified operational fields can misroute a future agent. Current cap remains unapproved; handoff and actual result review remain pending. |
+
+Numerical verification in existing `dlo-cq`, using actual current YAMLs and Jr/Ja constants:
+`Q-prime_max = 100 * 4 / (Jn * 0.75)` gives Jn 2 -> 266.6667, 4 -> 133.3333,
+9 -> 59.2593, 15 -> 35.5556. Therefore none of the four pilot cases can occupy overflow
+`Q-prime > 400` under current contracts. This is arithmetic reachability, not a predicted
+measured RQD or permission to select a new target. Even other currently executable Jn
+values are at least 2 and do not restore overflow reachability.
+
+Not conflicts by themselves:
+
+- Pilot-first then T011 policy/implementation remains supported by section 11.2.2 and
+  implementation section 9; manual cumulative append/report does not implement automatic
+  higher-to-lower signature updating.
+- The historically approved 1000 invocation cap and ten planned jobs control different
+  things; neither approves today's cap or sets the total future research budget.
+- YAML schema 1 and SQLite schema 4 are different contracts.
+- Exact YAML/runtime batch identity and normalized scientific execution fingerprint are
+  different identifiers; formatting changes may create a batch without new independent
+  scientific evidence. Current deduplication distinguishes these.
+- Descriptive profile/occupied-bin computation with positive support is not statistical
+  sufficiency or an approved adaptive bin-transition threshold.
+- Historical counts 175/207/224/226 and latest 227 tests describe different verified steps,
+  not proof of conflicting results.
+- The original pilot completed and its results were subsequently deleted; new Jn-mapped
+  pilots remain unexecuted. Synthetic acceptance observations are not real pilot results.
+- README work-history prohibition does not itself prohibit updating README's general
+  command guide. Such an update must not add per-step logs or imply execution approval.
+
+Documentation correction is a separate step requiring user instruction; A01/A02 scientific
+scope/priority clarification needs discussion rather than silently choosing a policy.
+Actual cap/DB/run approval has not changed. CLI help and arithmetic checks created no pilot
+DB, manifest or real DFN/simulation; no environment was created.
+
+### Side analysis while handoff is paused (2026-10-31 18:37 +09:00)
+
+User requested postponing pilot/main discussion and calculating theoretical Q-prime limits
+by Jn, emphasizing low-bin reachability rather than treating >400 as a requirement.
+Results are recorded in the final standalone-theory section of the strategy plan.
+With calculation RQD [10,100], Jr [0.5,4], Ja [0.75,20]:
+minimum=0.25/Jn; maximum=(1600/3)/Jn. All ten existing score-grid Jn values were evaluated.
+Exact rational extrema match the archived 33,660-row enumeration; discrete Jr/Ja scenario
+interval unions with continuous RQD are connected. Low bin (0,0.22919545] is unreachable
+for Jn 0.5/1 but partly reachable for Jn>=2 in the listed grid; the grid-wide theoretical
+floor is 0.0125 at Jn20, not zero. These are mathematical score possibilities, not actual
+DFN outcomes, new execution approvals or changed bin/selection policy.
+Only `dlo-cq` calculation and read-only archived data checks were used. No code/config
+or archived file changes, pilot DB writes, environment creation or simulation occurred.
+Handoff stays paused with numeric cap unresolved; do not resume pilot/main work implicitly.
+
+### Bin-conditioned score-combination analysis (2026-10-31 18:49 +09:00; terminology corrected 18:51 +09:00)
+
+User requested bin-specific parameter combinations/ranges rather than only global extrema,
+with selected Jn {2,4,9,15,20}. Added reusable detail/summary CSVs and explanation at the
+end of the strategy plan. For every bin and (Jn,Jr,Ja), intersect [10,100] with
+(bin_lower*Jn*Ja/Jr,bin_upper*Jn*Ja/Jr]; preserve open/closed endpoints and infeasible rows.
+3,630 detail rows and 55 summary rows generated; exact inverse membership matched all
+15,180 two-unit calculation-RQD grid classifications; feasible midpoints and ten examples
+checked against current bin function. Existing dlo-cq only; generator scratch script is
+removed after use. No production simulation/code/config/policy changes or archive writes.
+Necessary response/RQD conditions do not directly identify P32/size/orientation DFN inputs;
+observational DFN-to-RQD learning remains required. Pilot/main handoff stays paused.
+
+User correction at 2026-10-31 18:51 +09:00: signature expresses DFN -> RQD;
+(RQD,Jn,Jr,Ja) is a Q-prime score combination, not a signature. Renamed the two new
+tables to qprime_bin_score_ranges.csv and qprime_bin_score_summary.csv and corrected
+their current explanatory terminology, preserving numerical contents. No simulation
+or input/policy change; pilot/main handoff remains paused.

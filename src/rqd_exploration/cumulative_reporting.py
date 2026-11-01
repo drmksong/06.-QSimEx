@@ -20,7 +20,7 @@ from .dataset import CumulativeRawDatasetRevision
 from .fingerprint import JsonValue, fingerprint_snapshot
 from .reporting import _format_field
 
-CUMULATIVE_REPORT_SCHEMA_VERSION = "rqd_exploration_cumulative_coverage_v1"
+CUMULATIVE_REPORT_SCHEMA_VERSION = "rqd_exploration_cumulative_coverage_v2"
 
 CUMULATIVE_CSV_HEADERS: dict[str, tuple[str, ...]] = {
     "signature_observation_scenarios.csv": (
@@ -79,6 +79,9 @@ CUMULATIVE_CSV_HEADERS: dict[str, tuple[str, ...]] = {
         "source_manifest_id", "design_id", "block_id", "sample_index",
         "realization_seed", "profile_id", "location_index", "joint_set_id",
         "p32_m2_per_m3", "jr_value", "ja_value", "qprime_bh", "support_length_m",
+        "execution_fingerprint_digest", "measured_p32_m2_per_m3",
+        "measured_total_p32_m2_per_m3", "p32_method_id", "p32_method_version",
+        "generated_joint_count", "intersecting_joint_count",
     ),
     "unavailable_profiles.csv": ("profile_id", "reason"),
 }
@@ -216,6 +219,13 @@ def _validate_revision(revision: CumulativeRawDatasetRevision) -> None:
         raise ValueError("cumulative dataset snapshot does not match its SHA-256")
 
 
+def select_cumulative_observations(
+    revision: CumulativeRawDatasetRevision,
+) -> tuple[AnalysisObservation, ...]:
+    """Share the report's deduplication/conflict exclusion with BH control analysis."""
+    return _prepare_report(revision, jr_values=(.5,), ja_values=(.75,)).observations
+
+
 def _prepare_report(
     revision: CumulativeRawDatasetRevision,
     *,
@@ -284,7 +294,10 @@ def _prepare_report(
         if len({_observation_result(item) for item in items}) > 1:
             conflict_types_by_key.setdefault(key, set()).add("observation_values")
     for key, items in status_groups.items():
-        if len({_location_result(item) for item in items}) > 1:
+        final_results = {
+            _location_result(item) for item in items if item.status != "planned"
+        }
+        if len(final_results) > 1:
             conflict_types_by_key.setdefault(key, set()).add("location_status")
 
     conflicts: list[FingerprintConflict] = []
@@ -343,7 +356,10 @@ def _prepare_report(
     location_source_counts: dict[tuple[object, ...], int] = {}
     representative_location_keys: set[tuple[object, ...]] = set()
     for key, items in status_groups.items():
-        ordered = sorted(items, key=_location_source_key)
+        ordered = sorted(
+            items,
+            key=lambda item: (item.status == "planned", _location_source_key(item)),
+        )
         for item in ordered:
             location_source_counts[_location_source_key(item)] = len(items)
         if key[0] in conflicted_fingerprints:
@@ -757,8 +773,15 @@ def _distribution_bin_rows(
             )
 
 
-def _p32_rows(result: ReferenceProfileAnalysis) -> Iterator[tuple[object, ...]]:
+def _p32_rows(result, observations, measured_p32) -> Iterator[tuple[object, ...]]:
+    digests = {(o.manifest_id, o.design_id, o.block_id, o.sample_index, o.realization_seed,
+                o.profile_id, o.location_index): o.execution_fingerprint_digest
+               for o in observations if o.modality == "BH"}
     for item in result.qprime_p32_points:
+        digest = digests[(item.manifest_id, item.design_id, item.block_id, item.sample_index,
+                          item.realization_seed, item.profile_id, item.location_index)]
+        records = measured_p32.get(digest, {})
+        measured, total = records.get(item.joint_set_id, {}), records.get("", {})
         yield (
             item.manifest_id,
             item.design_id,
@@ -773,6 +796,9 @@ def _p32_rows(result: ReferenceProfileAnalysis) -> Iterator[tuple[object, ...]]:
             item.ja_value,
             item.qprime_bh,
             item.support_length_m,
+            digest, measured.get("p32_m2_per_m3"), total.get("p32_m2_per_m3"),
+            measured.get("method_id"), measured.get("method_version"),
+            measured.get("joint_count"), measured.get("intersecting_joint_count"),
         )
 
 
@@ -784,6 +810,7 @@ def _unavailable_rows(result: ReferenceProfileAnalysis) -> Iterator[tuple[object
 def _rows_by_file(
     revision: CumulativeRawDatasetRevision,
     prepared: _PreparedReport,
+    measured_p32,
 ) -> dict[str, Iterable[tuple[object, ...]]]:
     result = prepared.analysis_result
     return {
@@ -805,7 +832,7 @@ def _rows_by_file(
         "location_status_sources.csv": _location_source_rows(revision, prepared),
         "bh_face_distribution_contrasts.csv": _distribution_rows(result),
         "bh_face_bin_contrasts.csv": _distribution_bin_rows(result),
-        "qprime_p32.csv": _p32_rows(result),
+        "qprime_p32.csv": _p32_rows(result, prepared.observations, measured_p32),
         "unavailable_profiles.csv": _unavailable_rows(result),
     }
 
@@ -847,12 +874,23 @@ def _summary_payload(
     }
 
 
+def cumulative_report_identity(revision, analysis_fingerprint, measured_p32=None):
+    digests = {o.execution_fingerprint_digest for o in revision.observations}
+    measured = {k: v for k, v in (measured_p32 or {}).items() if k in digests}
+    identity = {"report_schema_version": CUMULATIVE_REPORT_SCHEMA_VERSION,
+                "dataset_sha256": revision.dataset_sha256,
+                "analysis_fingerprint_sha256": analysis_fingerprint,
+                "measured_p32_sha256": fingerprint_snapshot(measured).sha256_hex}
+    return {**identity, "report_fingerprint_sha256": fingerprint_snapshot(identity).sha256_hex}
+
+
 def export_cumulative_coverage_report(
     output_directory: Path,
     revision: CumulativeRawDatasetRevision,
     *,
     jr_values: tuple[float, ...] | None = None,
     ja_values: tuple[float, ...] | None = None,
+    measured_p32: dict | None = None,
 ) -> CumulativeReportExportResult:
     """Preflight exact row counts, then stream a cumulative coverage report."""
     if not isinstance(output_directory, Path):
@@ -887,7 +925,7 @@ def export_cumulative_coverage_report(
             for conflict in prepared.conflicts
         }),
     )
-    rows_by_file = _rows_by_file(revision, prepared)
+    rows_by_file = _rows_by_file(revision, prepared, measured_p32 or {})
     output_directory.mkdir(parents=True, exist_ok=True)
     for item in preflight.files:
         with (output_directory / item.file_name).open(
@@ -907,9 +945,10 @@ def export_cumulative_coverage_report(
                     f"preflight expected {item.expected_rows}"
                 )
 
-    summary_bytes = fingerprint_snapshot(
-        _summary_payload(preflight, prepared)
-    ).canonical_bytes
+    summary_bytes = fingerprint_snapshot({
+        **_summary_payload(preflight, prepared),
+        **cumulative_report_identity(revision, analysis_fingerprint.sha256_hex, measured_p32),
+    }).canonical_bytes
     with (output_directory / "report_summary.json").open("wb") as stream:
         stream.write(summary_bytes)
     return CumulativeReportExportResult(

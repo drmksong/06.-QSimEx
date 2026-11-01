@@ -31,6 +31,7 @@ def build_generation_case(
     joint_sets: tuple[ExecutionJointSet, ...],
     *,
     case_id: str,
+    allow_constant_radius: bool = False,
 ) -> CaseSpec:
     """Build a generation-only case; its placeholder Jr/Ja must never score observations."""
     if not 1 <= len(joint_sets) <= 5:
@@ -49,8 +50,10 @@ def build_generation_case(
     ):
         raise ValueError("geometry cell counts/grid spacing must match domain size")
     for item in joint_sets:
-        if not item.size_r_min_m < item.size_r_max_m:
-            raise ValueError("sampled radii must satisfy size_r_min_m < size_r_max_m")
+        if (item.size_r_min_m > item.size_r_max_m or
+            (not allow_constant_radius and item.size_r_min_m == item.size_r_max_m)):
+            operator = "<=" if allow_constant_radius else "<"
+            raise ValueError(f"sampled radii must satisfy size_r_min_m {operator} size_r_max_m")
 
     case = CaseSpec(
         case_id=case_id,

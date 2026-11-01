@@ -1,8 +1,14 @@
 metadata:
   generated: '2026-10-28'
-  source_plan: ../ImplementationPlan_v4.md
-  target_tasks: ../ImplementationPlan_v4.md#51
-  strategy_plan: plan.md
+  last_updated: "2026-10-31 23:45 +09:00"
+  source_plan: ../../ImplementationPlan_v4.md
+  target_tasks: ../../ImplementationPlan_v4.md#51
+  strategy_plan: ../plan.md
+  snapshot_scope: "Original plan-to-task mapping and 36-step decomposition, not current execution status. Preserve mapping/counts; later implementation and cumulative work supersede original readiness warnings."
+  current_status_reference: "tasks-to-impl.yaml#current_status"
+  main_extension_reference: "../../MainSimulation_T011/checkpoints/plan-to-tasks.yaml"
+  main_extension_status: "P7.02.01–09 implemented/final274 verified. Original36-step/3-deferred summary remains the original inventory. Main execution approval separate."
+  main_implementation_reference: "../../MainSimulation_T011/checkpoints/tasks-to-impl.yaml"
 summary:
   total_plan_items: 7
   covered_plan_items: 7
@@ -370,9 +376,14 @@ execution_breakdown:
   status: deferred
 validation:
   passed: true
-  scope: Document traceability only; 36 steps remain unimplemented and runtime gates are not passed.
+  scope: "Original document traceability only. Original T001-T010 completed; T010/P6 is historical Jn0.5/1. Current pilot handoff/execution/review and T011 are separate; see current_status_reference."
   errors: []
-  warnings:
+  historical_scope: "Document traceability only; 36 steps remain unimplemented and runtime gates are not passed."
+  historical_warnings:
   - Pilot G0 simplified contract is approved; remaining integrated DDL and snapshot fields require T002 confirmation.
   - Open decisions D002-D005 block only affected steps; D006 and T011 remain deferred.
   - T011 requires approved adaptive allocation, candidate and transition policies.
+  warnings:
+  - "D002/D003 resolved and D004/D005 verified under dated decisions; do not restart their completed implementation."
+  - "2026-10-31 23:45 +09:00: T0119 tasks implemented/final274 verified in main_implementation_reference. No actual main execution approval."
+  - "Historical mapping coverage is not current runtime/G4 approval or a complete inventory of cumulative-workflow tasks."

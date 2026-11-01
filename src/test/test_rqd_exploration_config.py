@@ -7,13 +7,14 @@ import yaml
 from src.rqd_exploration.config import load_config, parse_config_bytes
 
 
-PILOT2_PATH = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot2.yml"
-VALID_YAML = PILOT2_PATH.read_bytes()
+PILOT_PATH = Path(__file__).resolve().parents[2] / "config/rqd_exploration_pilot.yml"
+PILOT2_PATH = PILOT_PATH.with_name("rqd_exploration_pilot2.yml")
+VALID_YAML = PILOT_PATH.read_bytes()
 
 
 class TestRQDExplorationConfig(unittest.TestCase):
     def test_pilot_review_yaml_matches_approved_values(self) -> None:
-        path = PILOT2_PATH
+        path = PILOT_PATH
         config = load_config(path)
 
         self.assertEqual(config.source_yaml_bytes, path.read_bytes())
@@ -53,6 +54,36 @@ class TestRQDExplorationConfig(unittest.TestCase):
                 self.assertEqual((joint_set.p32.lower, joint_set.p32.upper), (0.01, 100))
                 for bounds in (joint_set.size_r_min_m, joint_set.size_r_max_m):
                     self.assertEqual((bounds.lower, bounds.upper), (0.05, 150))
+
+    def test_both_v4_pilots_cover_one_to_four_joint_sets(self) -> None:
+        for path, expected in (
+            (PILOT_PATH, [(2.0, 1), (4.0, 2)]),
+            (PILOT2_PATH, [(9.0, 3), (15.0, 4)]),
+        ):
+            with self.subTest(path=path.name):
+                config = load_config(path)
+                self.assertNotIn("target_goals", yaml.safe_load(config.source_yaml_bytes))
+                self.assertEqual(
+                    [(d.fixed_jn, len(d.joint_sets)) for d in config.designs],
+                    expected,
+                )
+                self.assertEqual(
+                    [(d.sample_count, d.design_seed, d.realization_seed)
+                     for d in config.designs],
+                    [(5, 39, 43), (5, 36, 43)],
+                )
+                for design in config.designs:
+                    self.assertEqual(
+                        [joint.joint_set_id for joint in design.joint_sets],
+                        [f"set-{index + 1}" for index in range(len(design.joint_sets))],
+                    )
+                for index, (_, expected_count) in enumerate(expected):
+                    data = yaml.safe_load(config.source_yaml_bytes)
+                    data["designs"][index]["joint_sets"].pop()
+                    with self.assertRaisesRegex(
+                        ValueError, f"requires exactly {expected_count} joint_sets",
+                    ):
+                        parse_config_bytes(yaml.safe_dump(data).encode())
 
     def test_normalizes_values_and_preserves_exact_source_bytes(self) -> None:
         config = parse_config_bytes(VALID_YAML, "pilot.yml")

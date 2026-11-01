@@ -357,7 +357,13 @@ class CaseJointFactory:
         seed: int,
         *,
         progress_callback: Callable[[ProgressUpdate], None] | None = None,
+        generation_mode: str = "legacy",
     ) -> DiskJointGeometry:
+        from .generation import FIXED_DOMAIN, LEGACY, PER_JOINT_BUFFER
+        if generation_mode == PER_JOINT_BUFFER:
+            return self._generate_buffered(case, seed, progress_callback)
+        if generation_mode not in (LEGACY, FIXED_DOMAIN):
+            raise ValueError(f"unsupported generation mode: {generation_mode}")
         validate_case(case)
         if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
             raise ValueError("seed must be a non-negative integer")
@@ -417,12 +423,16 @@ class CaseJointFactory:
                 rng,
             )
 
-            # The maximum-radius buffer keeps every disk capable of reaching the
-            # domain in the generated set, including disks centered outside it.
-            buffer = joint_set.size_r_max
-            centers = np.column_stack(tuple(
-                rng.uniform(-buffer, extent + buffer, count) for extent in extents
-            ))
+            if generation_mode == FIXED_DOMAIN:
+                centers = np.column_stack(tuple(
+                    rng.uniform(0., extent, count) for extent in extents
+                ))
+            else:
+                # Preserve the original pilot placement and random stream.
+                buffer = joint_set.size_r_max
+                centers = np.column_stack(tuple(
+                    rng.uniform(-buffer, extent + buffer, count) for extent in extents
+                ))
             for index in range(count):
                 center = centers[index]
                 normal = normals[index]
@@ -443,4 +453,41 @@ class CaseJointFactory:
                     len(joint_sets),
                 ))
 
+        return DiskJointGeometry(tuple(generated))
+
+    def _generate_buffered(self, case, seed, progress_callback):
+        from .generation import radius_bin_plan
+        validate_case(case)
+        if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+            raise ValueError("seed must be a non-negative integer")
+        extents = _domain_extents(case.domain)
+        rng = np.random.RandomState(np.random.SeedSequence(seed).generate_state(4))
+        generated = []
+        ordered_sets = sorted(case.joint_sets, key=lambda item: item.set_id)
+        for set_index, joint_set in enumerate(ordered_sets, start=1):
+            density = (joint_set.density_value if joint_set.density_type == "P32"
+                       else 1 / joint_set.density_value)
+            local_id = 0
+            for radius_bin in radius_bin_plan(joint_set.size_alpha, joint_set.size_r_min,
+                                             joint_set.size_r_max, density, extents):
+                count = int(rng.poisson(radius_bin.expected_count))
+                if not count:
+                    continue
+                radii = (np.full(count, radius_bin.lower) if radius_bin.lower == radius_bin.upper else
+                         PowerLawSampler(joint_set.size_alpha, radius_bin.lower,
+                                         radius_bin.upper).sample(count, rng))
+                normals = FisherDistribution.sample(np.asarray(joint_set.mean_normal),
+                                                      joint_set.fisher_kappa, count, rng)
+                centers = np.column_stack(tuple(rng.uniform(-radius_bin.upper,
+                    extent + radius_bin.upper, count) for extent in extents))
+                for center, normal, radius in zip(centers, normals, radii):
+                    generated.append(JointRealization(
+                        f"{joint_set.set_id}:{local_id}", joint_set.set_id,
+                        tuple(float(v) for v in center), tuple(float(v) for v in normal),
+                        float(radius), joint_set.condition))
+                    local_id += 1
+            if progress_callback is not None:
+                progress_callback(ProgressUpdate("DFN generation",
+                    f"completed buffered set {joint_set.set_id}; generated {local_id} joints",
+                    set_index, len(ordered_sets)))
         return DiskJointGeometry(tuple(generated))

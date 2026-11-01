@@ -736,7 +736,13 @@ class MlxCaseJointFactory:
         seed: int,
         *,
         progress_callback: Callable[[ProgressUpdate], None] | None = None,
+        generation_mode: str = "legacy",
     ) -> MlxJointArrays:
+        from .generation import FIXED_DOMAIN, LEGACY, PER_JOINT_BUFFER
+        if generation_mode == PER_JOINT_BUFFER:
+            return self._generate_buffered(case, seed, progress_callback)
+        if generation_mode not in (LEGACY, FIXED_DOMAIN):
+            raise ValueError(f"unsupported generation mode: {generation_mode}")
         require_mlx_gpu()
         validate_case(case)
         if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
@@ -825,13 +831,22 @@ class MlxCaseJointFactory:
                 joint_set.mean_normal, joint_set.fisher_kappa, count, sample_key,
             )
             bounds = mx.array(extents, dtype=mx.float32)
-            centers = mx.random.uniform(
-                low=-joint_set.size_r_max,
-                high=bounds + joint_set.size_r_max,
-                shape=(count, 3),
-                dtype=mx.float32,
-                key=center_key,
-            )
+            if generation_mode == FIXED_DOMAIN:
+                centers = mx.random.uniform(
+                    low=mx.zeros((3,), dtype=mx.float32),
+                    high=bounds,
+                    shape=(count, 3),
+                    dtype=mx.float32,
+                    key=center_key,
+                )
+            else:
+                centers = mx.random.uniform(
+                    low=-joint_set.size_r_max,
+                    high=bounds + joint_set.size_r_max,
+                    shape=(count, 3),
+                    dtype=mx.float32,
+                    key=center_key,
+                )
             centers_by_set.append(centers)
             normals_by_set.append(normals)
             radii_by_set.append(radii)
@@ -876,3 +891,59 @@ class MlxCaseJointFactory:
                 generated.count,
             ))
         return generated
+
+    def _generate_buffered(self, case, seed, progress_callback):
+        from .generation import radius_bin_plan
+        require_mlx_gpu()
+        validate_case(case)
+        if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+            raise ValueError("seed must be a non-negative integer")
+        extents = _domain_extents(case.domain)
+        ordered_sets = sorted(case.joint_sets, key=lambda item: item.set_id)
+        keys = mx.random.split(mx.random.key(seed), num=max(1, len(ordered_sets)))
+        chunks = []
+        conditions = {}
+        for set_index, joint_set in enumerate(ordered_sets):
+            density = (joint_set.density_value if joint_set.density_type == "P32"
+                       else 1 / joint_set.density_value)
+            plan = radius_bin_plan(joint_set.size_alpha, joint_set.size_r_min,
+                                   joint_set.size_r_max, density, extents)
+            bin_keys = mx.random.split(keys[set_index], num=4 * len(plan))
+            local_id = 0
+            conditions[joint_set.set_id] = joint_set.condition
+            for bin_index, radius_bin in enumerate(plan):
+                offset = 4 * bin_index
+                count = _sample_poisson_count(radius_bin.expected_count, bin_keys[offset])
+                if not count:
+                    continue
+                if radius_bin.lower == radius_bin.upper:
+                    radii = mx.full((count,), radius_bin.lower, dtype=mx.float32)
+                else:
+                    uniform = mx.random.uniform(shape=(count,), dtype=mx.float32,
+                                                key=bin_keys[offset + 1])
+                    ratio = (radius_bin.lower / radius_bin.upper) ** joint_set.size_alpha
+                    radii = mx.clip(radius_bin.lower * (1 - uniform * (1 - ratio)) ** (
+                        -1 / joint_set.size_alpha), radius_bin.lower, radius_bin.upper)
+                normals = _sample_fisher_normals(joint_set.mean_normal,
+                    joint_set.fisher_kappa, count, bin_keys[offset + 2])
+                centers = mx.random.uniform(low=-radius_bin.upper,
+                    high=mx.array(extents, dtype=mx.float32) + radius_bin.upper,
+                    shape=(count, 3), dtype=mx.float32, key=bin_keys[offset + 3])
+                chunks.append((centers, normals, radii,
+                    mx.full((count,), joint_set.set_id, dtype=mx.int32),
+                    mx.arange(local_id, local_id + count, dtype=mx.int32)))
+                local_id += count
+                if progress_callback is not None:
+                    progress_callback(ProgressUpdate("DFN generation",
+                        f"buffered set {joint_set.set_id}; radius bin {bin_index + 1}/{len(plan)}; "
+                        f"sampled {local_id} joints", set_index, len(ordered_sets)))
+        if chunks:
+            arrays = tuple(mx.concatenate([chunk[i] for chunk in chunks], axis=0) for i in range(5))
+        else:
+            arrays = (mx.zeros((0, 3), dtype=mx.float32), mx.zeros((0, 3), dtype=mx.float32),
+                      mx.zeros((0,), dtype=mx.float32), mx.zeros((0,), dtype=mx.int32),
+                      mx.zeros((0,), dtype=mx.int32))
+        if progress_callback is not None:
+            progress_callback(ProgressUpdate("DFN materialization", "evaluating buffered GPU arrays"))
+        mx.eval(*arrays)
+        return MlxJointArrays(*arrays, conditions)

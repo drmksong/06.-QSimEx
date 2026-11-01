@@ -1,0 +1,160 @@
+batch_id: T011-P7.02
+completed_at: "2026-10-31 23:45 +09:00"
+completed_tasks: ["P7.02.01", "P7.02.02", "P7.02.03", "P7.02.04", "P7.02.05", "P7.02.06", "P7.02.07", "P7.02.08", "P7.02.09"]
+blocked_tasks: []
+files_changed:
+  P7.02.01:
+    - {file: "src/rqd_exploration/main_policy.py", change_type: created, description: "Typed approved policy and input validation"}
+    - {file: "config/rqd_exploration_main.yml", change_type: created, description: "Main policy/configuration"}
+    - {file: "config/rqd_exploration_jn20.yml", change_type: created, description: "5-set/5-LHS/design40/realization43 initialization"}
+  P7.02.02:
+    - {file: "src/rqd_exploration/main_store.py", change_type: created, description: "Versioned control persistence, budget starts, writer lock and atomic history"}
+  P7.02.03:
+    - {file: "src/rqd_exploration/main_analysis.py", change_type: created, description: "Reachable BH goals, paired progress and support/CDF seed stability"}
+    - {file: "src/rqd_exploration/dataset.py", change_type: modified, description: "Reuse source-selection boundary"}
+  P7.02.04:
+    - {file: "src/rqd_exploration/main_design.py", change_type: created, description: "Deterministic bounded candidates and analytical cost"}
+    - {file: "src/rqd_exploration/design.py", change_type: modified, description: "Reuse explicit-sample boundary"}
+  P7.02.05:
+    - {file: "src/rqd_exploration/main_controller.py", change_type: created, description: "Rounds, goals, reference rotation, verification, transitions, stops/recovery"}
+  P7.02.06:
+    - {file: "src/rqd_exploration/runner.py", change_type: modified, description: "Share single-job execution while preserving pilot summary/behavior"}
+    - {file: "src/rqd_exploration/adapter.py", change_type: modified, description: "Main-only equal-radius opt-in, strict pilot default preserved"}
+  P7.02.07:
+    - {file: "src/rqd_exploration/cli.py", change_type: modified, description: "validate-main, preview-main, confirmed run-main; existing6 commands preserved"}
+  P7.02.08:
+    - {file: "src/rqd_exploration/cumulative_reporting.py", change_type: modified, description: "Share reporting metadata"}
+    - {file: "src/rqd_exploration/main_controller.py", change_type: modified, description: "Event reporting, report reuse/collision isolation"}
+    - {file: "readme.md", change_type: modified, description: "Program usage only; no dated progress/test/run logs"}
+  P7.02.09:
+    - {file: "src/test/test_rqd_main_policy.py", change_type: created, description: "2 policy tests"}
+    - {file: "src/test/test_rqd_main_store.py", change_type: created, description: "9 control persistence/budget tests"}
+    - {file: "src/test/test_rqd_main_analysis.py", change_type: created, description: "6 evidence/stability tests"}
+    - {file: "src/test/test_rqd_main_design.py", change_type: created, description: "4 candidate/cost tests"}
+    - {file: "src/test/test_rqd_main_controller.py", change_type: created, description: "9 scheduling/control tests"}
+    - {file: "src/test/test_rqd_main_workflow.py", change_type: created, description: "6 temporary-DB/mocked-measurement/CLI integration tests"}
+    - {file: "src/test/test_rqd_main_integrity.py", change_type: created, description: "10 regression tests for6 review findings"}
+upstream_artifacts_consumed:
+  all_tasks:
+    - {artifact: "Specification/MainSimulation_T011/plan.md", used_for: "Approved policy,9 tasks, dependencies and acceptance criteria"}
+    - {artifact: "Specification/RQDExplorationStrategy_20261026/plan.md", used_for: "REQ-001–013, source design and scientific contracts"}
+    - {artifact: "Specification/ImplementationPlan_v4.md", used_for: "Existing reuse/storage/runner boundaries and Phase7"}
+    - {artifact: ".github/SKILL.md", used_for: "Surgical edits, conda, approval boundaries and README/log separation"}
+evidence_mapping:
+  mapping: "checkpoints/tasks-to-impl.yaml"
+  source_requirements: "checkpoints/spec-to-plan.yaml"
+  source_tasks: "checkpoints/plan-to-tasks.yaml"
+traceability:
+  - {requirement: REQ-001, tasks: ["P7.02.01", "P7.02.04", "P7.02.09"], status: completed}
+  - {requirement: REQ-002, tasks: ["P7.02.01", "P7.02.03", "P7.02.04", "P7.02.09"], status: completed}
+  - {requirement: REQ-003, tasks: ["P7.02.02", "P7.02.03", "P7.02.06", "P7.02.08", "P7.02.09"], status: completed}
+  - {requirement: REQ-004, tasks: ["P7.02.03", "P7.02.06", "P7.02.08", "P7.02.09"], status: completed}
+  - {requirement: REQ-005, tasks: ["P7.02.01", "P7.02.03", "P7.02.08", "P7.02.09"], status: completed}
+  - {requirement: REQ-006, tasks: ["P7.02.03", "P7.02.04", "P7.02.05", "P7.02.07", "P7.02.08", "P7.02.09"], status: completed}
+  - {requirement: REQ-007, tasks: ["P7.02.01", "P7.02.02", "P7.02.04", "P7.02.05", "P7.02.06", "P7.02.07", "P7.02.08", "P7.02.09"], status: completed}
+  - {requirement: REQ-008, tasks: ["P7.02.02", "P7.02.06", "P7.02.07", "P7.02.09"], status: completed}
+  - {requirement: REQ-009, tasks: ["P7.02.02", "P7.02.03", "P7.02.04", "P7.02.05", "P7.02.06", "P7.02.08", "P7.02.09"], status: completed}
+  - {requirement: REQ-010, tasks: ["P7.02.01", "P7.02.02", "P7.02.06", "P7.02.07", "P7.02.08", "P7.02.09"], status: completed}
+  - {requirement: REQ-011, tasks: ["P7.02.01", "P7.02.03", "P7.02.04", "P7.02.05", "P7.02.07", "P7.02.09"], status: completed}
+  - {requirement: REQ-012, tasks: ["P7.02.03", "P7.02.04", "P7.02.05", "P7.02.06", "P7.02.07", "P7.02.09"], status: completed}
+  - {requirement: REQ-013, tasks: ["P7.02.02", "P7.02.03", "P7.02.04", "P7.02.05", "P7.02.06", "P7.02.08", "P7.02.09"], status: completed}
+protocol_violation: false
+errors: []
+warnings:
+  - "No physical DFN generation, production DB/results writes, new environments/dependencies, or commits."
+  - "Initial full264 passed; integrity review then found6 policy/recovery/reporting defects. All6 fixed and inspected; final full274 passed."
+  - "An auxiliary confirmation-probe harness initially failed because its scratch parent was absent; retried in existing session storage and passed. This was not a product/test-suite failure."
+  - "Preview cost gate marks Jn20 inputs0/2/3 for user review; runtime approval is separate."
+test_results:
+  final_suite: &full
+    command: "TMPDIR=\"$PWD/.rqd-main-test-work\" conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py'"
+    scope: "Shared final suite; create scratch directory before invocation."
+    passed: 274
+    failed: 0
+    skipped: 0
+    failures: []
+    runtime_seconds: 58.197
+  focused_rqd:
+    command: "TMPDIR=\"$PWD/.rqd-integrity-test-work\" conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_rqd*.py'"
+    passed: 190
+    failed: 0
+    skipped: 0
+    failures: []
+  integrity:
+    command: "conda run -n dlo-cq python -m unittest src.test.test_rqd_main_integrity"
+    passed: 10
+    failed: 0
+    skipped: 0
+    failures: []
+  P7.02.01: *full
+  P7.02.02: *full
+  P7.02.03: *full
+  P7.02.04: *full
+  P7.02.05: *full
+  P7.02.06: *full
+  P7.02.07: *full
+  P7.02.08: *full
+  P7.02.09: *full
+new_main_test_count: 46
+integrity_review:
+  original_findings: 6
+  resolved_findings: 6
+  residual_high_confidence_findings: 0
+  items: ["Strict nonadverse progress", "Complete rotating step allocation", "Crash-safe stagnation", "Immutable round history", "CSV reuse/collision preservation", "Main-only equal-radius execution"]
+cli_checks:
+  validate_main: passed
+  preview_main: passed
+  preview_database_written: false
+  jn20_jobs: 5
+  jn20_sets: 5
+  design_seed: 40
+  realization_seed: 43
+  missing_confirmation_exit_code: 2
+  missing_confirmation_db_and_output_created: false
+  cost_review_jobs: 3
+  expected_joints_per_input: [46287134.312012844, 900540.4600473881, 16827472.287097428, 117741623.16095383, 679309.727671957]
+other_checks:
+  syntax_and_signatures: passed
+  diff_check: passed
+execution_approval:
+  actual_main_execution: not_granted
+  physical_validation: not_performed
+follow_up_jn20_exclusion:
+  approved_at: "2026-11-01 06:10 +09:00"
+  completed_at: "2026-11-01 06:19 +09:00"
+  active_jn: [2, 4, 9, 15]
+  initial_input: null
+  initial_jobs: 0
+  primary_bins_reachable: 10
+  minimum_qprime_without_jn20: "1/60"
+  minimum_qprime_with_jn20: 0.0125
+  files_changed:
+    - config/rqd_exploration_main.yml
+    - src/rqd_exploration/main_policy.py
+    - src/rqd_exploration/main_analysis.py
+    - src/rqd_exploration/main_controller.py
+    - src/rqd_exploration/cli.py
+    - src/test/test_rqd_main_policy.py
+    - src/test/test_rqd_main_controller.py
+    - src/test/test_rqd_main_design.py
+    - src/test/test_rqd_main_store.py
+    - src/test/test_rqd_main_workflow.py
+    - src/test/test_rqd_main_integrity.py
+    - readme.md
+  test_results:
+    command: "conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_*.py'"
+    passed: 277
+    failed: 0
+    skipped: 0
+    main_tests: 49
+    runtime_seconds: 57.575
+  checks:
+    initial_exclusion_red_first: true
+    public_preview_zero_initial_jobs_and_writes: true
+    no_initial_startup_and_interruption_resume: true
+    saved_jn20_excluded_from_ledger_raw_untouched: true
+    explicit_jn20_reinclusion_preserved: true
+    config_choice_changes_fingerprint: true
+    main_policy_controller_diagnostics: clean
+    goal_signature_callers_compatible: 2
+  actual_main_execution: not_performed
