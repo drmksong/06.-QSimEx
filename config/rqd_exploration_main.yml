@@ -4,10 +4,6 @@ initial_input: null
 baseline_inputs: [rqd_exploration_main_baseline.yml, rqd_exploration_main_baseline2.yml]
 rng_seed: 40
 policy:
-  group_size: 3
-  consecutive_passes: 2
-  stability_tolerance: 0.10
-  required_inputs: 3
   distance_step_rqd: 1.0
   support_step_fraction: 0.01
   initial_seed: 43
@@ -16,7 +12,6 @@ policy:
   multi_axis_candidates: 2
   lhs_candidates: 2
   progress_inputs_per_round: 2
-  stability_inputs_per_round: 1
   stagnant_rounds: 3
   maximum_starts: 20000
   review_checkpoint_starts: 10000

@@ -157,19 +157,20 @@ conda run -n dlo-cq python -u run_rqd_exploration.py run-main --config config/rq
 - 메인은 별도 baseline YAML에서 군별 P32 `[0.01,10]`, 반경 `[1,150]`m을 log LHS로 뽑습니다.
   Alpha `[2.5,4]`, kappa `[0,50]`, 방향 bounds는 유지하며 P32 step은0.1/1.0입니다.
   기존 파일럿 YAML/기본 생성기는 변경하지 않습니다.
-- 목표마다 실제 양의 BH support를 가진 생성 입력3개가 필요합니다. Seed·Jr/Ja·
-  주석·장치 runtime 변경을 다른 생성 입력으로 세지 않습니다. 생성 mode는 물리 입력 identity에 포함합니다.
-  각 입력은 seed44부터 겹치지 않는
-  3-seed 그룹의 CDF/support 차이 각각10%p 이하를 연속2회 통과해야 합니다.
-  모두0인 목표 support는 통과가 아니며 실패한 안정성 관측도 누적 자료에 남습니다.
-- 신규 후보는 회차당 최대8/2/2(한 축/복수 축/LHS)입니다. 진전 확인 입력 최대2개,
-  완전 안정성 확인 입력1개를 배정하며 적격 입력3개가 있으면 검증을 우선합니다.
+- 각 목표는 하나의 고정 생성 입력에서 판정합니다. 설정된 초기 seed에서 양의 목표 BH
+  support가 먼저 있어야 하며, 이어 설정된 검증 seed 3개 중 적어도2개에서 양의 support가
+  있어야 통과합니다. 입력 간 seed 결과를 합산하지 않습니다. A/B/C 그룹 분포 비교와 별도
+  안정성 통과 문턱은 없습니다. Seed·Jr/Ja·주석·장치 runtime 변경은 다른 생성 입력으로 세지
+  않으며, 생성 mode는 물리 입력 identity에 포함합니다.
+- 신규 후보는 회차당 최대8/2/2(한 축/복수 축/LHS)입니다. 진전 확인 입력은 최대2개입니다.
+  참조·후보 짝비교의 별도 3→5-seed 진전 heuristic은 후보 탐색용이며 목표 통과 판정이 아닙니다.
+  목표가 초기 seed 양의 support를 얻고 검증 seed 결과가 미완료이면 해당 검증을 우선합니다.
   신규 bounds 밖의 기존 자료도 목표 판단에는 포함하지만 mutation 참조에서는 제외하고 사유를 기록합니다.
   적격 참조가 없으면 신규 LHS를 최대12개 배정하며 참조가 생기면8/2/2로 돌아갑니다.
   같은 우선순위의 참조는 완전한 두 축의 ±작은/큰 step 묶음을 유지하며 순환합니다.
   진전 문턱은 거리1 RQD 포인트/support1%p와 다른 지표의 실제 비악화 조건입니다.
-  개선 문턱보다 작은 악화도 비악화로 취급하지 않습니다. 최초2/3이며 정확히1/3일 때만
-  2개를 추가해3/5로 판정합니다. 이는 안정성 확인 및 최종 통계적 충분성과 다릅니다.
+  개선 문턱보다 작은 악화도 비악화로 취급하지 않습니다. 이 진전 heuristic은 목표 seed 통과
+  여부와 별도이며 최종 통계적 충분성 gate도 아닙니다.
 - 메인 시작 예산은 논리 run당 최대20,000회입니다. 참조·실패·중단 후 재생성도 차감하고 저장된
   입력/seed 재사용은 차감하지 않습니다. 기대 절리 수1000만 초과는 생성 전에 검토 중단하며
   정확히1000만은 허용합니다. 10,000회에서 수동 검토용 review checkpoint로 중단합니다.
@@ -179,7 +180,7 @@ conda run -n dlo-cq python -u run_rqd_exploration.py run-main --config config/rq
 - 완료된3회차 무진전, 예산, 고비용, 오류, 비교 불가, 후보 소진, 목표 완료,
   사용자 중단을 구분합니다. 오류 자동 재시도는 없습니다. 사용자 중단만 동일 명령으로
   자동 재개하며 미완료 DFN 재생성은 추가 차감합니다. 다른 pause는 별도 검토/승인 경계입니다.
-  `--recover-incomparable`은 예외적으로, saved queue의 안정성 샘플이 이미 성공했고
+  `--recover-incomparable`은 예외적으로, saved queue의 target verification sample이 이미 성공했고
   현재 누적 원자료에서 해당 seed의 유효 BH support가 복구된 경우에만 명시적으로 재개합니다.
   이 경우 저장된 관측을 재사용해 새 시작 예산을 차감하지 않으며, 그 외 비교 불가 상태는 거부합니다.
   `run-main`은 목표 완료에만 종료코드0, 검토 pause에1, 확인 누락에2를 반환합니다.
@@ -196,8 +197,14 @@ conda run -n dlo-cq python -u run_rqd_exploration.py run-main --config config/rq
   `cumulative/revision-N/analysis-<fingerprint>/reports/`에 메인 분석을 따로 보존합니다.
   보고 schema 또는 측정 P32 snapshot이 바뀌면 report identity별 디렉터리에 별도로 보존합니다.
   기존 `report-cumulative`의 명시한 출력 디렉터리 쓰기 동작은 유지합니다.
-  입력 조건·seed/group·Jr/Ja 조합 수는 독립 DFN 수와 구별합니다.
-  Face는 관측·분포 대비용이며 후보 선택/거부/안정성/bin 전환 gate가 아닙니다.
+  입력 조건·seed realization·Jr/Ja 조합 수는 독립 DFN 수와 구별합니다.
+  `run-main`의 stderr 진행 줄에는 전체 starts 소비량/상한/잔여량, 현재 bin의 통과/도달 목표 수,
+  회차·phase·target·input·seed·job stage가 표시됩니다. stdout의 `main_summary`와 새 event별
+  `summary.json`에는 `starts_consumed`, `starts_maximum`, `starts_remaining`, `target_pass_rule`,
+  `current_bin_progress`, `current_work`, `target_evidence`를 포함합니다. 검증 seed 목록은 목표 통과
+  판정에 쓰는 세 개만 나타내며 후보 진전 비교용 추가 seed는 포함하지 않습니다. 기존 immutable
+  event summaries는 재작성하지 않습니다. Face는 관측·분포 대비용이며 후보 선택/거부/목표 통과/bin
+  전환 gate가 아닙니다.
   자동 weight·굴착/PR/TR/POST 경계 및 미측정 profile 계산은 제공하지 않습니다.
   메인 반경 후보는 승인된 `최소<=최대`를 허용하며 같으면 그대로 상수 반경으로 실행합니다.
   파일럿 LHS/기존 adapter의 기본 strict 반경 검증은 변경하지 않습니다.

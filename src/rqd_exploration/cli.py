@@ -125,7 +125,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument(
                 "--recover-incomparable",
                 action="store_true",
-                help="explicitly resume a paused stability sample only after its valid BH support is restored",
+                help="explicitly resume a paused target verification sample only after its valid BH support is restored",
             )
     return parser
 

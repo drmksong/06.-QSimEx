@@ -17,7 +17,7 @@ from .config import (
 from .fingerprint import fingerprint_snapshot
 
 
-MAIN_IMPLEMENTATION_VERSION = "qsimex-t011-main-v2-stationary-p32"
+MAIN_IMPLEMENTATION_VERSION = "qsimex-t011-main-v3-seed-pass"
 MAXIMUM_STARTS = 20_000
 REVIEW_CHECKPOINT_STARTS = 10_000
 AXES = (
@@ -31,10 +31,6 @@ AXES = (
 
 @dataclass(frozen=True)
 class MainPolicy:
-    group_size: int = 3
-    consecutive_passes: int = 2
-    stability_tolerance: float = .10
-    required_inputs: int = 3
     distance_step_rqd: float = 1.
     support_step_fraction: float = .01
     initial_seed: int = 43
@@ -43,7 +39,6 @@ class MainPolicy:
     multi_axis_candidates: int = 2
     lhs_candidates: int = 2
     progress_inputs_per_round: int = 2
-    stability_inputs_per_round: int = 1
     stagnant_rounds: int = 3
     maximum_starts: int = MAXIMUM_STARTS
     review_checkpoint_starts: int | None = REVIEW_CHECKPOINT_STARTS
@@ -51,7 +46,16 @@ class MainPolicy:
     automatic_retries: int = 0
 
     def __post_init__(self):
+        if (type(self.initial_seed) is not int or type(self.verification_seed) is not int
+            or not 0 <= self.initial_seed <= 2**53 - 1
+            or not 0 <= self.verification_seed <= 2**53 - 5):
+            raise ValueError("initial and verification seed values must be safe non-negative integers")
+        verification_seeds = range(self.verification_seed, self.verification_seed + 3)
+        if self.initial_seed in verification_seeds:
+            raise ValueError("initial seed must not overlap verification seeds")
         for item in fields(self):
+            if item.name in {"initial_seed", "verification_seed"}:
+                continue
             value = getattr(self, item.name)
             if type(value) is not type(item.default) or value != item.default:
                 raise ValueError(f"{item.name} must equal approved value {item.default!r}")

@@ -246,6 +246,32 @@ class TestRawMeasurements(unittest.TestCase):
             )
             self.assertAlmostEqual(observation.raw_rqd, line_rqd)
 
+    def test_bh_only_mode_keeps_face_plan_without_face_intersections(self) -> None:
+        geometry = FixtureGeometry((0.05,), joint=_joint())
+        result = measure_realization(
+            _case(), geometry, include_face_measurements=False,
+        )
+        face_plan = [
+            item for item in result.planned_locations
+            if not isinstance(item, PlannedBHInterval)
+        ]
+        face_states = [
+            item for item in result.location_states if item.modality == "face"
+        ]
+
+        self.assertTrue(face_plan)
+        self.assertEqual(geometry.face_calls, [])
+        self.assertFalse(any(
+            isinstance(item, RawFaceObservation) for item in result.observations
+        ))
+        self.assertEqual(len(face_states), len(face_plan))
+        self.assertTrue(all(item.status == "missing" for item in face_states))
+        self.assertTrue(all(
+            item.reason == "not measured: raw-RQD search is BH-only"
+            for item in face_states
+        ))
+        self.assertIsNone(result.face_stop_reason)
+
     def test_partial_valid_face_support_is_recorded_as_actual_area(self) -> None:
         tunnel = TunnelSpec(((0.0, 0.0, 3.0), (2.0, 0.0, 3.0)), 0.5)
         case = CaseSpec(
@@ -326,6 +352,25 @@ class TestRawMeasurements(unittest.TestCase):
             update.stage == "Face measurement"
             and update.completed == update.total
             for update in updates
+        ))
+
+    def test_runner_passes_through_bh_only_measurement_mode(self) -> None:
+        geometry = FixtureGeometry()
+
+        class Factory:
+            def generate(self, case, seed, *, progress_callback=None):
+                return geometry
+
+        result = generate_and_measure(
+            _case(),
+            Factory(),
+            43,
+            include_face_measurements=False,
+        )
+
+        self.assertEqual(geometry.face_calls, [])
+        self.assertFalse(any(
+            isinstance(item, RawFaceObservation) for item in result.observations
         ))
 
 

@@ -1,5 +1,118 @@
 # T011 Main Simulation Implementation Plan
 
+**Latest low-RQD signature diagnosis (2026-11-03 18:28:05 KST +0900; read-only):**
+The paused run was not targeting raw RQD <= 10; it evaluated fixed Q-prime bin/Jn/Jr/Ja
+targets. Its last target `6/15/4/0.75` required calculation RQD `(17.7878,40.7689]`.
+Seed-43 supported BH values for that target were 45.2803–100, with zero in-range; seed 46
+had one 1 m supported observation at 32.2792. Across 64,680 supported BH observations,
+none had raw RQD <= 10; minima by Jn were 60.2874, 28.5267, 28.6133, and 32.2792 for
+Jn2/4/9/15 respectively.
+
+Theoretical bin-6 tuple Jn4/Jr4/Ja0.75 admits calculation RQD `[10,10.8717]`, but
+`Target.reachable` excludes it because its `physical_rqd_floor` is 40.6; this target is
+absent from saved evidence. Actual Jn4 support below 40.6 and Jn2 support below 73.6
+contradict treating these computed values as hard observed-RQD lower bounds. Q-prime
+scoring also clamps raw RQD below 10 to calculation RQD 10. T011 proposes LHS/bounded
+parameter perturbations and scores measured target distance/support; it does not invert a
+raw-RQD<=10 objective into a signature. State had 4,109 input signatures but starts
+covered 546 distinct inputs, and Jn20 is not in this run's templates. The separate
+raw-RQD-only validation needs an approved target/success/seed/storage contract. No code,
+DB, or policy was changed and no simulation was run.
+
+**Latest root-cause diagnosis (2026-11-03 17:35:02 KST +0900; read-only):**
+None of the recorded candidates for the five unfinished bin-6 targets has positive target
+support at initial seed 43. Recorded candidate counts and counts with 0/1/2 positive
+verification seeds among seeds 44–46 are: `6/15/4/0.75`: 102 (`101/1/0`);
+`6/9/3/0.75`: 270 (`269/1/0`); `6/9/3/1`: 270 (`268/1/1`);
+`6/9/4/0.75`: 270 (`270/0/0`); `6/9/4/1`: 270 (`269/1/0`). One candidate for
+`6/9/3/1` had 2/3 positive verification seeds but still failed because seed 43 was negative.
+Target passage requires positive initial support plus 2/3 positive verification seeds, not
+similar RQD values.
+
+The pause was caused separately by the exploration-progress/stagnation gate: same-seed
+candidate/reference comparisons did not meet the progress decision in rounds 53–55, there
+were no new suitable inputs, and the three-round limit was reached. The relaxed seed rule
+therefore was not the direct cause, but it could not help without any seed-43-positive
+candidates. Available historical records document the 300-start run at bin 7 and an earlier
+`high_cost_review` run at bin 8; they do not substantiate a previous bin-6 stop. This was
+read-only diagnosis; no code, DB, policy, or simulation was changed.
+
+**최신 정지 run 진단 (2026-11-03 17:27:32 KST +0900; 사용자 DB read-only):**
+사용자 DB의 run `main-f22be9820f092b195fc1fefd5bff3464c07ef599e5715f3f87e382a1bb37635f`는
+`paused/stagnation`이며, 해당 `run-main` 프로세스는 실행 중이지 않다. round 55
+(`6/15/4/0.75/pilot-bh`)까지 진행했고 1,078 starts 모두 succeeded, 실패는 없다.
+bin6은 79/84 통과, 5개 미통과, 전체 누적 통과는 179개다. 직전 round52는 progress였지만
+round53–55 연속 3회 `no_progress`, 새 suitable input 0개라 `stagnant_rounds=3` 종료 조건에
+도달했다. 따라서 seed 2/3 판정 실패나 생성 job 오류로 멈춘 것은 아니다. 현재 pause 사유는
+재실행만으로 자동 해제되지 않는다. DB는 read-only로 진단했으며 run/코드는 수정하지 않았다.
+
+**최신 메인 run 상태 (2026-11-03 06:37:19 KST +0900; DB 읽기 전용 진단):**
+사용자 지정 DB는 schema4이고, run `main-f22be9820f092b195fc1fefd5bff3464c07ef599e5715f3f87e382a1bb37635f` 하나가
+`running` 상태다. PID 32738이 약 7시간 실행 중이며 CPU 사용률은 99%대다. checkpoint의 현재 bin은 6,
+round 52의 `progress` phase, target `6/9/3/1/pilot-bh`; queue에는 progress role seed 46 작업 1개가
+남아 있다. starts 1,014개는 모두 succeeded다. bin6은 reachable/evaluated 84개 중 79개 통과, 5개
+미통과(`6/15/4/0.75`, `6/9/3/0.75`, `6/9/3/1`, `6/9/4/0.75`, `6/9/4/1`, 모두 `pilot-bh`)다.
+전체 누적 통과는 179개다. 마지막 start 1014는 succeeded이나 checkpoint queue에 seed46이 남아 있어,
+현재는 작업 완료 후 refresh/checkpoint 중일 가능성이 있다. 내부 실행 위치는 읽기 전용 DB만으로 확정할 수 없다.
+동일 run ID의 저장소 내부 사본은 별도 DB였으며, 이번 진단은 사용자 DB를 read-only로 열었고 수정·시뮬레이션은 하지 않았다.
+
+**현행 메인 실행/인계 상태 (2026-11-02 23:28:37 KST +0900; 진행 로그 갱신):**
+기존 DB 위치는 저장소 내부가 아니라 `/Users/myungkyusong/QSimExOutput/sqlite/`였다.
+이전 확인은 저장소 내부 경로만 점검해 기존 DB가 없다고 잘못 판단했다. 사용자가 지정한
+위치의 DB는 존재하며, 해당 DB는 열거나 수정하지 않았다. 그 경로의 실행은 사용자가 직접
+수행한다.
+
+사용자가 새 메인 실행을 요청해 명령을 전달했다. 현재 config는 `initial_input: null`로
+기존 원자료를 활용하므로, 명령은 빈 DB가 아니라 사용자 DB
+`/Users/myungkyusong/QSimExOutput/sqlite/qsimex-rqd-v4.sqlite`를 지정한다. `run-main`은
+동일 config/runtime의 미완료 run이 있으면 자동으로 그 상태를 불러온다. DB 내용은 이번에
+확인하지 않았으므로 실제 run 선택 상태는 미확정이다. assistant는 명령만 전달했고 실행하지 않았다.
+
+별도로 저장소 내부 `sqlite/qsimex-rqd-v4.sqlite`에 만든 신규 run
+`main-f22be9820f092b195fc1fefd5bff3464c07ef599e5715f3f87e382a1bb37635f`는 bin10에서
+23:03:11에 시작한 뒤 `paused/user_interruption`, 112/20,000 starts, bin8, queue 8,
+round `progress` 상태로 checkpoint됐다. 사용자의 삭제 요청에 따라 그 저장소 내부 DB,
+lock 파일 및 이번 run이 만든 `results/rqd_exploration/`을 제거했다. 확인 결과 해당 경로들은
+없고 run 프로세스도 종료 상태다. `sqlite/` 디렉터리와 기존 `results/.DS_Store`는 보존했다.
+QSimExOutput의 DB/출력은 수정하지 않았으며, 이후 simulation은 사용자가 직접 수행한다.
+
+**진행 로그 보강 (2026-11-02 23:28:37 KST +0900):** 기존 job 시작/heartbeat 로그에는 현재
+bin과 `targets_passed`가 있었지만 job 도중 처음 만든 진행 문맥을 재사용해 완료 직후의 통과 수가
+다음 작업까지 갱신되지 않고, bin 전환 및 pause 시점의 별도 요약도 없었다. 각 작업 완료 후 갱신된
+bin/통과 수를 출력하고, bin 전환 때 완료 bin과 새 현재 bin의 통과 수를, pause 때 중단 시점의
+상태를 출력하도록 했다. controller/workflow focused tests 27개 통과, `git diff --check` 통과.
+실제 DB 접근이나 simulation은 수행하지 않았다.
+
+**현재 seed 통과 기준 및 완료 상태 (2026-11-02 22:47:57 KST +0900; 작업 1–8 완료):**
+목표별 고정 생성 입력 하나에서 초기 seed의 양의 목표 support가 선행되어야 한다.
+이어 정책이 지정한 검증 seed 시작값부터 연속 3개 중 2개 이상이 양의 목표 support를
+보이면 통과한다(최소 3/4). 43–46은 예시일 뿐이며 코드에서 seed 번호를 고정하지 않는다.
+A/B/C 그룹 분포 비교는 폐기한다. 분석과 컨트롤러는 설정된 seed를 사용하고, paired
+진전 비교는 같은 realization seed인지 확인할 뿐 seed 하한을 두지 않는다. 새 구현 버전과
+정책 fingerprint로 이전 실행과 별도 run을 만들며 이전 상태를 보존한다. 판정 경계·target
+completion·bin 전환·재개 regression을 보강했다. 초기 seed 누락과 서로 다른 입력 증거의
+합산을 거부하며, 복구 시 설정된 verification seed 범위만 허용한다. bin-transition fixture는
+정책 설정에서 seed 값을 파생한다. 관련 analysis/controller/policy/store/workflow suite
+48개와 `git diff --check`가 통과했고, 변경 Python 4개 파일의 Pylance syntax 검사도 오류가
+없었다. stderr 진행 로그와 stdout/event 결과에는 전체 예산, 현재 bin의 목표 통과 현황,
+동적 seed pass evidence, 회차·phase·작업 정보를 기록한다. 실제 pilot DB 쓰기 및
+시뮬레이션은 하지 않았다.
+
+**작업 순서 상태 (2026-11-02 22:47:57 KST +0900):**
+1. 완료 — seed 통과 기준을 단일 규칙으로 확정·기록.
+2. 완료 — §2의 활성 정책에서 A/B/C 그룹 비교와 추가 통과 문턱 제거; 후보 진전은 통과 기준과 분리.
+3. 완료 — 분석 core에 초기 seed와 검증 seed 시작값을 인자로 받아 적용; 43–46 이외 seed 회귀 포함 단위 검증.
+4. 완료 — 컨트롤러의 설정 seed 예약·복구·목표 완료를 통합하고, policy 변경 시 별도 run과 이전 상태 보존을 검증.
+5. 완료 — 전역 예산·현재 bin/target·동적 seed evidence를 progress 로그 및 run/event 결과에 보고.
+6. 완료 — 새 판정 경계·목표 완료·bin 전환·재개 회귀 테스트.
+7. 완료 — 구현 기록과 현행 상태를 관련 계획에 timezone-aware timestamp와 함께 동기화.
+8. 완료 — `dlo-cq` 관련 suite 48개 및 diff 검증; 실제 DB 쓰기/시뮬레이션은 수행하지 않음.
+
+**이전 Seed 확인 방향 (2026-11-02 06:36 +09:00; 21:54 기준으로 대체됨):** 당시에는 목표별 한 생성
+입력에서 seed43 통과 후 seed 2개 중 하나 통과(총 2/3)를 제안했다. 이는 후속 seed 3개 중
+2개 통과하는 현재 기준으로 대체되었다. 아래 구현 체크리스트는 이전 규칙의 이력이며 현행 정책은
+§2에 반영했다. 코드・DB・시뮬레이션은 이번 문서 작업에서 변경/실행하지 않았다.
+
 **최신 운영 예산 (2026-11-01 17:22 +09:00):** 사용자 승인에 따라 메인 run 하나의 최대 시작 수를
 20,000회, 중간 수동 검토 checkpoint를 10,000회로 설정한다. checkpoint 후 같은 `run-main`
 명령은 동일 run을 이어가며 예산을 초기화하거나 새 stage를 만들지 않는다. 실행이나 DB 쓰기는
@@ -50,42 +163,31 @@ Face는 후보 선택・거부・갱신・bin 전환의 판단 지표로 사용�
   기존 raw에 다른 Jn을 대입하지 않는다.
 - 목표는 `(bin, Jn, Jr, Ja, BH profile)`이다. 계산 RQD `[10,100]`에서 실제로
   교집합이 있는 점수 조건만 대상으로 삼는다. 이론적 비도달과 미관측을 구분한다.
-- 각 도달 가능한 목표에 유효 BH support를 가진 서로 다른 생성 입력 최소3개,
-  각 입력의 seed 반복성/안정성을 확인한다. 해당 bin의 목표들이 모두 충족되면 자동 전환한다.
-- 검증 그룹에서도 목표 bin의 양의 support를 확인한다. 모두0인 분포가 서로
-  같다는 이유만으로 목표 달성 처리하지 않는다.
-- 입력 다양성은 생성 조건으로 센다. seed・Jr/Ja・YAML 주석・runtime 식별자만의
-  변경은 입력 수를 늘리지 않는다. 조건 차이/조사 범위도 보고한다.
-- 동일 원자료/검증 결과는 다른 Jr/Ja와 다른 bin에서도 재사용한다. 단순 union
-  coverage, 3개 입력 또는27개 실현을 최종 통계적 충분성으로 판정하지 않는다.
+- 각 도달 가능한 목표는 목표별 고정 생성 입력 하나에서 판정한다. 초기 seed에 양의 목표
+  support가 있어야 하며, 같은 입력에서 정책이 지정한 검증 seed 시작값부터 연속 3개 seed
+  중 2개 이상에 양의 목표 support가 있으면 통과한다. 43–46은 예시다. 해당 bin의 모든
+  도달 가능한 목표가 통과하면 자동 전환한다.
+- A/B/C 그룹 비교, 분포/CDF 유사도, 10%p 경계, 연속 비교 횟수, 여러 독립 생성 입력,
+  또는 별도 안정성 이력은 목표 통과나 bin 전환의 추가 조건이 아니다.
+- 목표의 운영상 통과는 최종 통계적 충분성이나 물리적 검증의 선언이 아니다.
+  최종 해석은 통과 판정과 별도로 보고한다.
 
-### 2.2 반복성과 안정성
+### 2.2 관측과 후보 진전
 
-- 초기 탐색 seed43, 검증 seed44부터 순서대로. 최초 그룹 A44–46, B47–49, C50–52.
-  후보와 참조는 같은 seed로 짝비교한다. 초기 선정용 seed43은 검증 그룹에서 제외한다.
-- 같은 생성 입력・Jn・Jr/Ja・BH profile의 공통 유효 support에서 seed별 길이 가중
-  누적 Q' 분포와 bin 비율을 계산하고, seed별 비율을 같은 가중치로 그룹 요약한다.
-- 서로 겹치지 않는 같은 크기 그룹3개 seed씩을 비교한다. 전체 누적분포 비율 차이의
-  최댓값과 목표 bin support 비중 차이가 모두 `<=0.10`이면 해당 비교 통과.
-  단위는10%p이며 상대10%・RQD10포인트・통계 신뢰수준이 아니다.
-- A-B, B-C처럼 연속2회 통과해야 한다. 미통과 시 연속 횟수 초기화, 관측은 보존.
-  B 공유로 두 비교가 독립 검정은 아니다. 비교 자료가 적격하지 않으면 통과/정체로 대체하지 않는다.
-- 처음부터 통과하면 입력당9개, 최소3개 입력이면27개 검증 seed 실현이 필요하다.
-  서로 다른 입력27개 또는 반드시 전역 seed 번호27개를 뜻하지 않는다.
-- 기존 후보 진전 규칙 유지: 거리1 RQD 포인트, support1%p, 최초2/3 진전,
-  정확히1/3 진전일 때만2개 추가해3/5 판정. 그 외 추가하지 않는다.
-  후보 진전 확인과 bin 전환용 안정성 확인은 별개이며 상한 우회로 섞지 않는다.
-  각 seed에서 한 지표의 문턱 이상 개선과 다른 지표의 비악화를 같이 확인한다.
-  나머지 seed 결과도 보존하며 진전 판정만으로 참조를 자동 교체하거나 충분성을 선언하지 않는다.
-- 유효한 미달/안정성 미통과 관측도 모든 bin・누적 profile 분석에 사용한다.
-  원자료0은 보존하고 계산만 `max(rawRQD,10)` 적용. 10 아래 추가 저하만을 Q' 진전으로 세지 않는다.
+- 동일 원자료와 유효 관측은 다른 Jr/Ja 및 bin 분석에서도 재사용한다. 미달 관측도
+  누적 분석에 남기며 원자료0은 보존하고 계산에만 `max(rawRQD,10)`을 적용한다.
+  10 아래 추가 저하만을 Q' 진전으로 세지 않는다.
+- 후보 진전 규칙은 탐색 후보의 우선순위 평가에만 쓴다: 거리1 RQD 포인트,
+  support1%p, 최초2/3 진전, 정확히1/3 진전일 때만2개 추가해3/5 판정.
+  이는 목표 통과나 bin 전환의 추가 조건이 아니다. seed별 개선/비악화 결과를 보존하며
+  진전만으로 참조를 자동 교체하거나 최종 충분성을 선언하지 않는다.
 
 ### 2.3 회차와 후보
 
 - 신규 입력 최대12개: 한 축8개, 복수 축2개(2축/3축), 미조사 LHS2개.
   선택한 두 `(절리군, 축)`에 ±작은/큰 step으로 한 축 후보8개를 제안한다.
-- 유망 후보 최대2개에 기존3→5 seed 진전 확인, 회차당 입력1개에 완전한 안정성 확인 절차 배정.
-  이미 적격 입력3개가 있으면 해당 입력들의 안정성 검증을 우선하고 불필요한 새 탐색을 생략한다.
+- 유망 후보 최대2개에 후보 진전 확인을 배정한다. 별도 완전 안정성 확인 입력이나
+  입력3개 충족을 위한 우선순위는 두지 않는다.
 - 기존 거리/support 최선・co-best 참조를 보존한다. 미충족 목표・미검증 입력을
   우선하고 같은 우선순위에서는 목표/참조/절리군/축을 결정적으로 순환한다.
   순환 cursor・동률 순서・후보 생성 근거・RNG 상태를 저장한다.
@@ -112,14 +214,13 @@ Alpha/κ는 새 LHS에서 기존 독립 stream・범위 `[2.5,4]`/`[0,50]`로 �
 
 ### 2.4 예산・중단・오류
 
-- 메인 run 전체20,000회. 실행 시작 기록1회 기준으로 신규/참조/후보/안정성/실패 시작,
+- 메인 run 전체20,000회. 실행 시작 기록1회 기준으로 신규/참조/후보/실패 시작,
   중단 후 재생성을 포함한다. 저장 자료 재사용・분석/보고는0회. 10,000회에서 검토 checkpoint로
   중단하며 같은 run 명령으로 재개한다. 재개 시 소비량을 초기화하지 않는다.
 - 실행 전 절리군별 `_expected_joint_area`와 `P32*volume/expected_area`를 합산한다.
   총 기대 절리 수 `>10,000,000`이면 생성 전 중단・규모 보고・사용자 검토.
   기대값은 실제 Poisson 개수나 보장된 시간/메모리가 아니다. 자동 입력 변경/후보 악화 판정 금지.
-- 정체는 완료된 회차3회 연속 무진전. 기존 BH 진전, 새 적격 생성 입력,
-  새 입력의 안정성 확인 완료가 있으면 횟수 초기화.
+- 정체는 완료된 회차3회 연속 무진전. 기존 BH 진전 또는 새 적격 생성 입력이 있으면 횟수 초기화.
   오류/비교 불가는 무진전 회차로 세지 않는다.
 - 다른 축・폭・참조를 활용하되 진행 중인 확인 절차를 정체 판정으로 끊지 않는다.
   전체 예산・실행 오류 중단은 우선 적용한다.
@@ -165,6 +266,9 @@ schema2/3 자동 변환은 하지 않는다. 실행 시작/예산 기록을 일�
 `P7.02.01`–`P7.02.09`를 사용한다. 별도 T001 목록으로 기존 이력을 재번호하지 않는다.
 아래9개를 하나의 승인된 구현 batch로 완료했다. Source 표기는 재사용 경계를 명시한다.
 Checkbox 완료는 코드/임시 DB/모의 생성기 검증을 뜻하며 실제 메인 실행 승인이 아니다.
+아래 구현 체크박스와 수용 기준은 2026-10-31에 구현한 이전 정책의 검증 이력이다.
+현행 seed 통과 정책은 §2와 위 작업 상태가 우선한다. 컨트롤러·저장/재개 연결은 작업 4,
+진행 및 결과 보고는 작업 5에서 완료했다.
 
 ### 5.2.1 정책 타입・입력
 
@@ -245,7 +349,7 @@ src/test/
 |---|---|
 | 기존 자료로 시작 | Jn2/4/9/15 재생성0, Jn20 계획5/군5/seed40・43, 비도달 조건 실행0 |
 | 후보와 반복 | 8/2/2 상한・step/bounds・동률/순환・3→5 seed・동일 입력/seed 재사용 |
-| 안정성과 완료 | 입력3개별 그룹3/연속2, 양의 support,10%p 양쪽 경계; seed27을 입력27로 세지 않음 |
+| 목표 통과와 bin 전환 | 같은 입력에서 seed43 양의 목표 support 및 seed44·45·46 중 2개 이상 양의 support; bin의 모든 도달 가능 목표 통과 |
 | 중단 | 예산200/비용10000000/정체3/오류0재시도 경계 및 독립 종료 사유 |
 | crash/reopen | 시작 예약/생성/부분 관측/raw 완료/제어 갱신 사이 interruption; 완료 skip・재생성 소비 유지 |
 | 보고 불변성 | 이전 raw/CSV/revision 유지, 모든 적격 검증 자료 포함, 읽기 전용 CSV 보고, event 덮어쓰기 없음 |

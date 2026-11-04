@@ -1,4 +1,4 @@
-"""BH-only inverse targets, paired effects and disjoint-group stability."""
+"""BH-only inverse targets, seed pass evidence and paired candidate effects."""
 
 from dataclasses import dataclass
 from fractions import Fraction
@@ -6,6 +6,10 @@ from math import exp, isfinite
 
 from .analysis import BIN_EDGES, calculate_scenario_scores
 from .config import EXECUTABLE_JN_SET_COUNTS, JA_VALUES, JR_VALUES
+
+
+VERIFICATION_SEED_COUNT = 3
+REQUIRED_VERIFICATION_PASSES = 2
 
 
 def physical_rqd_floor(jn):
@@ -144,6 +148,63 @@ def seed_metrics(profile, target):
 
 
 @dataclass(frozen=True)
+class SeedPassResult:
+    initial_seed: int
+    verification_seeds: tuple[int, int, int]
+    initial_positive_support: bool | None
+    verification_positive_support: tuple[bool | None, bool | None, bool | None]
+    complete: bool
+    passed: bool
+
+    @property
+    def positive_verification_count(self):
+        return sum(value is True for value in self.verification_positive_support)
+
+
+def _has_positive_target_support(profile, target):
+    metrics = _metrics(profile, target)
+    return metrics is not None and metrics[1] > 0
+
+
+def seed_pass_result(profiles, target, *, initial_seed, verification_seed):
+    if (type(initial_seed) is not int or type(verification_seed) is not int
+        or not 0 <= initial_seed <= 2**53 - 1
+        or not 0 <= verification_seed <= 2**53 - VERIFICATION_SEED_COUNT):
+        raise ValueError("initial and verification seeds must be distinct safe integers")
+    verification_seeds = tuple(
+        range(verification_seed, verification_seed + VERIFICATION_SEED_COUNT))
+    if initial_seed in verification_seeds:
+        raise ValueError("initial seed must not be a verification seed")
+
+    by_seed = {}
+    for profile in profiles:
+        if profile.seed in by_seed:
+            raise ValueError("duplicate seed profile")
+        by_seed[profile.seed] = profile
+
+    initial = by_seed.get(initial_seed)
+    initial_positive = (
+        None if initial is None else _has_positive_target_support(initial, target)
+    )
+    verification = tuple(
+        None if seed not in by_seed else _has_positive_target_support(by_seed[seed], target)
+        for seed in verification_seeds
+    )
+    complete = initial_positive is not None and all(value is not None for value in verification)
+    passed = (complete and initial_positive
+              and sum(value is True for value in verification) >= REQUIRED_VERIFICATION_PASSES)
+    return SeedPassResult(initial_seed, verification_seeds, initial_positive,
+                          verification, complete, passed)
+
+
+def target_passed(pass_results):
+    results = tuple(pass_results.values())
+    if any(not isinstance(result, SeedPassResult) for result in results):
+        raise TypeError("target pass requires SeedPassResult values")
+    return any(result.passed for result in results)
+
+
+@dataclass(frozen=True)
 class PairedEffect:
     status: str
     delta_distance_rqd: float | None
@@ -154,8 +215,8 @@ class PairedEffect:
 
 
 def paired_progress(reference, candidate, target):
-    if reference.seed != candidate.seed or reference.seed < 44:
-        raise ValueError("candidate/reference require the same verification seed >=44")
+    if reference.seed != candidate.seed:
+        raise ValueError("candidate/reference require the same realization seed")
     profiles = common_profiles((reference, candidate), paired=True)
     original = _metrics(reference, target)
     if not profiles or original is None:
@@ -188,84 +249,3 @@ def progress_decision(statuses):
     if statuses[:3].count("progress") != 1:
         raise ValueError("five-seed confirmation requires exactly one initial progress seed")
     return "progress" if count >= 3 else "no_progress"
-
-
-@dataclass(frozen=True)
-class GroupComparison:
-    seeds_a: tuple[int, ...]
-    seeds_b: tuple[int, ...]
-    eligible: bool
-    passed: bool
-    maximum_cdf_difference: float | None
-    support_difference: float | None
-    support_fraction_a: float | None
-    support_fraction_b: float | None
-    common_support_m: float
-    reason: str | None = None
-
-
-def compare_groups(a, b, target):
-    seeds_a, seeds_b = tuple(p.seed for p in a), tuple(p.seed for p in b)
-    if (len(a) != 3 or len(b) != 3 or len(set(seeds_a + seeds_b)) != 6
-        or any(s < 44 for s in seeds_a + seeds_b)):
-        raise ValueError("stability requires disjoint three-seed groups excluding seed43")
-    common = common_profiles(a + b)
-    if not common:
-        return GroupComparison(seeds_a, seeds_b, False, False, None, None,
-                               None, None, 0, "no common valid positive BH support")
-    metrics = [_metrics(p, target) for p in common]
-    if any(m is None for m in metrics):
-        return GroupComparison(seeds_a, seeds_b, False, False, None, None,
-                               None, None, 0, "no positive BH support")
-    values = sorted({calculate_scenario_scores(
-        p.raw_rqd, target.fixed_jn, jr_values=(target.jr,), ja_values=(target.ja,)
-    )[0].qprime for profile in common for p in profile.points})
-    def cdf(profile, q):
-        return sum((_fraction(p.support_m) for p in profile.points
-                    if calculate_scenario_scores(
-                        p.raw_rqd, target.fixed_jn, jr_values=(target.jr,),
-                        ja_values=(target.ja,))[0].qprime <= q), Fraction()) / _metrics(profile, target)[2]
-    maximum = max(abs(sum((cdf(p, q) for p in common[:3]), Fraction()) / 3
-                      - sum((cdf(p, q) for p in common[3:]), Fraction()) / 3)
-                  for q in values)
-    fa = sum((m[1] for m in metrics[:3]), Fraction()) / 3
-    fb = sum((m[1] for m in metrics[3:]), Fraction()) / 3
-    difference = abs(fa - fb)
-    passed = maximum <= Fraction(".10") and difference <= Fraction(".10") and fa > 0 and fb > 0
-    return GroupComparison(seeds_a, seeds_b, True, passed, float(maximum),
-                           float(difference), float(fa), float(fb), float(metrics[0][2]),
-                           None if passed else "stability mismatch or zero target support")
-
-
-@dataclass(frozen=True)
-class StabilityHistory:
-    stable: bool
-    consecutive_passes: int
-    comparisons: tuple[GroupComparison, ...]
-    next_seed: int
-    incomparable: bool = False
-
-
-def stability_history(profiles, target):
-    by_seed = {p.seed: p for p in profiles if p.seed >= 44}
-    if len(by_seed) != len([p for p in profiles if p.seed >= 44]):
-        raise ValueError("duplicate verification seed")
-    groups = []
-    next_seed = 44
-    while all(next_seed + i in by_seed for i in range(3)):
-        groups.append(tuple(by_seed[next_seed + i] for i in range(3)))
-        next_seed += 3
-    comparisons, passes = [], 0
-    for a, b in zip(groups, groups[1:]):
-        comparison = compare_groups(a, b, target)
-        comparisons.append(comparison)
-        if not comparison.eligible:
-            return StabilityHistory(False, 0, tuple(comparisons), next_seed, True)
-        passes = passes + 1 if comparison.passed else 0
-        if passes >= 2:
-            return StabilityHistory(True, passes, tuple(comparisons), next_seed)
-    return StabilityHistory(False, passes, tuple(comparisons), next_seed)
-
-
-def target_complete(histories):
-    return sum(h.stable for h in histories.values()) >= 3

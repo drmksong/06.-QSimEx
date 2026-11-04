@@ -1,5 +1,314 @@
 # v4: RQD 중심・bin 조건부 자동 탐색 및 Q′ 조합 분석 계획
 
+**인계/중단 (2026-11-04 09:14 +09:00):** 사용자는 출장 후 다시 보자고 확인했다.
+아래 긴급 P0 계획은 승인된 계획 단계로 보존하되, 복귀 후 지시가 있을 때까지 코드 구현,
+baseline3 생성, 검증/preview, DB/manifest/DFN 저장, simulation을 시작하지 않는다.
+
+> 🚨 **긴급 / P0 — raw-RQD 입력 준수 작업 (2026-11-04 09:12 +09:00)**
+> **상태: 계획만 수립, 미착수.** 사용자가 출장에서 돌아와 재개 지시할 때까지 코드,
+> baseline3, preview, DB/manifest/DFN, simulation을 시작하지 않는다. 다음 raw-RQD 실행의
+> 선행 차단 이슈다.
+>
+> 목표는 새 `config/rqd_exploration_main_baseline3.yml`을 Jn15/20 raw-RQD 실험의 단일
+> 입력원으로 삼는 것이다. 기존 합의값은 Jn15/4군 및 Jn20/5군, 조건당 LHS 5개,
+> design seed 36/40, realization seed 43, 도메인 30×20×20 m, P32 [1,100], 반경
+> [1,150] m다. geometry/측정/parameter/sample/seed를 입력에서 읽어 preview와 실행이
+> 동일하게 사용해야 한다. baseline2와 main workflow의 Jn20 제외 정책은 바꾸지 않는다.
+>
+> **단계:** (1) 복사할 baseline2 필드와 coordinate step 표현(현 P32 ±0.1은 log bounds와
+> 불일치)을 복귀 후 확인하고 기존 승인 과학정책을 동결한다. (2) Jn15/20 전용 baseline3
+> loader/preview 경로를 만들되 main loader는 유지한다. (3) LHS 수·seed·bounds가 입력과
+> 일치하도록 중복 상수/override를 제거하고 bounds 위반 후보를 막는다. (4) 입력과 유효
+> 정책을 fingerprint에 포함해 구 DB의 묵시 재개를 방지한다. (5) 10개(5+5) deterministic
+> preview, Jn/절리군/geometry/seed/range, 경계 후보, fingerprint 차이, main 회귀를 테스트한다.
+> (6) `dlo-cq` 집중 테스트 및 비영속 preview 후 사용자 검토에 넘긴다. (7) DB/manifest/DFN
+> 저장이나 simulation은 별도 명시 승인 전 금지한다.
+>
+> 단계별 성공 기준과 검증 세부는 [ImplementationPlan_v4.md](../ImplementationPlan_v4.md)의
+> P0 계획을 단일 실행 순서로 따른다. 특히 P32 step의 absolute/log/relative 선택은 과학적
+> 의미가 있으므로 사용자 확인 전 추정하지 않는다.
+
+**raw-RQD hard-coded 동작 감사 (2026-11-04 07:35 +09:00):** 사용자는 코드 수정 전 입력
+준수성과 하드코딩 현황부터 조사하도록 요청했다. 코드는 형상·측정 설정을 입력에서 읽어
+프로파일을 구성하지만, 공통 parser가 BH/face 간격을 각각 1 m로 고정하고 main wrapper는
+모든 baseline geometry/measurement가 같아야 한다. 더 중요한 제약은 raw-RQD 명령이
+단독 baseline 대신 `MainConfig`를 읽는다는 점이다. 해당 loader는 baseline Jn 2/4/9/15를
+강제하며 Jn20은 별도 `initial_input`으로만 추가한다. 따라서 Jn15/20 전용 입력을 직접
+표현하지 못한다.
+
+입력 P32/반경 bounds는 parser에서 해석되지만 main wrapper가 P32 [0.01,10], 반경
+[1,150]을 다시 고정 검증하며, local proposal도 global `AXES` 경계를 사용한다. 요청한
+P32 [1,100]은 main loader에서 거부되고, bounds를 입력에서 읽는 단일 경로가 아니다.
+또한 YAML `sample_count: 5`와 무관하게 raw-RQD가 Jn당 LHS 10개를 덮어쓰고, preview는
+design realization seed를 보고하는 반면 실행은 policy initial seed를 사용한다(현 설정은
+둘 다 43). 고정 탐색 정책에는 다섯 축/순서/step, 한 축씩 ± 이동, 1 m 이상 유효 BH만
+평균에 포함, support-weighted mean의 엄격한 개선만 중심으로 승격, signature당 단일
+seed/실행 1회, BH-only 측정이 포함된다.
+
+분리 DB·schema4·명시적 `--confirm-execution`·MLX 전용·RQD [0,100] 등은 안전/자료계약
+불변조건으로 분류했다. 후속 설계 우선순위는 raw 전용 baseline3 loader, 입력의 geometry/
+measurement/sample_count/realization seed를 미리보기와 실행에서 공통 사용, 각 입력 bounds를
+coordinate proposal 경계로 사용이다. 기존 main 정책은 변경하지 않으며, 사용자는 아직
+구현을 승인하지 않았다. 조사 중 코드/설정/DB/manifest/DFN/simulation 변경은 없었다.
+
+**최저 RQD 시그니처 5개 분석 (2026-11-03 21:54:33 KST +0900):** 기존 승인 지표인
+signature support-weighted mean 기준 상위 5개(낮은 순)는 모두 Jn15다. 평균은
+69.029(선택 중심), 70.407(set-4 `size_r_min_m` +0.1), 71.420(set-4
+`size_r_min_m` -0.1), 71.502(set-4 `mean_dip_deg` +5), 71.893(set-3
+`mean_dip_dir_deg` +5)다. 따라서 중심에서 한 축씩 ± 기존 step으로 변경한 인접 후보는
+모두 평균을 악화시켰다.
+
+단일 BH 구간 최소값 기준 상위 5개는 23.212@14m(시그니처 평균 74.776),
+25.032@28m(74.800), 27.331@12m(73.682), 28.386@8m(69.029, 중심),
+29.929@6m(76.948)이며 모두 Jn15다. 최저 단일 구간을 만든 다축 후보는 중심 대비
+set-1 mean dip direction +5, set-2 P32 -0.1/최대반경 +0.1/mean dip direction +5,
+set-3 mean dip -5였으나, 시그니처 평균은 중심보다 5.747 높다. 즉 최소 구간 RQD와
+전체 BH 평균은 다른 목표다.
+
+각 선택 중심 주위의 단일 축 neighbor 11/20/30/40개(Jn 2/4/9/15)는 더 낮은 평균을
+만들지 못했고, 이 고정 step의 local minimum에 도달했다. 평균을 더 낮추려면 Jn15
+중심에서 다축 조합 또는 더 큰 step을 시험하는 것이 합리적인 다음 후보지만, 아직
+검증되지 않았다. 이전 합의대로 mean을 최적화할지, 단일 구간 최소값을 최적화할지
+구분해야 하며 `size_alpha`/`fisher_kappa` 변경은 별도 승인 전까지 하지 않는다.
+분석만 수행했으며 코드·DB·simulation을 변경하지 않았다.
+
+**raw-RQD 실행 완료 및 범위 진단 (2026-11-03 21:49:32 KST +0900):** 새 DB/final
+event-85 report를 읽기 전용으로 확인했다. `targets_complete`로 종료했고, 시그니처 180개
+(초기 LHS 40 + coordinate neighbor 140), Jn 2/4/9/15별 27/39/40/74개이며 180개 attempt가
+모두 성공했다. 선택된 누적 데이터는 1 m support의 유효 BH 구간 5,400개(총 5,400 m),
+무효/미지지 구간 0개다. Raw RQD는 23.212–100, support-weighted mean 85.777이다.
+
+10점 구간별 BH 수: 10–<20 0, 20–<30 5, 30–<40 51, 40–<50 76, 50–<60 166,
+60–<70 500, 70–<80 845, 80–<90 1,060, 90–100 2,697이며 정확히 100인 값은 1,414개다.
+10–<20은 없고 20–<30은 시그니처 5개에서만 관측되어 10–100 전 범위의 충분한 분포는
+아니다. 반면 모든 180개 시그니처가 90–100 구간을 포함한다.
+
+Jn별 관측 최소/최대·평균 / 선택 중심 평균: Jn2 41.08–100·88.95 / 78.66,
+Jn4 61.29–100·95.88 / 92.71, Jn9 40.91–100·90.12 / 87.12,
+Jn15 23.21–100·76.95 / 69.03. 측정 실패로 인한 공백은 없다. 현재 검색은 평균 RQD를
+낮추는 local coordinate search이지 RQD bin 균등 커버리지가 아니며, `size_alpha`,
+`fisher_kappa`는 중심 선택 후 고정되어 있다. 5,400개 interval은 180개 DFN에 내재되고
+Jn별 시그니처 수도 불균형하므로 pooled 평균/히스토그램을 독립·균형 표본으로 해석하지
+않는다. 저 RQD를 전체 파라미터 공간에서 만들 수 없다고 결론낼 수는 없으며, 이번
+탐색 neighborhood에서 찾지 못했다는 결론이다. 전체 10–100 커버리지가 필요하면 bin별
+할당을 정하는 별도 설계가 필요하다. 승인 전 다음 실행/코드 변경은 하지 않는다.
+
+**raw-RQD 사용자 중단 상태 확인 (2026-11-03 21:35:42 KST +0900):** 새
+signature-neighborhood DB를 읽기 전용으로 확인했다. 상태는 `paused`,
+사유 `user_interruption`, 재개 단계 `exploration`, round 7이며, 시작 44회와 대기열
+2건이 기록됐다. 44개 start/attempt는 모두 `succeeded`이고 `running` 또는 `failed`
+attempt는 없다. 현재 설정 fingerprint는 DB 기록과 일치하고 도메인은 30x20x20이다.
+같은 config·DB·output 경로·`--confirm-execution`으로 같은 명령을 다시 실행하면
+성공한 작업은 건너뛰고 대기 작업을 이어간다. 런타임 identity는 명령 preflight에서
+추가 확인된다. 진단 중 DB 변경이나 simulation 실행은 없었다. 사용자가 재실행하고
+결과를 전달할 때까지 대기한다.
+
+**raw-RQD 진행 로그 개선 완료 (2026-11-03 21:34:04 KST +0900):** 콘솔 진행 정보에서
+반복되는 run/input 해시를 숨기고, Jn·round/phase·변경 축의 기준값→후보값 및 부호 있는
+delta·seed/role을 표시한다. 완료 줄에는 지지 BH 구간 수·총 support·raw RQD min/max/가중
+평균과 중심 평균 대비 차이를 표시하고 round 완료 시 중심 선택/이동을 출력한다. Runner
+start/heartbeat/skip/failure/completion 메시지에서도 raw 작업 해시를 숨기며 관측 수를
+`BH-observations`로 구체화했다. 전체 식별자는 DB/event/report에 보존하고 일반 runner의
+기본 표기는 유지한다. `dlo-cq` focused raw-search/runner 테스트 18개, compileall, Pylance
+syntax/signature 호환성 및 `git diff --check`가 통과했다. 실제 simulation·DB·manifest는
+생성하지 않았다.
+
+**raw-RQD 좌표축 범위 확인 (2026-11-03 21:11:08 KST +0900):** 사용자는 local update 축을
+기존 `AXES` 다섯 개(`p32_m2_per_m3`, `size_r_min_m`, `size_r_max_m`, `mean_dip_deg`,
+`mean_dip_dir_deg`)로 한정하는 것을 확인했다. LHS 시작 샘플에서는 `size_alpha`,
+`fisher_kappa`도 변하지만, 승인된 local step이 없으므로 선택된 중심에서 이 두 값은
+변경하지 않는다. preview와 run summary에 실제 탐색 축을 명시한다.
+
+**raw-RQD signature-neighborhood 구현 완료 (2026-11-03 21:07:34 KST +0900):** 사용자가
+승인한 새 흐름으로 raw-RQD 실행을 교체했다. Jn 2/4/9/15 각각 새로운 LHS 시그니처 10개
+(총 40개)를 initial seed 한 번씩 측정하고, 각 Jn에서 supported-valid BH 구간의
+support-weighted mean raw RQD가 가장 낮은 시그니처 하나를 중심으로 선택한다. 이후
+기존 서명 축의 작은 step으로 한 번에 한 파라미터를 ±방향 탐색하며, 평균이 엄격히
+낮아지는 후보만 중심으로 승격한다. 동률이면 중심을 유지한다. Euler/gradient update는
+아니다. 이전 19:49 reference-ranking 기반 Stage 2 기록은 역사 기록으로 보존하되 이
+흐름으로 대체되며, 이전 DB는 재사용하지 않는다.
+
+Raw-RQD 경로에서 face 측정 및 교차 계산을 건너뛴다. manifest/schema 호환성을 위해
+계획된 face 위치는 유지하고, 결과 상태는 `missing` 및 사유 `not measured: raw-RQD
+search is BH-only`로 남긴다. report에는 signature input, BH 위치별 RQD/support,
+중심 이동 및 parameter/RQD delta가 기록된다. `dlo-cq` 테스트 52개와 compileall,
+Pylance syntax/signature 검증, scoped `git diff --check`가 통과했다. preview 테스트는
+40개 후보, 네 Jn, simulation/DB write 없음으로 확인했다. 별도 main workflow/store 테스트는
+기준·baseline geometry/measurements 불일치 오류로 막혀 있으며 수정 범위에 포함하지
+않았다. 실제 DB·manifest·simulation은 생성하지 않았다. 사용자가 새 DB/output 경로에서
+직접 실행하고 결과를 검토할 때까지 다음 작업은 대기한다.
+
+**raw-RQD 실행 진단 (2026-11-03 20:04:20 KST +0900):** 사용자가 직접 실행한 Stage 2
+run은 완료되지 않고 `execution_error`로 pause됐다. 10회 시작 중 9회 성공, 1회 실패했고,
+성공한 9개는 모두 Jn=2, seed 43이며 각 60개씩 총 540 BH raw 관측이 있다. 공용 측정
+경로가 face도 계산해 DB에는 face 549건도 기록됐다. 10번째 Jn=2 LHS candidate의 face
+측정에서 `scanline intersections contradict an empty supported face` 오류가 발생했다
+(`src/euler_campaign/profiles.py:292`). 아직 초기 LHS round에서 중단되어 가중 평균 기준
+선택, 주변 후보 업데이트, 파라미터/RQD delta 기록은 실행되지 않았다.
+
+사용자가 명확히 한 목표는 기준 시그니처를 통제하면서 주변 시그니처 공간을 탐색하는
+것이다. 현재 후보는 고정된 bounded 축별 perturbation과 LHS이며, Euler/gradient update는
+구현되어 있지 않다. 동일 DB를 그대로 재실행해도 저장된 실패 attempt 때문에 자동 재시도
+되지 않는다. 원인 기록 외 코드/DB 변경 및 재실행은 하지 않았다.
+
+**raw-RQD 탐색 2단계 완료 (2026-11-03 19:49:19 KST +0900):** 사용자 승인에 따라
+support-weighted mean raw BH RQD를 같은 Jn 조건의 측정 시그니처 순위에 적용했다.
+낮은 평균이 먼저 오며 동률은 signature ID, 지지 측정이 없는 시그니처는 뒤에 둔다.
+기존 bounded proposal 및 rotating reference 방식을 유지했다. 각 adaptive round 완료 시
+기준/후보의 weighted mean, 후보-기준 RQD 차이, joint set별 변경 파라미터 값/차이를
+SQLite event와 JSON report에 기록한다. 초기 LHS는 측정된 부모가 없으므로 response
+delta를 만들지 않는다. 통과 기준, RQD cutoff, 또는 RQD 기반 중단 규칙은 추가하지 않았다.
+
+`dlo-cq` raw-RQD 테스트 9개 통과(가중 평균 순위와 영속 round delta 포함),
+`compileall`, `git diff --check` 통과. 실제 DB·manifest·simulation은 생성하지 않았다.
+사용자가 아래 실행 명령으로 직접 실행한다. 남은 일은 관계 보고, 검증 확장, 실행 후
+결과 검토다.
+
+**raw-RQD 탐색 1단계 완료 (2026-11-03 19:41:41 KST +0900):** raw-RQD 경로에서
+통과/실패 판정, RQD≤10 기준, seed43 positive 조건, seed44–46 검증, paired-progress 및
+3-round stagnation gate를 제거했다. 각 시그니처는 현재 설정 initial seed(43) 하나로
+한 번 측정하며, seed는 재현 provenance일 뿐이다. 서명별 raw RQD min/max와 support 가중
+평균을 제공한다. 가중 평균은 다음 단계에서 후보 업데이트 방향을 정할 지표로 승인됐지만,
+1단계 당시에는 후보 순위/생성에 사용하지 않았다. main의 start cap과 review checkpoint는
+유지한다.
+
+`dlo-cq` raw-RQD 테스트 7개, `compileall`, Pylance syntax/diagnostics, `git diff --check`가
+통과했다. 실제 preview는 20개 후보, Jn 2/4/9/15, 단일 seed 및 no-simulation/no-write를
+확인했다. DB·manifest·simulation은 생성하지 않았다. 1단계 완료 당시 다음 작업은
+support-weighted mean을 사용한 시그니처 업데이트와 파라미터/RQD 변화 기록, 이후 관계
+보고 및 검증이었다. 실제
+simulation은 사용자가 직접 실행한다.
+
+**raw-RQD 탐색 구현 상태 (2026-11-03 19:07:53 KST +0900):** 사용자는 기존 main 탐색
+방식을 재사용하고, 현재 Jn 2/4/9/15와 YAML signature 범위를 유지하되 목표만 raw BH
+RQD≤10으로 바꾸는 범위를 승인했다. 기존 entry point에 `raw-rqd run`을 연결했다.
+bounded signature proposal, paired progress, seed43 positive 후 seed44–46 중 2개 통과,
+start/review cap 및 3-round stagnation 동작을 재사용하며 Q′ bin/Jr/Ja 및
+`physical_rqd_floor`는 목표/필터로 사용하지 않는다. 서명별 유효·지지 BH raw-RQD
+min/max/≤10 개수와 seed evidence를 기록한다.
+
+새 run은 별도 database와 output 경로를 명시하고 `--confirm-execution`을 제공해야 하며,
+pilot/main manifest나 main run이 섞인 DB는 거부한다. 실제 entrypoint preview는 20개
+후보와 Jn 2/4/9/15, no-simulation/no-write 상태를 확인했다. raw-RQD 7개, main controller
+17개와 workflow 10개 테스트, `compileall`, Pylance syntax/diagnostic, `git diff --check`가
+통과했다. 광역 main 테스트에서는 61개 통과와 1개 오류가 있었는데,
+`test_resume_stagnation_guard_does_not_cut_an_active_verification_block`가 존재하지 않는
+`MainController._plan_stability`를 호출했다. 영속 DB·manifest 생성이나 DFN simulation은
+하지 않았다. 이 구현 승인과 별개로 실제 run은 사용자가 명시적으로 허가하고 직접 실행해야 한다.
+
+**별도 raw-RQD 시그니처 탐색 handoff (2026-11-03 18:47:50 KST +0900):**
+사용자 승인에 따라 DFN signature와 raw BH RQD의 관계만 조사하는 별도 경로를 기존
+`src/rqd_exploration/` 및 `run_rqd_exploration.py` 안에 준비한다. 신규 폴더는 만들지 않는다.
+새 [구현 계획](../DFN_RQD_Imp.md)과 [작업 로그](../DFN_RQD_Log.md)를 시작했다.
+현재 generation-free slice는 결정적 LHS signature preview, BH raw RQD 추출 및 ≤10
+개수/원시 범위 요약을 제공한다. `dlo-cq` focused tests 3개, entry `--help`, 10개 후보
+preview/no-simulation/no-write 계약, `compileall`, 점검 경로의 `git diff --check`가 통과했다.
+실제 DFN·DB·manifest는 만들거나 실행하지 않았다.
+
+변질 경로는 staged-scope에서 자동 갱신을 고정-LHS pilot 이후로 미룬 뒤 T011이
+고정 Q′ bin/Jn/Jr/Ja target과 `physical_rqd_floor` gate로 구현된 것이다. 이는 raw-RQD
+전용 탐색이 아니다. 자동 제안 알고리즘, 첫 signature 공간, persistence, 검증 기준은
+과학적 선택이므로 새 구현 계획의 미결 사항으로 남기며 임의로 정하지 않는다.
+
+**최신 저-RQD 시그니처 진단 (2026-11-03 18:28:05 KST +0900; 사용자 DB read-only):**
+현재 run은 raw RQD≤10을 목표로 한 탐색이 아니었다. 고정 Q′ bin/Jn/Jr/Ja target을 평가했고,
+마지막 target `6/15/4/0.75`의 계산 RQD 조건은 `(17.7878,40.7689]`였다. 이 조합의
+seed43 유효·지지 BH 측정값은 45.2803–100으로 target 안에 없었고, seed46에서만
+32.2792인 지지 측정 1m가 관측됐다. 전체 1,078 succeeded input/seed 시작에서 나온
+64,680개의 유효·지지 BH 값 중 raw RQD≤10은 0개였으며, Jn별 최솟값은
+Jn2 60.2874, Jn4 28.5267, Jn9 28.6133, Jn15 32.2792였다.
+
+이론상 bin6에서 raw RQD≤10이 score에 기여 가능한 조합 예는 `Jn4/Jr4/Ja0.75`다.
+계산 RQD 구간은 `[10,10.8717]`이고 계산 RQD 10에서 Q′=13.3333이다. 그러나 현재
+`Target.reachable`은 이 target을 `physical_rqd_floor(Jn4)=40.6` 때문에 불가능으로
+제외하며 saved target evidence에도 없다. 이 floor는 Jn4에서 이미 관측된 28.5267,
+Jn2에서 관측된 60.2874보다 높아, 실제 자료의 하한으로 사용할 수 없음이 드러났다.
+또한 Q′ 계산은 raw RQD<10을 계산 RQD=10으로 clamp하므로 저-RQD만 검증하는 별도
+절차는 원시 `raw_rqd`를 직접 목표로 삼아야 한다.
+
+T011은 LHS 및 bounded joint-set parameter perturbation을 제안하고 결과의 target
+distance/support를 비교할 뿐, raw-RQD 목표를 역산해 시그니처를 갱신하는 절차가 아니다.
+상태에는 4,109개 input signature가 있었으나 succeeded starts는 546개 고유 입력을
+실행했다. 현재 config에는 Jn20도 포함되지 않는다. 전체 v4의 high-to-low 시그니처
+갱신은 목표로 기록되어 있으나, 독립 raw-RQD≤10 검증 절차의 성공 기준·seed·저장 정책은
+정해지지 않았다. 코드는 수정하지 않았고, DB는 read-only였으며 별도 검증/simulation은
+시작하지 않았다. 다음 단계는 이 절차의 범위와 판정 기준을 승인받아 정하는 것이다.
+
+**최신 원인 진단 (2026-11-03 17:35:02 KST +0900; DB read-only):**
+미통과 bin6 target 5개 모두에서 기록된 후보는 seed43의 target positive support가 전부
+없었다. 기록된 후보 수와 seed44–46 positive 개수 분포는 `6/15/4/0.75`: 102개
+(`0:101, 1:1`), `6/9/3/0.75`: 270개 (`0:269, 1:1`), `6/9/3/1`: 270개
+(`0:268, 1:1, 2:1`), `6/9/4/0.75`: 270개 (`0:270`), `6/9/4/1`: 270개
+(`0:269, 1:1`)다. 특히 `6/9/3/1`의 한 후보는 추가 seed 3개 중 2개에서 positive였지만,
+seed43이 negative라 통과하지 못했다. 현 pass rule은 seed43 positive와 추가 seed 44–46 중
+2개 이상 positive이며, RQD 값의 유사성은 요구하지 않는다.
+
+정지 원인은 이 pass rule과 별개인 탐색 진행 판정이다. controller는 같은 seed의
+candidate/reference distance/support 개선을 비교하며, round53–55가 연속 `no_progress`,
+신규 suitable input 0개로 끝나 `stagnant_rounds=3`에서 멈췄다. 즉 seed 2/3 완화가 직접
+막힌 것이 아니라, 다섯 target 모두 seed43 통과 후보가 없어 verification 대상이 없었고,
+별도의 진행/정체 gate는 계속 적용 중이었다. 보존된 과거 기록에서 확인 가능한 300-start run은
+bin7, 이전 `high_cost_review` run은 bin8이므로 과거에도 bin6에서 같은 이유로 멈췄다고
+확증할 수 없다. 진단은 read-only이며 코드·DB·정책 변경이나 simulation 실행은 하지 않았다.
+
+**최신 정지 run 진단 (2026-11-03 17:27:32 KST +0900; 사용자 DB read-only):**
+run `main-f22be9820f092b195fc1fefd5bff3464c07ef599e5715f3f87e382a1bb37635f`는
+`paused/stagnation`이고 실행 프로세스는 없다. round55 `6/15/4/0.75/pilot-bh`까지 1,078 starts,
+전부 succeeded이며 실패는 없다. bin6은 79/84 통과(미통과 5개), 전체 통과는 179개다.
+round52에서 progress 후 round53–55 세 회 연속 `no_progress`와 신규 suitable input 0개로
+stagnation 한도 3에 도달했다. seed pass 실패나 실행 오류가 아니다. 같은 명령은 이 사유의
+pause를 자동 재개하지 않는다. DB는 read-only로 확인했고 run/코드는 변경하지 않았다.
+
+**최신 메인 run 상태 (2026-11-03 06:37:19 KST +0900; DB 읽기 전용 진단):**
+사용자 DB의 단일 schema4 run은 `running`이며 PID 32738은 약 7시간, CPU 99%대로 활동 중이다.
+현재 checkpoint는 bin6, round52 `progress`, target `6/9/3/1/pilot-bh`; progress role seed46 작업이
+queue에 1개 남았다. starts 1,014개는 모두 성공했다. bin6 통과는 79/84, 미통과는 5개
+(`6/15/4/0.75`, `6/9/3/0.75`, `6/9/3/1`, `6/9/4/0.75`, `6/9/4/1`, 모두 `pilot-bh`),
+전체 통과는 179개다. 가장 최근 start 1014는 성공했지만 queue에 seed46이 남아 있어 DB checkpoint가
+작업 완료 후 refresh 전일 수 있다. DB만으로 정확한 내부 실행 지점은 확정하지 못했다.
+진단은 DB read-only였고, run을 중단하거나 변경하지 않았다.
+
+**현행 메인 실행/인계 상태 (2026-11-02 23:28:37 KST +0900; 진행 로그 갱신):**
+기존 DB 위치는 저장소 내부가 아니라 `/Users/myungkyusong/QSimExOutput/sqlite/`였다.
+저장소 내부만 확인해 기존 DB가 없다고 잘못 판단했다. 사용자가 지정한 DB는 열거나 수정하지
+않았으며, 그 경로의 실행은 사용자가 직접 수행한다. 저장소 내부에 별도로 생성한 run
+`main-f22be9820f092b195fc1fefd5bff3464c07ef599e5715f3f87e382a1bb37635f`는 bin10에서
+23:03:11에 시작했고 `paused/user_interruption`, 112/20,000 starts, bin8, queue 8,
+round `progress` 상태로 checkpoint됐다. 사용자의 요청에 따라 저장소 내부 DB, lock 파일,
+`results/rqd_exploration/`을 삭제했으며 해당 프로세스도 종료 상태다. `sqlite/`와
+기존 `results/.DS_Store`는 보존했고, QSimExOutput 자료는 수정하지 않았다. 이후 simulation은
+사용자가 직접 수행한다.
+
+사용자의 새 실행 요청에 따라 명령을 전달했다. 명령은 `initial_input: null`인 현재 main config가
+기존 원자료를 활용하도록 사용자 DB
+`/Users/myungkyusong/QSimExOutput/sqlite/qsimex-rqd-v4.sqlite`를 지정한다. `run-main`은
+동일 config/runtime fingerprint의 run 상태를 자동으로 불러오므로, 새 run 생성 여부는 DB를
+열지 않은 현재 확정할 수 없다. assistant는 명령만 제공했고 simulation은 실행하지 않았다.
+
+**진행 로그 보강 (2026-11-02 23:28:37 KST +0900):** 기존 메인 job 시작/heartbeat 문맥에는 현재
+bin과 `targets_passed`가 있었으나 작업 시작 전 값이 작업 완료까지 유지됐고, bin 전환/pause 시점에는
+별도 stderr 요약이 없었다. 이제 작업 완료 후 갱신값, bin 전환 시 완료 bin 및 다음 bin 통과 수,
+pause 시점의 현재 bin/통과 수를 별도 출력한다. controller/workflow focused tests 27개와
+`git diff --check`가 통과했으며 실제 DB 접근/시뮬레이션은 수행하지 않았다.
+
+**현재 seed 통과 기준 및 완료 상태 (2026-11-02 22:47:57 KST +0900; 작업 1–8 완료):**
+목표별 고정 생성 입력 하나를 사용한다. 정책이 지정한 초기 seed에서 양의 목표 support가
+먼저 확인되어야 하며, 이어 같은 입력의 검증 seed 시작값부터 연속 3개 중 2개 이상에서
+양의 목표 support가 확인되면 통과한다(최소 3/4). 43–46은 예시이며 코드에서 seed 번호를
+고정하지 않는다. 이전 A/B/C 그룹 분포 비교와 추가 안정성 통과 문턱은 폐기했다. 활성 상세
+정책은 [T011 §2](../MainSimulation_T011/plan.md#2-승인-정책)에 반영했으며, 날짜가 붙은 아래
+과거 합의/실행 기록은 이력을 위해 보존한다. 설정 seed를 사용하는 컨트롤러·저장/재개 통합,
+별도 run의 이전 상태 보존, 전역 진행 로그 및 target별 결과 보고를 구현했다. 판정 경계·
+target completion·bin 전환·재개 regression을 보강했다. 초기 seed 누락과 서로 다른 입력
+증거의 합산을 거부하고, 재개는 설정 verification 범위만 허용하며 bin-transition test는
+설정에서 seed를 파생한다. 집중 analysis/controller/policy/store/workflow suite 48개와
+`git diff --check`가 통과했고, 변경 Python 4개 파일의 Pylance syntax 검사도 오류가 없었다.
+실제 pilot DB 쓰기 및 시뮬레이션은 하지 않았다.
+
+**이전 Seed 확인 방향 (2026-11-02 06:36 +09:00; 21:54 기준으로 대체됨):** 당시에는 목표별 한 생성
+입력에서 seed43 통과 후 seed 2개 중 하나 통과(총 2/3)를 제안했다. 이는 후속 seed 3개 중
+2개 통과하는 현재 기준으로 대체되었으며, 현재 상세 기준은 T011 §2에 기록했다. 코드 갱신은 후속이다.
+
 **메인 Jn20 제외 (2026-11-01 06:19 +09:00):** 사용자06:10 요청으로 활성 Jn2/4/9/15,
 Jn20 초기 생성/목표/참조/검증 제외를 적용했다. 기존 자료를 재사용해 초기 생성 없이
 bin10부터 시작한다. Jn20 입력/지원과 원자료는 보존한다. Primary10개 bin 모두

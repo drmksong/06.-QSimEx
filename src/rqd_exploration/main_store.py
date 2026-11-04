@@ -146,21 +146,28 @@ def initialize_main_store(connection):
         """)
 
 
-def open_run(connection, config, runtime, initial_state):
+def open_run(connection, config, runtime, initial_state, *, run_prefix="main"):
+    if (not isinstance(run_prefix, str) or not run_prefix
+            or any(not (character.isalnum() or character == "-") for character in run_prefix)):
+        raise ValueError("run_prefix must contain only letters, digits, or hyphens")
     runtime_json = _json(runtime)
-    run_id = "main-" + fingerprint_snapshot(
+    run_id = run_prefix + "-" + fingerprint_snapshot(
         {"config": config.fingerprint, "runtime": runtime}).sha256_hex
     rows = connection.execute(
         "SELECT run_id, config_fingerprint, runtime_snapshot FROM main_control_runs").fetchall()
     matches = [row for row in rows if row[1] == config.fingerprint]
     if matches and matches != [(run_id, config.fingerprint, runtime_json)]:
-        raise ValueError("main config/runtime mismatch; explicit review and a separate run database required")
+        label = "main" if run_prefix == "main" else run_prefix
+        raise ValueError(
+            f"{label} config/runtime mismatch; explicit review and a separate run database required")
     existing = connection.execute(
         "SELECT config_fingerprint, policy_snapshot, runtime_snapshot "
         "FROM main_control_runs WHERE run_id=?", (run_id,)).fetchone()
     expected = (config.fingerprint, config.snapshot_json, runtime_json)
     if existing is not None and existing != expected:
-        raise ValueError("main config/runtime mismatch; explicit review and a separate run database required")
+        label = "main" if run_prefix == "main" else run_prefix
+        raise ValueError(
+            f"{label} config/runtime mismatch; explicit review and a separate run database required")
     with _atomic(connection):
         connection.execute("""
             INSERT OR IGNORE INTO main_control_runs VALUES (?, ?, ?, ?, ?, 'running', NULL)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+from dataclasses import replace
 from pathlib import Path
 import sqlite3
 import sys
@@ -12,6 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from src.rqd_exploration.config import load_config
+from src.euler_campaign.dfn import CaseJointFactory
 from src.rqd_exploration.fingerprint import (
     execution_snapshot_payload,
     fingerprint_snapshot,
@@ -25,6 +27,7 @@ from src.rqd_exploration.measurement import (
 )
 from src.rqd_exploration.runner import (
     build_mlx_pilot_manifest,
+    execute_frozen_job,
     execute_frozen_jobs,
 )
 from src.rqd_exploration.store import (
@@ -295,6 +298,43 @@ class TestFrozenJobExecution(unittest.TestCase):
                 job_attempt_statuses(connection, first_job),
                 ((0, "succeeded"),),
             )
+            connection.close()
+
+    def test_bh_only_progress_omits_design_id_and_labels_observations(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            connection = sqlite3.connect(Path(temp_dir) / "bh-progress.sqlite")
+            initialize_store(connection)
+            store_manifest(connection, self.manifest)
+            messages: list[str] = []
+
+            def bh_measurement(
+                case, factory, seed, *, progress_callback=None,
+                include_face_measurements=True,
+            ):
+                return self._measurement_result(case, reason="BH-only fixture")
+
+            with patch(
+                "src.rqd_exploration.runner.generate_and_measure",
+                side_effect=bh_measurement,
+            ):
+                execute_frozen_job(
+                    connection,
+                    replace(self.manifest, jobs=(self.manifest.jobs[0],)),
+                    self.config,
+                    CaseJointFactory(),
+                    progress_callback=messages.append,
+                    include_face_measurements=False,
+                    progress_job_label="",
+                )
+
+            completion = next(message for message in messages if "[1/1] complete" in message)
+            self.assertIn("[1/1] complete; ", completion)
+            self.assertIn("BH-observations=0", completion)
+            self.assertNotIn("; observations=0", completion)
+            self.assertTrue(any("[1/1] start attempt=0 seed=" in message for message in messages))
+            self.assertFalse(any(
+                self.manifest.jobs[0].design_id in message for message in messages
+            ))
             connection.close()
 
     @staticmethod

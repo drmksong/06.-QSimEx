@@ -17,7 +17,7 @@ from src.rqd_exploration.dataset import load_latest_cumulative_dataset_revision
 from src.rqd_exploration.measurement import RawFaceObservation, measure_realization
 from src.rqd_exploration.runner import build_mlx_pilot_manifest, execute_frozen_job
 from src.rqd_exploration.store import initialize_store, store_manifest
-from src.test.test_rqd_main_policy import jn20_config_path
+from src.test.test_rqd_main_policy import jn20_config_path, load_main_config
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -238,10 +238,16 @@ class TestMainWorkflow(unittest.TestCase):
 
     def test_main_error_is_paused_reported_and_no_retry(self):
         self.factory.generate.side_effect = RuntimeError("deliberate factory error")
-        code, payload, _ = self.command(*self.run_args())
+        code, payload, progress = self.command(*self.run_args())
         self.assertEqual(code, 1)
         self.assertEqual(payload["main_summary"]["reason"], "execution_error")
         self.assertEqual(payload["main_summary"]["starts_consumed"], 1)
+        self.assertEqual(payload["main_summary"]["starts_maximum"], 20_000)
+        self.assertEqual(payload["main_summary"]["starts_remaining"], 19_999)
+        self.assertIn("verification_seeds", payload["main_summary"]["target_pass_rule"])
+        self.assertIn("starts=1/20000 remaining=19999", progress)
+        self.assertIn("job_stage=starting", progress)
+        self.assertIn("progress stage=DFN generation", progress)
         code, payload, _ = self.command(*self.run_args())
         self.assertEqual(code, 1)
         self.assertEqual(self.factory.generate.call_count, 1)
@@ -299,9 +305,17 @@ class TestMainWorkflow(unittest.TestCase):
 
     def test_full_main_initial_bin_transition_uses_persisted_nine_seed_inputs(self):
         config = load_config(ROOT / "config/rqd_exploration_pilot.yml")
+        policy = load_main_config(self.jn20_config).policy
+        seed_values = [policy.initial_seed, *range(
+            policy.verification_seed, policy.verification_seed + 3)]
+        next_seed = max(seed_values) + 1
+        while len(seed_values) < 10:
+            if next_seed not in seed_values:
+                seed_values.append(next_seed)
+            next_seed += 1
         with sqlite3.connect(self.database) as connection:
             initialize_store(connection)
-            for seed in range(43, 53):
+            for seed in seed_values:
                 design = replace(config.designs[0], realization_seed=seed)
                 normalized = replace(config, designs=(design,))
                 manifest = build_mlx_pilot_manifest(normalized, manifest_id=f"preexisting-seed-{seed}")
@@ -318,9 +332,20 @@ class TestMainWorkflow(unittest.TestCase):
                 raise KeyboardInterrupt
             return DiskJointGeometry(())
         self.factory.generate.side_effect = generate
+        progress = io.StringIO()
         with self.assertRaises(KeyboardInterrupt):
-            self.command(*self.run_args())
-        self.assertEqual(calls[:5], [(20., 43)] * 5)
+            with contextlib.redirect_stderr(progress):
+                cli.main(list(self.run_args()))
+        progress_lines = progress.getvalue().splitlines()
+        completion_line = next(line for line in progress_lines if "job_stage=completed" in line)
+        self.assertIn("bin=10 targets_passed=", completion_line)
+        transition_line = next(line for line in progress_lines if "event=bin_transition" in line)
+        self.assertIn("completed_bin=10 completed_targets_passed=3/3", transition_line)
+        self.assertIn("bin=9 targets_passed=0/", transition_line)
+        pause_line = next(line for line in progress_lines if "event=paused" in line)
+        self.assertIn("reason=user_interruption", pause_line)
+        self.assertRegex(pause_line, r"bin=9 targets_passed=\d+/\d+")
+        self.assertEqual(calls[:5], [(20., policy.initial_seed)] * 5)
         with sqlite3.connect(self.database) as connection:
             connection.execute("PRAGMA foreign_keys = ON")
             events = connection.execute(
@@ -331,7 +356,7 @@ class TestMainWorkflow(unittest.TestCase):
             histories = transition["target_evidence"]
             bin10 = [h for key, h in histories.items() if key.startswith("10/")]
             self.assertTrue(bin10)
-            self.assertTrue(all(sum(item["stable"] for item in h.values()) >= 3 for h in bin10))
+            self.assertTrue(all(any(item["passed"] for item in h.values()) for h in bin10))
             state = json.loads(connection.execute("SELECT state_json FROM main_control_runs").fetchone()[0])
             self.assertEqual(state["bin"], 9)
             self.assertEqual(state["reason"], "user_interruption")
@@ -340,15 +365,22 @@ class TestMainWorkflow(unittest.TestCase):
             self.assertTrue(all(o in observations for o in before))
             self.assertEqual(load_latest_cumulative_dataset_revision(
                 connection, prior.revision_index).dataset_sha256, prior.dataset_sha256)
-            # The same valid nine-seed raw observations fail positive-support stability
-            # for a different reachable bin, but remain in the cumulative dataset.
-            from src.rqd_exploration.main_analysis import BHPoint, SeedProfile, build_targets, stability_history
+            # The same valid seed observations can fail another target without being
+            # removed from the cumulative dataset.
+            from src.rqd_exploration.main_analysis import (
+                BHPoint, SeedProfile, build_targets, seed_pass_result,
+            )
             target = next(t for t in build_targets("bh", jn_values=(2,))
                           if t.reachable and not t.contains(100))
             self.assertTrue(target.reachable)
-            failed = stability_history(tuple(
-                SeedProfile(seed, (BHPoint(0, 1, 100, 1),)) for seed in range(44, 53)), target)
-            self.assertFalse(failed.stable)
+            failed = seed_pass_result(
+                tuple(SeedProfile(seed, (BHPoint(0, 1, 100, 1),))
+                      for seed in (policy.initial_seed,
+                                   *range(policy.verification_seed,
+                                          policy.verification_seed + 3))),
+                target, initial_seed=policy.initial_seed,
+                verification_seed=policy.verification_seed)
+            self.assertFalse(failed.passed)
             current = load_latest_cumulative_dataset_revision(connection)
             self.assertEqual(current.raw_observation_count, 35 * 121)
         self.assertTrue(list(self.output.glob("cumulative/revision-*/reports/report_summary.json")))

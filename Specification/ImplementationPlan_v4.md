@@ -1,20 +1,479 @@
 # Implementation Plan v4: RQD Exploration and Cumulative Batch Workflow
 
-## Main controller progress logging planned (2026-11-01 21:39 +09:00)
+## Handoff / paused until user returns (2026-11-04 09:14 +09:00)
 
-Before the next main execution, improve controller-level progress logging so operators can
-see overall budget consumption and whether each bin has accumulated enough stable profiles.
-Current `[1/1]` and `simulation 1` values describe a job-local invocation, not overall run
-progress. Include starts consumed/maximum/remaining; current bin and reachable/completed
-target counts; stable independent input histories versus the required three for each target;
-and current round/phase/input/seed/job stage. Preserve the existing completion rules:
-each target requires three stable independent inputs (each stable after two consecutive
-passing comparisons of non-overlapping three-seed groups), and a bin completes only when
-all reachable targets in it are complete.
+The user confirmed the urgent P0 plan and will resume after travel. Work is paused here:
+do not implement code, create baseline3, run validation/preview, write DB/manifest/DFN, or
+start simulations until the user returns and instructs us to continue. Preserve the staged
+plan below and all existing work.
 
-This is a planned observability-only change: do not alter target selection, random seeds,
-policy, budget, simulation results, or database schema. Do not apply it to the current
-execution; implement and validate it for a subsequent main execution.
+## 🚨 URGENT / P0 — Make raw-RQD execution follow its input (2026-11-04 09:12 +09:00)
+
+**Status: PLAN ONLY — not started.** The user will return from travel before implementation.
+Do not modify code, create baseline3, run a preview, write DB/manifest/DFN data, or start a
+simulation until the user resumes and authorizes the work. This is a blocker for the next
+raw-RQD search: the current command cannot faithfully run a Jn15/Jn20-only input.
+
+### Goal and scope
+
+Make the new `config/rqd_exploration_main_baseline3.yml` the raw-RQD source of truth for
+the requested Jn15/Jn20 experiment. The raw-RQD path must use the input's Jn designs,
+domain, measurement setup, per-set parameter bounds, sample count, and realization seed;
+values must not be silently replaced or narrowed in code. Keep the existing baseline2
+file and the main simulation/controller policy untouched. Jn20 exclusion from the main
+workflow remains in force; this task is a separate raw-RQD path.
+
+Carry forward the user's previously accepted baseline3 proposal: Jn15 with four sets and
+Jn20 with five sets; five LHS signatures per condition; design seeds 36/40 and realization
+seed 43; current domain 30x20x20 m copied from the raw baseline input; P32 bounds [1,100]
+and radius bounds [1,150] m. Preserve other baseline2 input values (orientation/shape
+bounds, geometry coordinates, and 1 m BH measurement interval) unless the user changes
+them. The design's `sample_count` must control actual LHS count.
+
+### Ordered stages and gates
+
+1. **Freeze the raw input contract.** At the return handoff, confirm which baseline2 fields
+   are copied verbatim and whether coordinate step sizes belong in baseline3. The current
+   P32 proposal is an absolute +/-0.1 step despite log-coordinate bounds; do not silently
+   choose a replacement (absolute, log-space, or relative step). Preserve the previously
+   confirmed five local axes and keep `size_alpha`/`fisher_kappa` out of local updates
+   unless separately approved. Keep the support-weighted-mean objective, 1 m supported-BH
+   evidence, strict-improvement promotion, one realization per signature, and BH-only
+   scope unless the user approves a scientific-policy change.
+2. **Add the focused input and raw-only loader.** Create baseline3 with exactly Jn15/20
+   templates. Have `raw-rqd preview/run` load that input directly (or through a raw-only
+   adapter), deriving active Jn values, set counts, geometry, measurements, bounds,
+   sample count, and realization seed from it. Avoid weakening `load_main_config` or
+   changing main workflow behavior; retain the executable Jn-to-set-count mapping as a
+   model-validation invariant.
+3. **Remove conflicting duplicate sources.** Do not override YAML `sample_count` with
+   the global LHS10 constant. Use the same realization seed in preview, fingerprint,
+   queued runs, reports, and execution. Generate coordinate candidates from the declared
+   per-set bounds, and reject out-of-bound proposals before queuing. Keep any approved
+   step policy explicit and fingerprinted. Derive/use the BH support threshold consistently
+   with the configured measurement interval.
+4. **Preserve provenance and safety.** Include baseline3 bytes and all effective raw-search
+   policy in the configuration fingerprint. A changed input must not silently resume an
+   incompatible old run. Preserve separate raw DB enforcement, schema compatibility,
+   explicit execution confirmation, MLX requirement, and the user's control of DB/output
+   paths. Do not initialize a DB or persist a manifest in this task.
+5. **Add focused regression tests.** Cover baseline3 parsing; exactly Jn15/20 and 4/5 sets;
+   5+5 deterministic LHS samples; the 30x20x20 input geometry; P32 [1,100], radii
+   [1,150], and all generated values within their declared bounds; preview/run seed
+   agreement; coordinate boundary behavior; fingerprint changes when effective input
+   changes; and unchanged main-config validation/preview behavior.
+6. **Validate and hand back preview evidence.** Use only `conda run -n dlo-cq ...`.
+   Validate baseline3 and run the raw-RQD in-memory preview; verify 10 initial signatures,
+   only Jn15/20, expected seed/set/bounds/geometry, and explicit `simulation_started:false`
+   and `database_written:false`. Run the focused raw/config/main regression suites and
+   `git diff --check`. Report failures/limitations before any later user-run step.
+7. **Stop for separate execution approval.** The completed config/preview is not permission
+   to write a production manifest/DB, generate DFNs, or run simulations. Wait for the user
+   to inspect preview results and explicitly authorize each persistent/execution action.
+
+### Completion criteria
+
+- The baseline3 input is the sole source for the above experimental values; preview and
+  execution use the same normalized values and fingerprint.
+- An input change either changes the fingerprint and starts a distinct run or is explicitly
+  rejected; no hidden fallback to baseline/main defaults.
+- Focused tests prove the input bounds and seeds govern generated and updated signatures.
+- Main workflow behavior, baseline2, prior databases, and data remain unchanged.
+- No simulation or persistent pilot action occurs without a later explicit user approval.
+
+## Raw-RQD hard-coded behavior audit (2026-11-04 07:35 +09:00)
+
+The user requested an audit before any implementation: raw-RQD execution should follow
+its input file, and hard-coded behavior should be avoided unless it is a necessary
+invariant. No code, configuration, database, manifest, DFN, or simulation was changed.
+
+Findings:
+- Geometry is read from the normalized input: `RawRqdController` builds the measurement
+  profile from `config.reference_input.geometry` and `.measurements`. However, the main
+  wrapper requires all baseline geometries/measurements to match, and the shared parser
+  fixes BH interval and face advance at 1 m.
+- The raw command accepts a `MainConfig`, not a focused baseline input. That loader
+  requires exactly Jn 2/4/9/15 baseline templates and supports Jn20 only as the separate
+  optional initial input; consequently, its active set cannot be just Jn15/Jn20.
+- YAML parameter bounds are parsed, but `MainConfig` then requires P32 `[0.01,10]` and
+  radii `[1,150]`; raw coordinate proposals independently reuse the global `AXES` table
+  with the same bounds and fixed steps. Thus requested P32 `[1,100]` is rejected by the
+  main loader, and input bounds are not the proposal bounds.
+- `sample_count` is overridden with `RAW_RQD_INITIAL_SIGNATURES_PER_JN = 10` in both
+  preview and execution, so baseline `sample_count: 5` does not control raw-RQD LHS size.
+- The preview helper reports each design's realization seed, while execution snapshots
+  use `policy.initial_seed`. Both are 43 in the current files, but differing values would
+  make preview and execution disagree.
+- Algorithm behavior is also fixed in code: the five axes and their order/steps; one-axis
+  +/- proposals; support-weighted mean over valid intervals with at least 1 m support;
+  promotion only on a strictly lower mean; one realization seed and one run per signature;
+  and BH-only measurement. These encode search policy, not YAML geometry.
+- Separate-DB enforcement, schema-4-only storage, explicit `--confirm-execution`, MLX-only
+  execution, finite-safe-number checks, and raw RQD's physical `[0,100]` domain are
+  intentional safety/data-contract invariants, not candidates to make casually tunable.
+
+Priority inconsistencies for a future, separately approved design are: a raw-specific
+loader for `rqd_exploration_main_baseline3.yml`; one source of truth for geometry,
+measurements, sampling count and realization seed; and coordinate proposal bounds derived
+from each input design's bounds. The user has not yet authorized implementing this design.
+
+## Five lowest-RQD signatures analyzed (2026-11-03 21:54:33 KST +0900)
+
+Using the previously approved signature metric (support-weighted mean), the five lowest
+signatures are all Jn=15:
+
+| Rank | Mean | Per-signature min–max | Difference from selected center |
+|---|---:|---:|---|
+| 1 | 69.029 | 28.386–92.537 | selected center |
+| 2 | 70.407 | 40.760–96.514 | set-4 `size_r_min_m` +0.1 |
+| 3 | 71.420 | 33.501–98.123 | set-4 `size_r_min_m` -0.1 |
+| 4 | 71.502 | 42.009–100 | set-4 `mean_dip_deg` +5 |
+| 5 | 71.893 | 38.786–100 | set-3 `mean_dip_dir_deg` +5 |
+
+The five signatures with the lowest single BH interval values are also Jn=15:
+23.212 at 14 m (signature mean 74.776), 25.032 at 28 m (mean 74.800), 27.331 at
+12 m (mean 73.682), 28.386 at 8 m (mean 69.029; selected center), and 29.929 at
+6 m (mean 76.948). Thus a low single-interval value does not imply a lower borehole-wide
+mean. The 23.212 signature differs from the center through a multi-axis combination:
+set-1 mean dip direction +5; set-2 P32 -0.1, maximum radius +0.1, and mean dip direction
++5; set-3 mean dip -5. Its mean is 5.747 higher than the center.
+
+The selected centers are local minima under the completed one-axis, fixed-step neighborhood:
+there were 11/20/30/40 measured direct neighbors for Jn 2/4/9/15, and none had a strictly
+lower mean. The best neighboring mean deltas were +1.535, +0.097, approximately 0.000
+(not lower), and +1.378 respectively. Repeating the same coordinate step is therefore not
+expected to lower the approved mean metric. A plausible next experiment is a bounded
+multi-axis or larger-step neighborhood around the Jn=15 center, while preserving the
+support-weighted mean objective. The low-single-interval combination is a separate lead
+only if the user instead prioritizes the minimum local RQD; it trades against the mean.
+`size_alpha`/`fisher_kappa` remain frozen unless separately approved. Analysis only:
+no code, DB, or simulation changes.
+
+## Raw-RQD run complete; RQD-range coverage diagnosed (2026-11-03 21:49:32 KST +0900)
+
+Read-only review of the signature-neighborhood DB and final event-85 report found a
+completed run (`targets_complete`): 180 signatures (40 initial LHS and 140 coordinate
+neighbors), with 27/39/40/74 signatures for Jn 2/4/9/15 respectively. All 180 attempts
+succeeded. The cumulative dataset contains 5,400 valid, supported BH intervals, each with
+1 m support (5,400 m total); there were no invalid or unsupported BH observations.
+
+Raw BH RQD spans 23.212–100, with support-weighted mean 85.777. The 10-point histogram is:
+10–<20: 0; 20–<30: 5; 30–<40: 51; 40–<50: 76; 50–<60: 166; 60–<70: 500;
+70–<80: 845; 80–<90: 1,060; 90–100: 2,697. There are 1,414 exact-100 intervals.
+Only 5 signatures touch 20–<30 and none touch 10–<20; all 180 touch 90–100.
+
+Per-Jn signature-level interval range / all-observation weighted mean / selected-center
+weighted mean: Jn 2, 41.08–100 / 88.95 / 78.66; Jn 4, 61.29–100 / 95.88 / 92.71;
+Jn 9, 40.91–100 / 90.12 / 87.12; Jn 15, 23.21–100 / 76.95 / 69.03.
+
+Conclusion: execution and BH measurement coverage are complete, but the data do not
+adequately cover the full 10–100 RQD range: 10–<20 is absent and 20–<30 is very sparse.
+This is not a failed/invalid-measurement issue. The approved search minimizes support-weighted
+mean through bounded local coordinate moves; it does not stratify RQD bins, and local search
+keeps `size_alpha`/`fisher_kappa` fixed. The 5,400 intervals are nested in 180 signatures,
+and per-Jn signature counts are uneven, so the pooled histogram is not 5,400 independent
+signature trials or a balanced Jn sample. These results show that low RQD was not found in
+the explored neighborhoods; they do not prove it is impossible in the full parameter space.
+If full-range coverage is required, a separate coverage-oriented sampling rule and bin
+quotas need user approval before another run. No DB or code changes were made during this
+diagnosis.
+
+## Raw-RQD run paused by user interruption (2026-11-03 21:35:42 KST +0900)
+
+Read-only inspection of
+`/Users/myungkyusong/QSimExOutput/raw-rqd-signature-neighborhood-20261103-2107.sqlite`
+found the run paused with reason `user_interruption`, resume phase `exploration`, round 7,
+44 consumed starts, and two queued tasks. All 44 control starts and DB attempts are
+`succeeded`; none is `running` or `failed`. The current raw config fingerprint matches the
+stored fingerprint, including the 30x20x20 domain. Rerun the same command with the same
+config, database, output directory, and `--confirm-execution`; the controller will reopen
+the same run, skip completed work, and continue the queue. Runtime identity is still checked
+by the command preflight. This was read-only; no DB state or simulation was changed. Wait
+for the user's rerun and results.
+
+## Raw-RQD progress log improvement complete (2026-11-03 21:34:04 KST +0900)
+
+Raw-RQD console progress now shows the Jn, round/phase, human-readable signature change
+(axis value before/after and signed delta), seed/role, and completed BH response summary:
+supported interval count, total support, raw-RQD min/max/weighted mean, and candidate-minus-
+center mean. Round completion reports center selection or movement. Runner start, heartbeat,
+skip, failure, and completion messages suppress raw job hashes; the completion count is
+explicitly labeled `BH-observations`. Full identifiers remain in persisted records and
+reports for exact traceability. Default non-raw runner labels and observation wording are
+unchanged.
+
+Validation in `dlo-cq`: 18 focused raw-search/runner tests passed; compileall, Pylance
+syntax checks, runner signature-compatibility checks, and `git diff --check` passed. No
+simulation or persistent DB/manifest was created. The user remains responsible for running
+the search.
+
+## Raw-RQD coordinate-axis scope confirmed (2026-11-03 21:11:08 KST +0900)
+
+The user confirmed that local coordinate updates use only the five existing `AXES`:
+`p32_m2_per_m3`, `size_r_min_m`, `size_r_max_m`, `mean_dip_deg`, and
+`mean_dip_dir_deg`. LHS screening still varies `size_alpha` and `fisher_kappa`, but those
+two values remain fixed at each selected center during local updates because no approved
+coordinate steps were defined. Preview and run summaries expose the exact coordinate axes.
+
+## Raw-RQD signature-neighborhood workflow implemented (2026-11-03 21:07:34 KST +0900)
+
+The user approved replacing the previous raw-RQD reference/LHS proposal loop with a
+controlled signature-neighborhood search. The run now creates 10 fresh LHS signatures for
+each Jn 2/4/9/15 (40 total), evaluates each once with the configured initial seed, and picks
+one center per Jn by the lowest support-weighted mean over supported-valid BH intervals.
+From that center it evaluates bounded, single-axis +/- small-step neighbors in cyclic order.
+It promotes a candidate only when its support-weighted mean is strictly lower; ties keep the
+current center. This is coordinate search, not Euler/gradient updating.
+
+Raw-RQD execution now skips face measurement/intersections. The frozen manifest still
+contains planned face locations for schema compatibility, and the attempt marks them
+`missing` with the explicit reason `not measured: raw-RQD search is BH-only`. Reports retain
+signature inputs, supported per-location BH RQD/support, center transitions, and candidate
+parameter/RQD deltas. The older 19:49 Stage 2 reference-ranking record below is historical
+and superseded by this new search flow. The prior Stage 2 database is not reused.
+
+Validation in `dlo-cq`: 52 raw-search, measurement, runner, and store tests passed;
+`compileall`, Pylance syntax/signature checks, and scoped `git diff --check` passed. The
+preview-entry test confirms 40 candidates across four Jn values and no simulation or
+database write. Separate main-workflow/main-store regression selectors remain blocked by
+their test configuration's `main and baseline geometry/measurements must match` error;
+those failures were not changed here. No persistent DB, manifest, or simulation was
+created. The user will run the new search using a fresh DB and output directory.
+
+```sh
+conda activate dlo-cq
+python -u run_rqd_exploration.py raw-rqd run \
+  --config config/rqd_exploration_main.yml \
+  --database /Users/myungkyusong/QSimExOutput/raw-rqd-signature-neighborhood-20261103-2107.sqlite \
+  --output-dir /Users/myungkyusong/QSimExOutput/raw-rqd-signature-neighborhood-20261103-2107-reports \
+  --confirm-execution
+```
+
+Wait for the user's run results before taking another step.
+
+## Raw-RQD user-run diagnostic (2026-11-03 20:04:20 KST +0900)
+
+The user's Stage 2 run in `QSimExOutput/raw-rqd-stage2-20261103-1949.sqlite` is paused
+with `execution_error`, not complete: 10 starts, 9 succeeded, 1 failed. The 9 results are
+all Jn=2, seed 43, with 60 supported-valid BH observations each (540 BH observations);
+the shared measurement pipeline also persisted 549 face observations. The failed 10th Jn=2
+LHS task raised `ValueError: scanline intersections contradict an empty supported face`
+during face measurement (`src/euler_campaign/profiles.py:292`). As it failed in the first
+LHS round, no reference-based adaptive update or Stage 2 response deltas were exercised.
+
+The user clarified that the goal is to control a signature and explore its nearby signature
+space. Current proposals use fixed bounded coordinate perturbations plus LHS, not an
+Euler/gradient update. Do not retry the same database unchanged: the failed attempt is
+persisted and automatic retry is disabled. Diagnosis was read-only; no code or database
+changes were made.
+
+## Raw-RQD search Stage 2 complete (2026-11-03 19:49:19 KST +0900)
+
+Measured reference signatures are now ranked within each Jn condition by support-weighted
+mean raw BH RQD, lowest first, with signature ID as the tie-breaker and signatures without
+supported observations last. Existing rotating reference selection and bounded proposals
+remain. Completed adaptive-round events and JSON reports now record reference/candidate
+weighted means, their RQD delta, and changed signature-axis values/deltas by joint set;
+initial LHS exploration has no measured-reference delta. No pass/fail, RQD cutoff, or
+RQD-based stop condition was added.
+
+Focused raw-RQD tests passed (9), including ranking and persisted response-delta evidence.
+`compileall` and `git diff --check` passed. No persistent database, manifest, or simulation
+was created at the implementation handoff; the subsequent user-run interruption is recorded
+above. Remaining: Stage 3
+relationship reporting, Stage 4 broader focused validation, and user execution/review.
+
+## Raw-RQD search Stage 1 complete (2026-11-03 19:41:41 KST +0900)
+
+Removed the raw-RQD pass/verification contract: no RQD<=10 threshold, seed-43-positive
+requirement, seeds 44–46, paired-progress decision, or three-round stagnation gate remains
+in the raw controller. Each signature uses the configured initial seed once (currently 43)
+as a realization/provenance value only. Raw RQD summaries now report min/max and the
+support-weighted mean; that mean is the approved refinement metric but does not yet rank
+or generate future candidates (Stage 2). The main start cap and review checkpoint remain.
+
+The preview reports the continuous-RQD/one-seed contract and emitted 20 candidates for Jn
+2/4/9/15 with no simulation or DB write. Focused raw-RQD tests passed (7); `compileall`,
+Pylance syntax/diagnostics, and `git diff --check` passed. No persistent database, manifest,
+or simulation was created. At the Stage 1 handoff, remaining work was Stage 2 signature
+update guidance and response deltas; Stage 3 relationship reporting; and Stage 4 focused
+validation of the update workflow.
+The user will run any actual simulation.
+
+## Raw-RQD signature search implementation (2026-11-03 19:07:53 KST +0900)
+
+The user approved reusing the current main exploration method and its active Jn 2/4/9/15
+domain and YAML bounds, changing the objective to direct raw BH RQD `<= 10`. Implemented
+`RawRqdController` under `src/rqd_exploration/raw_rqd_search.py` and added the isolated
+`raw-rqd run` command to the existing entry point. The raw controller reuses bounded
+signature proposals, paired progress, the seed-43-positive plus 2-of-3 seeds 44–46 pass
+rule, start/review limits, and stagnation behavior; it does not score bins or use Jr/Ja or
+`physical_rqd_floor`.
+
+The run command requires explicit database/output paths and `--confirm-execution`, and
+rejects pilot/main records in the chosen database. Its summaries pair each observed
+signature with supported-valid BH raw-RQD min/max/count-at-or-below-10 and seed evidence.
+Focused raw-RQD tests passed (7); main controller and workflow tests passed (17 and 10).
+The actual entrypoint preview emitted 20 deterministic candidates across Jn 2/4/9/15 and
+reported no simulation or database write. `compileall`, Pylance syntax/diagnostic checks,
+and `git diff --check` passed. The broader `test_rqd_main_*.py` selector reported 61
+passing tests and one unrelated error:
+`test_resume_stagnation_guard_does_not_cut_an_active_verification_block` calls missing
+`MainController._plan_stability`. No persistent DB, manifest, or simulation was created.
+
+## Separate raw-RQD signature exploration handoff (2026-11-03 18:47:50 KST +0900)
+
+The user approved a separate DFN-signature/raw-RQD exploration process to validate the
+relationship before applying reviewed findings to main. It is being developed inside the
+existing `src/rqd_exploration/` package, using the existing `run_rqd_exploration.py` entry
+point; no new folder is created. The staged-scope decision had deferred automatic high-to-low
+signature updating from the fixed-LHS pilot, while T011 later implemented fixed Q-prime-bin
+targets and a `physical_rqd_floor` filter. Those are not a raw-RQD-only search.
+
+Opened [DFN_RQD_Imp.md](DFN_RQD_Imp.md) and [DFN_RQD_Log.md](DFN_RQD_Log.md). Added a
+generation-free `raw-rqd preview` command, raw-BH observation extraction, and descriptive
+raw-RQD summaries. Focused tests passed (3); command help and actual preview output (10
+candidates, no simulation/write flags) passed. `compileall` and `git diff --check` passed for
+checked paths. No simulation, manifest, database write, or access to the user's DB occurred.
+Adaptive proposal logic, persistent storage, and validation thresholds are still undecided
+and must not be inferred; see the new implementation plan. The main simulation is not changed.
+
+## Root-cause follow-up: low-RQD signatures (2026-11-03 18:28:05 KST +0900; read-only)
+
+The user DB run did not perform an RQD-only search for raw RQD <= 10. It evaluated fixed
+Q-prime-bin/Jn/Jr/Ja targets; the last target was `6/15/4/0.75`, whose calculation-RQD
+interval is `(17.7878, 40.7689]`. Its seed-43 supported BH observations ranged from
+45.2803 to 100, with none in target; one seed-46 observation was 32.2792. Across 64,680
+supported BH observations from the run, no raw RQD <= 10 occurred; minima by fixed Jn
+were 60.2874 (Jn2), 28.5267 (Jn4), 28.6133 (Jn9), and 32.2792 (Jn15).
+
+A score-feasible low-RQD bin-6 example is Jn4/Jr4/Ja0.75: calculation RQD `[10,10.8717]`
+maps to bin 6. The current `Target.reachable` gate rejects it because
+`physical_rqd_floor(4)=40.6`; the target is absent from saved target evidence. The same
+floor rule is contradicted by observed supported RQD below 40.6 for Jn4 and below the
+Jn2 floor 73.6, so it is not validated as a hard lower-bound filter. Separately,
+Q-prime calculation clamps raw RQD below 10 to 10, so a low-RQD-only validation must use
+preserved `raw_rqd` as its objective.
+
+The current T011 candidate mechanism proposes LHS and bounded joint-set parameter
+perturbations, then ranks measured outputs by target distance/support; it does not invert a
+raw-RQD target into a signature. State retained 4,109 input signatures, while successful
+starts covered 546 distinct inputs. The current config also has no Jn20 template. Full-v4
+high-to-low signature updating is a documented goal, but an independent raw-RQD<=10
+procedure and its success/seed/storage criteria remain unspecified. No code, policy, DB, or
+simulation was changed; the separate validation has not started and requires approval.
+
+## Root-cause diagnosis (2026-11-03 17:35:02 KST +0900; read-only)
+
+The five unresolved bin-6 targets have no recorded candidate with positive support at initial
+seed 43. Their recorded candidate counts and positive verification-seed counts (among seeds
+44–46) are: `6/15/4/0.75` — 102 candidates, verification positives `0:101, 1:1`;
+`6/9/3/0.75` — 270, `0:269, 1:1`; `6/9/3/1` — 270, `0:268, 1:1, 2:1`;
+`6/9/4/0.75` — 270, `0:270`; `6/9/4/1` — 270, `0:269, 1:1`. In particular,
+one `6/9/3/1` candidate had two positive verification seeds but failed the required
+seed-43 initial-support condition. The target pass rule is initial positive support plus
+at least 2/3 positive verification seeds; it does not compare RQD-value similarity.
+
+The stop itself was triggered by a separate exploration-progress gate. Candidate/reference
+pairs are compared at matching seeds using distance/support improvement; rounds 53–55
+ended `no_progress`, added zero suitable inputs, and reached the three-round stagnation
+limit. Thus the 2/3 rule was not the direct blocker: no unresolved target had a candidate
+eligible for that verification rule, while the independent progress/stagnation gate remained
+active. Archived records do not confirm a prior bin-6 stop: the documented 300-start run
+ended at bin 7 and an older `high_cost_review` run was at bin 8. This diagnosis was
+read-only; no code, database, policy, or simulation was changed.
+
+## Latest stopped-run diagnosis (2026-11-03 17:27:32 KST)
+
+The user DB run `main-f22be9820f092b195fc1fefd5bff3464c07ef599e5715f3f87e382a1bb37635f`
+is paused for `stagnation`; no matching `run-main` process is active. It reached round 55
+(`6/15/4/0.75/pilot-bh`) with 1,078 starts, all succeeded and none failed. Bin 6 remains
+79/84 passed (five unfinished); total passed targets are 179. Round 52 had progress, then
+rounds 53–55 had no progress and added no suitable inputs, reaching the configured
+three-stagnant-round stop. This was not a seed-pass failure or generation-job error.
+Rerunning the same command does not automatically resume a stagnation pause. The DB was
+read-only; no run or code changes were made.
+
+## Latest read-only main-run diagnosis (2026-11-03 06:37:19 KST)
+
+The user-designated schema4 DB contains one run, `main-f22be9820f092b195fc1fefd5bff3464c07ef599e5715f3f87e382a1bb37635f`,
+with status `running`. Process 32738 was active at ~99% CPU after about 7 hours. The last
+checkpoint shows bin 6, round 52 `progress`, target `6/9/3/1/pilot-bh`, and one queued
+progress-role seed 46 task. All 1,014 starts are `succeeded`. Bin 6 has 79/84 reachable
+targets passed; five remain (`6/15/4/0.75`, `6/9/3/0.75`, `6/9/3/1`, `6/9/4/0.75`,
+`6/9/4/1`, all `pilot-bh`). Total passed targets: 179. Start 1014 is succeeded while
+seed 46 remains in the checkpoint queue, consistent with a post-job refresh/checkpoint
+window; the exact in-memory operation is not proven by a read-only DB snapshot. The user
+DB was inspected read-only; no DB writes or simulation were performed.
+
+## Current main-run handoff (2026-11-02 23:28:37 KST; live progress logging improved)
+
+The existing database is at `/Users/myungkyusong/QSimExOutput/sqlite/`; checking only the
+repository-local path had incorrectly suggested no prior DB existed. The user-designated
+DB was not opened or modified and will be run by the user.
+
+The user requested a fresh main start and its command. The command targets the existing
+user DB at `/Users/myungkyusong/QSimExOutput/sqlite/qsimex-rqd-v4.sqlite`, because the
+current config has `initial_input: null` and relies on existing raw observations rather
+than initializing those inputs in a blank DB. `run-main` automatically loads a run with
+the same config/runtime fingerprint; the DB was not inspected in this turn, so whether
+the command creates a new run or resumes a matching one is unverified. The command was
+provided for the user to run; no simulation was started by the assistant.
+
+The existing start/heartbeat context already showed `bin` and `targets_passed`, but it was
+captured before a job and did not report refreshed counts at completion, bin transition, or
+pause. The controller now emits a refreshed post-job status line, a transition line with
+completed/current bin pass counts, and a pause snapshot. The focused controller/workflow
+tests passed (27); `git diff --check` passed. No pilot DB was accessed and no simulation ran.
+
+A separate repository-local run, `main-f22be9820f092b195fc1fefd5bff3464c07ef599e5715f3f87e382a1bb37635f`,
+started fresh at bin 10 at 23:03:11 KST and was checkpointed for `user_interruption` at
+112/20,000 starts, bin 8, queue 8, round phase `progress`. At the user's request, its local
+database, lock file, and generated `results/rqd_exploration/` directory were removed. The
+run process is no longer active; the user's QSimExOutput database was not modified. The user
+will perform any future simulation execution.
+
+## Current seed-pass regressions and completion status (2026-11-02 22:47:57 KST +0900; work items 1–8 complete)
+
+The configured initial seed and two-of-three verification rule now has regression coverage
+for a missing initial result and for evidence from separate inputs not being pooled.
+Incomparable recovery rejects queued seeds outside the configured verification range, and
+the persisted-input bin-transition test derives its seed values from policy configuration.
+The focused analysis/controller/policy/store/workflow suite passed (48 tests);
+`git diff --check` and Pylance syntax checks for the four changed Python files passed.
+No pilot database action or simulation was performed. See the [T011 detailed plan](MainSimulation_T011/plan.md)
+for the completed work list and remaining authorization boundaries.
+
+## Seed pass rule, controller, and progress reporting at work item 5 completion (2026-11-02 22:40:19 KST +0900; historical snapshot)
+
+For each target, use one fixed generation input. The configured initial seed must first produce positive target support. Then evaluate
+the three consecutive seeds starting at the configured verification seed; the target
+passes if at least two produce positive target support (at least 3/4 total). Seed numbers
+43–46 are examples, not code constants. Analysis, controller scheduling, and recovery use
+the configured values; paired candidate progress requires only matching realization seeds.
+A changed policy/implementation fingerprint creates a separate main run while preserving
+prior state. Progress logs and run/event summaries now report global budget, current-bin
+target completion, per-target/per-input seed evidence, and current round/job context. The
+verification-seed list excludes candidate-progress extension seeds. The focused
+analysis/controller/policy/store/workflow suites passed (47 tests), and `git diff --check`
+passed. No pilot database action or simulation was performed.
+
+## Earlier seed confirmation direction (2026-11-02 06:36 +09:00; superseded)
+
+The earlier 2/3 direction is retained as history and was superseded by the 21:54 rule
+above. The implementation checklist below records the earlier policy implementation;
+current code/status follows the current seed rule and item sequence above and in the
+[T011 detailed plan](MainSimulation_T011/plan.md).
+
+## Main controller progress/result reporting completed (2026-11-02 22:40:19 KST +0900; work item 5)
+
+Progress logs include starts consumed/maximum/remaining; current-bin reachable, evaluated,
+and passed target counts; target/input pass evidence using configured seeds; and current
+round/phase/input/seed/job stage. New run stdout and immutable event `summary.json` expose
+the configured pass rule, per-target evidence, and remaining budget. The separate
+candidate-progress heuristic does not contribute its optional extra seeds to target-pass
+counts. This is observability only; selection, seeds, budget, simulation results, and DB
+schema are unchanged.
 
 ## 메인 Jn20 제외 (2026-11-01 06:19 +09:00)
 

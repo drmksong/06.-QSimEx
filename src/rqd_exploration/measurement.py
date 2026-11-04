@@ -111,7 +111,7 @@ class MeasurementResult:
     location_states: tuple[PlannedLocationState, ...]
     observations: tuple[RawObservation, ...]
     excluded_bh_tail_lengths_m: tuple[tuple[str, float], ...]
-    face_stop_reason: FaceStopReason
+    face_stop_reason: FaceStopReason | None
 
 
 class _RecordingJointGeometry:
@@ -345,8 +345,11 @@ def measure_realization(
     joints: JointGeometry,
     *,
     progress_callback: Callable[[ProgressUpdate], None] | None = None,
+    include_face_measurements: bool = True,
 ) -> MeasurementResult:
     """Measure BH intervals and fixed face stations from one existing realization."""
+    if type(include_face_measurements) is not bool:
+        raise TypeError("include_face_measurements must be a bool")
     planned_locations = plan_measurement_locations(case)
     location_states: list[PlannedLocationState] = []
     observations: list[RawObservation] = []
@@ -435,6 +438,26 @@ def measure_realization(
                 bh_intervals_completed,
                 bh_interval_total,
             ))
+
+    if not include_face_measurements:
+        location_states.extend(
+            PlannedLocationState(
+                "face",
+                location.profile_id,
+                location.location_index,
+                "missing",
+                "not measured: raw-RQD search is BH-only",
+            )
+            for location in planned_locations
+            if isinstance(location, PlannedFaceStation)
+        )
+        return MeasurementResult(
+            planned_locations,
+            tuple(location_states),
+            tuple(observations),
+            tuple(excluded_tails),
+            None,
+        )
 
     planned_faces = tuple(
         location for location in planned_locations

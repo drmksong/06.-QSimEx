@@ -3,14 +3,14 @@
 schema_version: 1
 geometry:
   coordinate_frame: ENU
-  domain_size_m: [60, 30, 30]
+  domain_size_m: [30, 20, 20]
   grid_spacing_m: [1, 1, 1]
-  tunnel_vertices_m: [[0, 15, 15], [60, 15, 15]]
+  tunnel_vertices_m: [[0, 15, 15], [30, 15, 15]]
   tunnel_radius_m: 5
   borehole:
     start_m: [0, 15, 15]
     direction_enu: [1, 0, 0]
-    length_m: 60
+    length_m: 30
 measurements:
   bh_interval_m: 1
   face_advance_m: 1

@@ -20,8 +20,9 @@ from .dataset import (
 from .design import DesignSample, build_frozen_manifest, generate_lhs_design
 from .fingerprint import ExecutionRuntime, fingerprint_snapshot
 from .main_analysis import (
-    BHPoint, SeedProfile, build_targets, paired_progress, progress_decision,
-    seed_metrics, stability_history, target_complete,
+    BHPoint, REQUIRED_VERIFICATION_PASSES, SeedProfile, VERIFICATION_SEED_COUNT,
+    build_targets, paired_progress, progress_decision, seed_metrics, seed_pass_result,
+    target_passed,
 )
 from .main_design import (
     expected_joint_counts, input_identity, propose_candidates, snapshot_from_dict,
@@ -123,12 +124,17 @@ def preview_main(config, connection=None):
 
 
 class MainController:
+    include_face_measurements = True
+    record_p32 = True
+    progress_job_label = None
+
     def __init__(self, connection, config, factory, runtime, *, output_dir,
-                 progress_callback=None):
+                 progress_callback=None, targets=None, run_prefix="main"):
         runtime = replace(runtime, generator_version=FIXED_DOMAIN_GENERATOR_VERSION)
         self.connection, self.config, self.factory, self.runtime = connection, config, factory, runtime
         self.output_dir = Path(output_dir)
         self.progress_callback = progress_callback
+        self.run_prefix = run_prefix
         snapshots = initial_snapshots(config, runtime)
         reference = reference_snapshot(config, runtime)
         normalized = config.reference_input
@@ -136,7 +142,8 @@ class MainController:
             normalized.geometry, normalized.measurements, reference.fixed_jn, reference.joint_sets,
             case_id="main"))
         self.profile_id = next(p.profile_id for p in locations if isinstance(p, PlannedBHInterval))
-        self.targets = build_targets(self.profile_id, jn_values=tuple(config.templates))
+        self.targets = (build_targets(self.profile_id, jn_values=tuple(config.templates))
+                        if targets is None else tuple(targets))
         state = {
             "phase": "initial" if snapshots else "exploration",
             "bin": 10, "round_index": 0, "stagnant_rounds": 0,
@@ -148,8 +155,10 @@ class MainController:
         for snapshot in snapshots:
             identity = input_identity(snapshot)
             state["inputs"][identity] = asdict(snapshot)
-            state["queue"].append({"input_id": identity, "seed": 43, "role": "initial"})
-        self.run_id, self.state = open_run(connection, config, asdict(runtime), state)
+            state["queue"].append({
+                "input_id": identity, "seed": config.policy.initial_seed, "role": "initial"})
+        self.run_id, self.state = open_run(
+            connection, config, asdict(runtime), state, run_prefix=run_prefix)
         self.state.setdefault("pair_reference_cursor", 0)
         self.profiles = {}
         self._initial_pause = None
@@ -230,21 +239,28 @@ class MainController:
             raise ValueError("incomparable recovery refused: saved resume phase is not exploration")
         queue = self.state.get("queue")
         if not isinstance(queue, list) or not queue or not isinstance(queue[0], dict):
-            raise ValueError("incomparable recovery refused: no queued stability sample")
+            raise ValueError("incomparable recovery refused: no queued target verification sample")
         task = queue[0]
         identity, seed = task.get("input_id"), task.get("seed")
         round_state = self.state.get("round")
         if (
-            task.get("role") != "stability"
+            task.get("role") != "target_verification"
             or not isinstance(identity, str)
             or not identity
             or isinstance(seed, bool)
             or not isinstance(seed, int)
             or not isinstance(round_state, dict)
-            or round_state.get("phase") != "stability"
-            or round_state.get("stability_input") != identity
+            or round_state.get("phase") != "verification"
+            or round_state.get("verification_input") != identity
         ):
-            raise ValueError("incomparable recovery refused: pause is not a queued stability sample")
+            raise ValueError("incomparable recovery refused: pause is not a queued target verification sample")
+        if seed not in range(
+            self.config.policy.verification_seed,
+            self.config.policy.verification_seed + VERIFICATION_SEED_COUNT,
+        ):
+            raise ValueError(
+                "incomparable recovery refused: queued seed is outside configured verification seeds"
+            )
         if self.state.get("detail") != f"no valid BH support for {identity}/{seed}":
             raise ValueError("incomparable recovery refused: pause detail does not match the repaired BH filter")
         if self._profile(identity, seed) is None:
@@ -255,7 +271,7 @@ class MainController:
             "ORDER BY start_index DESC LIMIT 1",
             (self.run_id, identity, seed),
         ).fetchone()
-        if start != ("stability", "succeeded"):
+        if start != ("target_verification", "succeeded"):
             raise ValueError("incomparable recovery refused: matching start is not succeeded")
 
         self.state["phase"] = self.state.pop("resume_phase")
@@ -265,7 +281,7 @@ class MainController:
         if self.progress_callback is not None:
             self.progress_callback(
                 f"main {self.run_id} recovered incomparable pause; "
-                f"reusing saved stability sample seed={seed} without a new start"
+                f"reusing saved verification sample seed={seed} without a new start"
             )
 
     def _histories(self, target):
@@ -274,19 +290,30 @@ class MainController:
             if self.state["inputs"][identity]["fixed_jn"] != target.fixed_jn:
                 continue
             seeds = profiles.get(target.profile_id, {})
-            result[identity] = stability_history(tuple(seeds.values()), target)
+            result[identity] = seed_pass_result(
+                tuple(seeds.values()), target,
+                initial_seed=self.config.policy.initial_seed,
+                verification_seed=self.config.policy.verification_seed)
         self.state["target_evidence"][target.key] = {
             i: asdict(h) for i, h in result.items()}
         return result
 
+    def _verification_pending(self, target, histories=None):
+        histories = self._histories(target) if histories is None else histories
+        return any(
+            result.initial_positive_support is True and not result.complete and not result.passed
+            for result in histories.values()
+        )
+
     def _suitable(self, target):
         result = []
+        initial_seed = self.config.policy.initial_seed
         for identity in sorted(self.profiles):
             if self.state["inputs"][identity]["fixed_jn"] != target.fixed_jn:
                 continue
-            metrics = [seed_metrics(p, target) for p in
-                       self.profiles[identity].get(target.profile_id, {}).values()]
-            if any(m is not None and m[1] > 0 for m in metrics):
+            profile = self._profile(identity, initial_seed)
+            metrics = None if profile is None else seed_metrics(profile, target)
+            if metrics is not None and metrics[1] > 0:
                 result.append(identity)
         return result
 
@@ -300,7 +327,7 @@ class MainController:
                 except ValueError as error:
                     self.reference_skips.append({"input_id": identity, "skip_reason": str(error)})
                     continue
-                profile = self._profile(identity, 43)
+                profile = self._profile(identity, self.config.policy.initial_seed)
                 result = None if profile is None else seed_metrics(profile, target)
                 if result is not None:
                     metrics[identity] = result
@@ -317,7 +344,7 @@ class MainController:
         runtime = replace(self.runtime, generator_version=snapshot.runtime.generator_version)
         snapshot = replace(snapshot, runtime=runtime)
         template = self.config.templates[snapshot.fixed_jn]
-        design_id = "main-input-" + identity
+        design_id = f"{self.run_prefix}-input-" + identity
         design = replace(template, design_id=design_id, block_id="main",
                          sample_count=1, realization_seed=seed)
         normalized = replace(
@@ -338,6 +365,7 @@ class MainController:
         identity, seed = task["input_id"], task["seed"]
         if self._profile(identity, seed) is not None:
             task["result"] = "reused"
+            self._report_task_completion(task)
             return
         for row in self.connection.execute(
             "SELECT execution_fingerprint_digest,status FROM attempts WHERE realization_seed=?", (seed,)):
@@ -354,20 +382,40 @@ class MainController:
             store_manifest(self.connection, manifest)
         elif existing[0] != manifest.manifest_json:
             raise ValueError("saved main job manifest conflicts with its frozen plan")
+        progress_context = self._format_progress_context(
+            task, starts_consumed(self.connection, self.run_id))
+
+        def report_job_progress(message):
+            if self.progress_callback is not None:
+                self.progress_callback(f"{progress_context} {message}")
+
         def before_start(job, resuming):
+            nonlocal progress_context
             self._check_review_checkpoint()
             counts = expected_joint_counts(job.snapshot)
             index = reserve_start(self.connection, self.run_id, job, input_id=identity,
                           role=task["role"], resuming=resuming,
                           expected_counts=counts, policy=self.config.policy)
+            progress_context = self._format_progress_context(task, index)
             if self.progress_callback is not None:
                 self.progress_callback(
-                    f"main {self.run_id} start={index}/{self.config.policy.maximum_starts} "
-                    f"role={task['role']} seed={seed} resuming={resuming} "
+                    f"{progress_context} job_stage=starting resuming={resuming} "
                     f"total_expected_joints={sum(counts.values()):.6g}")
-        summary = execute_frozen_job(self.connection, manifest, normalized, self.factory,
-                                     before_start=before_start, progress_callback=self.progress_callback,
-                                     allow_constant_radius=True, record_p32=True)
+        execution_options = {}
+        if not self.record_p32:
+            execution_options["record_p32"] = False
+        if not self.include_face_measurements:
+            execution_options["include_face_measurements"] = False
+        if self.progress_job_label is not None:
+            execution_options["progress_job_label"] = self.progress_job_label
+        summary = execute_frozen_job(
+            self.connection, manifest, normalized, self.factory,
+            before_start=before_start,
+            progress_callback=(report_job_progress
+                               if self.progress_callback is not None else None),
+            allow_constant_radius=True,
+            **execution_options,
+        )
         reconcile_starts(self.connection, self.run_id)
         if summary.skipped_failed_job_keys:
             raise MainPause("execution_error", "saved failed attempt; no automatic retry")
@@ -375,6 +423,16 @@ class MainController:
         if self._profile(identity, seed) is None:
             raise MainPause("incomparable", f"no valid BH support for {identity}/{seed}")
         task["result"] = "generated" if summary.simulation_count else "reconciled"
+        self._report_task_completion(task)
+
+    def _report_task_completion(self, task):
+        if self.progress_callback is None:
+            return
+        consumed = starts_consumed(self.connection, self.run_id)
+        self.progress_callback(
+            f"{self._format_progress_context(task, consumed)} "
+            f"job_stage=completed result={task['result']}"
+        )
 
     def _choose_rotating(self, values, cursor_name):
         if not values:
@@ -382,6 +440,11 @@ class MainController:
         cursor = self.state[cursor_name]
         self.state[cursor_name] += 1
         return values[cursor % len(values)]
+
+    def _candidate_stream_key(self, target):
+        return (int(target.bin_id) * 1000
+                + analysis.JR_VALUES.index(target.jr) * 100
+                + analysis.JA_VALUES.index(target.ja))
 
     def _plan_round(self, target):
         self.state["round_index"] += 1
@@ -391,12 +454,11 @@ class MainController:
                        "target": target.key, "phase": "search", "candidates": [],
                        "references": self._references(target), "progress_pairs": [],
                        "before_suitable": suitable,
-                       "before_stable": sorted(i for i, h in histories.items() if h.stable),
-                       "progress": False, "stability_input": None, "proposals": []}
+                       "progress": False, "verification_input": None, "proposals": []}
         round_state["reference_skips"] = self.reference_skips
         self.state["round"] = round_state
-        if len(suitable) >= 3:
-            round_state["phase"] = "stability"
+        if self._verification_pending(target, histories):
+            round_state["phase"] = "verification"
             return
         references = round_state["references"]
         if not references:
@@ -407,8 +469,7 @@ class MainController:
                         joint_sets=generate_lhs_design(design).samples[0].joint_sets),
                 design, round_index=self.state["round_index"], cursor=0,
                 rng_seed=self.config.rng_seed, seen=set(self.profiles),
-                stream_key=int(target.bin_id) * 1000 + analysis.JR_VALUES.index(target.jr) * 100
-                + analysis.JA_VALUES.index(target.ja), lhs_count=12, lhs_only=True,
+                stream_key=self._candidate_stream_key(target), lhs_count=12, lhs_only=True,
                 runtime=self.runtime)
             candidates = [c for c in stream.candidates if c.role == "lhs"]
             if not candidates:
@@ -423,7 +484,8 @@ class MainController:
                     {"input_id": candidate.input_id, "references": [reference], "role": "lhs",
                      "reasons": list(candidate.reasons)})
                 self.state["queue"].append(
-                    {"input_id": candidate.input_id, "seed": 43, "role": "lhs"})
+                    {"input_id": candidate.input_id,
+                     "seed": self.config.policy.initial_seed, "role": "lhs"})
             return
         cursor = self.state["reference_cursor"] % len(references)
         self.state["reference_cursor"] += 1
@@ -432,7 +494,7 @@ class MainController:
         round_state["allocation_reference"] = allocation_reference
         pools = {"single_axis": [], "multi_axis": [], "lhs": []}
         seen = set(self.profiles)
-        condition_key = int(target.bin_id) * 1000 + analysis.JR_VALUES.index(target.jr) * 100 + analysis.JA_VALUES.index(target.ja)
+        condition_key = self._candidate_stream_key(target)
         merged = {}
         for reference in references:
             base = snapshot_from_dict(self.state["inputs"][reference])
@@ -464,18 +526,23 @@ class MainController:
         if not selected:
             raise MainPause("candidate_exhausted", {"target": target.key,
                                                    "proposals": round_state["proposals"]})
-        self.state["queue"] = [{"input_id": p["input_id"], "seed": 43, "role": p["role"]}
+        self.state["queue"] = [{"input_id": p["input_id"],
+                                "seed": self.config.policy.initial_seed, "role": p["role"]}
                                for p in selected]
 
     def _plan_progress(self, target):
         round_state = self.state["round"]
         round_state["phase"] = "progress"
-        candidates = [p for p in round_state["candidates"] if self._profile(p["input_id"], 43)]
+        initial_seed = self.config.policy.initial_seed
+        verification_seed = self.config.policy.verification_seed
+        verification_seeds = range(verification_seed, verification_seed + 3)
+        candidates = [p for p in round_state["candidates"]
+                      if self._profile(p["input_id"], initial_seed)]
         candidates = [p for p in candidates if any(r != p["input_id"] for r in p["references"])]
         ranked_distance = sorted(candidates, key=lambda p: (
-            seed_metrics(self._profile(p["input_id"], 43), target)[0], p["input_id"]))
+            seed_metrics(self._profile(p["input_id"], initial_seed), target)[0], p["input_id"]))
         ranked_support = sorted(candidates, key=lambda p: (
-            -seed_metrics(self._profile(p["input_id"], 43), target)[1], p["input_id"]))
+            -seed_metrics(self._profile(p["input_id"], initial_seed), target)[1], p["input_id"]))
         chosen = []
         for items in zip(ranked_distance, ranked_support):
             for item in items:
@@ -486,10 +553,11 @@ class MainController:
         for candidate in chosen[:2]:
             references = [r for r in candidate["references"] if r != candidate["input_id"]]
             reference = self._choose_rotating(sorted(references), "pair_reference_cursor")
-            # A seed43-only baseline is measured before any paired verification.
-            if self._profile(reference, 43) is None:
-                self.state["queue"].append({"input_id": reference, "seed": 43, "role": "reference"})
-            pair = {"candidate": candidate["input_id"], "reference": reference, "seeds": [44, 45, 46],
+            if self._profile(reference, initial_seed) is None:
+                self.state["queue"].append(
+                    {"input_id": reference, "seed": initial_seed, "role": "reference"})
+            pair = {"candidate": candidate["input_id"], "reference": reference,
+                    "seeds": list(verification_seeds),
                     "effects": [], "decision": None}
             round_state["progress_pairs"].append(pair)
             for seed in pair["seeds"]:
@@ -507,36 +575,43 @@ class MainController:
             if any(e.status == "incomparable" for e in effects):
                 raise MainPause("incomparable", pair)
             if decision == "extend":
-                pair["seeds"].extend([47, 48])
-                for seed in (47, 48):
+                extra_seeds = range(
+                    self.config.policy.verification_seed + 3,
+                    self.config.policy.verification_seed + 5)
+                pair["seeds"].extend(extra_seeds)
+                for seed in extra_seeds:
                     for identity, role in ((pair["reference"], "reference"),
                                            (pair["candidate"], "progress")):
                         self.state["queue"].append({"input_id": identity, "seed": seed, "role": role})
             elif decision == "progress":
                 round_state["progress"] = True
         if not self.state["queue"]:
-            round_state["phase"] = "stability"
+            round_state["phase"] = "verification"
 
-    def _plan_stability(self, target):
+    def _plan_target_verification(self, target):
         round_state = self.state["round"]
         histories = self._histories(target)
-        identity = round_state["stability_input"]
+        identity = round_state["verification_input"]
         if identity is None:
-            suitable = [i for i in self._suitable(target) if not histories.get(i) or not histories[i].stable]
-            identity = self._choose_rotating(suitable, "input_cursor")
-            round_state["stability_input"] = identity
+            pending = [
+                i for i in self._suitable(target)
+                if histories[i].initial_positive_support is True
+                and not histories[i].complete and not histories[i].passed
+            ]
+            identity = self._choose_rotating(pending, "input_cursor")
+            round_state["verification_input"] = identity
         if identity is None:
             return False
         history = histories[identity]
-        if history.incomparable:
-            raise MainPause("incomparable", {"input": identity, "history": asdict(history)})
-        if history.stable:
-            round_state["progress"] |= identity not in round_state["before_stable"]
+        if history.passed or history.complete:
             return False
-        # The whole procedure stays assigned to this input, including failed comparisons.
-        self.state["queue"] = [{"input_id": identity, "seed": seed, "role": "stability"}
-                               for seed in range(history.next_seed, history.next_seed + 3)]
-        return True
+        self.state["queue"] = [
+            {"input_id": identity, "seed": seed, "role": "target_verification"}
+            for seed, result in zip(history.verification_seeds,
+                                    history.verification_positive_support)
+            if result is None
+        ]
+        return bool(self.state["queue"])
 
     def _complete_round(self, target):
         round_state = self.state["round"]
@@ -563,17 +638,149 @@ class MainController:
             self.state = previous_state
             raise
         self._write_event(index, payload)
-        if self.state["stagnant_rounds"] >= 3:
-            raise MainPause("stagnation", {"completed_rounds_without_progress": 3})
+        if self.state["stagnant_rounds"] >= self.config.policy.stagnant_rounds:
+            raise MainPause("stagnation", {
+                "completed_rounds_without_progress": self.config.policy.stagnant_rounds})
 
     def _target(self, key):
         return next(t for t in self.targets if t.key == key)
 
+    def _progress_status(self, consumed=None):
+        policy = self.config.policy
+        maximum = policy.maximum_starts
+        consumed = starts_consumed(self.connection, self.run_id) if consumed is None else consumed
+        evidence_by_target = self.state["target_evidence"]
+        rule = {
+            "initial_seed": policy.initial_seed,
+            "initial_positive_support_required": True,
+            "verification_seeds": list(range(
+                policy.verification_seed,
+                policy.verification_seed + VERIFICATION_SEED_COUNT)),
+            "required_verification_passes": REQUIRED_VERIFICATION_PASSES,
+        }
+
+        def target_progress(target):
+            evidence = evidence_by_target.get(target.key)
+            input_progress = {}
+            for identity, result in sorted((evidence or {}).items()):
+                support = result["verification_positive_support"]
+                input_progress[identity] = {
+                    "initial_positive_support": result["initial_positive_support"],
+                    "positive_verification_count": sum(value is True for value in support),
+                    "complete": result["complete"],
+                    "passed": result["passed"],
+                }
+            evaluated = target.key in evidence_by_target
+            passed = any(result["passed"] is True for result in (evidence or {}).values())
+            return {
+                "status": "passed" if passed else "in_progress" if evaluated else "not_evaluated",
+                "passed": passed if evaluated else None,
+                "input_progress": input_progress,
+            }
+
+        reachable = [target for target in self.targets if target.reachable]
+        current_bin = self.state["bin"]
+        current_bin_value = current_bin if current_bin in range(1, 11) else None
+        bin_targets = [
+            target for target in reachable
+            if current_bin_value is not None and int(target.bin_id) == current_bin_value
+        ]
+        targets = {target.key: target_progress(target) for target in bin_targets}
+        passed_count = sum(target["passed"] is True for target in targets.values())
+        evaluated_count = sum(target["status"] != "not_evaluated" for target in targets.values())
+        overall_passed_count = sum(
+            any(result["passed"] is True
+                for result in (evidence_by_target.get(target.key) or {}).values())
+            for target in reachable
+        )
+        round_state = self.state.get("round")
+        round_state = round_state if isinstance(round_state, dict) else {}
+        queue = self.state.get("queue")
+        task = queue[0] if isinstance(queue, list) and queue and isinstance(queue[0], dict) else {}
+        current_work = {
+            "round_index": self.state["round_index"],
+            "phase": self.state["phase"],
+            "round_phase": round_state.get("phase"),
+            "target": round_state.get("target"),
+            "input_id": task.get("input_id", round_state.get("verification_input")),
+            "seed": task.get("seed"),
+            "role": task.get("role"),
+            "job_stage": "queued" if task else (
+                round_state.get("phase") if round_state else self.state["phase"]),
+        }
+        return {
+            "starts_consumed": consumed,
+            "starts_maximum": maximum,
+            "starts_remaining": max(0, maximum - consumed),
+            "target_pass_rule": rule,
+            "passed_target_count": overall_passed_count,
+            "current_bin_progress": {
+                "bin": current_bin_value,
+                "reachable_target_count": len(bin_targets),
+                "evaluated_target_count": evaluated_count,
+                "passed_target_count": passed_count,
+                "targets": targets,
+            },
+            "current_work": current_work,
+        }
+
+    def _format_progress_context(self, task, consumed):
+        progress = self._progress_status(consumed)
+        bin_progress = progress["current_bin_progress"]
+        work = progress["current_work"]
+        target = bin_progress["targets"].get(work["target"], {})
+        current_input = target.get("input_progress", {}).get(task["input_id"], {})
+        rule = progress["target_pass_rule"]
+        initial_support = current_input.get("initial_positive_support")
+        initial_text = "unknown" if initial_support is None else str(initial_support).lower()
+        verification_count = current_input.get("positive_verification_count", 0)
+        return (
+            f"main {self.run_id} starts={progress['starts_consumed']}/"
+            f"{progress['starts_maximum']} remaining={progress['starts_remaining']} "
+            f"bin={bin_progress['bin'] or '-'} "
+            f"targets_passed={bin_progress['passed_target_count']}/"
+            f"{bin_progress['reachable_target_count']} "
+            f"round={work['round_index']} phase={work['phase']}/"
+            f"{work['round_phase'] or '-'} target={work['target'] or '-'} "
+            f"input={task['input_id']} seed={task['seed']} role={task['role']} "
+            f"target_status={target.get('status', 'not_evaluated')} "
+            f"initial_support={initial_text} verification_positive="
+            f"{verification_count}/{len(rule['verification_seeds'])} "
+            f"required={rule['required_verification_passes']}"
+        )
+
+    def _report_progress_snapshot(self, event, *, reason=None, completed_bin=None,
+                                  completed_bin_progress=None):
+        if self.progress_callback is None:
+            return
+        progress = self._progress_status()
+        bin_progress = progress["current_bin_progress"]
+        details = [f"main {self.run_id} event={event}"]
+        if completed_bin_progress is not None:
+            details.extend((
+                f"completed_bin={completed_bin}",
+                "completed_targets_passed="
+                f"{completed_bin_progress['passed_target_count']}/"
+                f"{completed_bin_progress['reachable_target_count']}",
+            ))
+        details.extend((
+            f"starts={progress['starts_consumed']}/{progress['starts_maximum']}",
+            f"bin={bin_progress['bin'] or '-'}",
+            f"targets_passed={bin_progress['passed_target_count']}/"
+            f"{bin_progress['reachable_target_count']}",
+            f"targets_evaluated={bin_progress['evaluated_target_count']}/"
+            f"{bin_progress['reachable_target_count']}",
+        ))
+        if reason is not None:
+            details.append(f"reason={reason}")
+        self.progress_callback(" ".join(details))
+
     def summary(self):
+        progress = self._progress_status()
         independent_inputs = len(self.profiles)
         seed_realizations = sum(len(p.get(self.profile_id, {})) for p in self.profiles.values())
         return {"run_id": self.run_id, "phase": self.state["phase"], "bin": self.state["bin"],
-                "reason": self.state["reason"], "starts_consumed": starts_consumed(self.connection, self.run_id),
+                "reason": self.state["reason"], **progress,
                 "independent_inputs": independent_inputs, "input_seed_realizations": seed_realizations,
                 "round_index": self.state["round_index"], "stagnant_rounds": self.state["stagnant_rounds"],
                 "detail": self.state.get("detail"),
@@ -585,7 +792,8 @@ class MainController:
                         if k not in ("realization_seed", "runtime")}
                     for i in sorted(self.profiles)},
                 "verification_seeds_by_input": {
-                    i: sorted(s for s in self.profiles[i].get(self.profile_id, {}) if s >= 44)
+                    i: [s for s in progress["target_pass_rule"]["verification_seeds"]
+                        if s in self.profiles[i].get(self.profile_id, {})]
                     for i in sorted(self.profiles)},
                 "target_evidence": self.state["target_evidence"],
                 "completed_round_event_indices": [row[0] for row in self.connection.execute(
@@ -682,7 +890,9 @@ class MainController:
                 self._check_review_checkpoint()
                 if (self.state["phase"] == "exploration" and self.state["round"] is None
                     and self.state["stagnant_rounds"] >= self.config.policy.stagnant_rounds):
-                    raise MainPause("stagnation", {"completed_rounds_without_progress": self.state["stagnant_rounds"]})
+                    raise MainPause(
+                        "stagnation",
+                        {"completed_rounds_without_progress": self.state["stagnant_rounds"]})
                 if self.state["queue"]:
                     task = self.state["queue"][0]
                     self._save()
@@ -700,15 +910,17 @@ class MainController:
                         self._plan_progress(target)
                     elif phase == "progress":
                         self._finish_progress(target)
-                    elif self._plan_stability(target):
+                    elif self._plan_target_verification(target):
                         pass
                     else:
                         self._complete_round(target)
                     self._save()
                     continue
                 targets = [t for t in self.targets if int(t.bin_id) == self.state["bin"] and t.reachable]
-                unfinished = [t for t in targets if not target_complete(self._histories(t))]
+                unfinished = [t for t in targets if not target_passed(self._histories(t))]
                 if not unfinished:
+                    completed_bin = self.state["bin"]
+                    completed_bin_progress = self._progress_status()["current_bin_progress"]
                     self._save()
                     self._report_event("bin_transition")
                     self.state["bin"] -= 1
@@ -717,10 +929,16 @@ class MainController:
                         self.state["phase"], self.state["reason"] = "complete", "targets_complete"
                         self._save(status="complete", reason="targets_complete")
                         self._report_event("complete")
+                        self._report_progress_snapshot(
+                            "bin_transition", completed_bin=completed_bin,
+                            completed_bin_progress=completed_bin_progress)
                         return self.summary()
                     self._save()
+                    self._report_progress_snapshot(
+                        "bin_transition", completed_bin=completed_bin,
+                        completed_bin_progress=completed_bin_progress)
                     continue
-                ready = [t for t in unfinished if len(self._suitable(t)) >= 3]
+                ready = [t for t in unfinished if self._verification_pending(t)]
                 target = self._choose_rotating(ready or unfinished, "target_cursor")
                 self._plan_round(target)
                 self._save()
@@ -739,6 +957,7 @@ class MainController:
         self.state["phase"], self.state["reason"], self.state["detail"] = "paused", reason, detail
         reconcile_starts(self.connection, self.run_id)
         self._save(status="paused", reason=reason)
+        self._report_progress_snapshot("paused", reason=reason)
         self._report_event("pause")
 
 

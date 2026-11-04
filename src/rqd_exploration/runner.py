@@ -109,8 +109,11 @@ def generate_and_measure(
     seed: int,
     *,
     progress_callback: Callable[[ProgressUpdate], None] | None = None,
+    include_face_measurements: bool = True,
 ) -> MeasurementResult:
     """Generate one DFN and measure it once; persistence, retry, and policy are separate."""
+    if type(include_face_measurements) is not bool:
+        raise TypeError("include_face_measurements must be a bool")
     if progress_callback is not None:
         progress_callback(ProgressUpdate("DFN generation", "starting DFN generation"))
     if progress_callback is None:
@@ -128,12 +131,14 @@ def generate_and_measure(
         ))
         progress_callback(ProgressUpdate(
             "Measurement",
-            "starting BH interval and face station measurements",
+            ("starting BH interval and face station measurements"
+             if include_face_measurements else "starting BH interval measurements only"),
         ))
     return measure_realization(
         case,
         joints,
         progress_callback=progress_callback,
+        include_face_measurements=include_face_measurements,
     )
 
 
@@ -305,8 +310,12 @@ def _execute_jobs(
     before_start: Callable[[ExecutionJob, bool], None] | None = None,
     allow_constant_radius: bool = False,
     record_p32: bool = False,
+    include_face_measurements: bool = True,
+    progress_job_label: str | None = None,
 ) -> FrozenJobRunSummary:
     """Run pending frozen jobs and resume an interrupted attempt without repeating saved jobs."""
+    if type(include_face_measurements) is not bool:
+        raise TypeError("include_face_measurements must be a bool")
     if not isinstance(manifest, FrozenManifest):
         raise TypeError("manifest must be a FrozenManifest")
     if not isinstance(config, NormalizedPilotInput):
@@ -325,6 +334,11 @@ def _execute_jobs(
     job_total = len(manifest.jobs)
     for job_number, job in enumerate(manifest.jobs, start=1):
         identity = _job_identity(job)
+        job_label = (
+            f"{job.design_id}/{job.block_id}/sample={job.sample_index}"
+            if progress_job_label is None else progress_job_label
+        )
+        job_label_suffix = f" {job_label}" if job_label else ""
         attempts = job_attempt_statuses(connection, job)
         succeeded = [index for index, status in attempts if status == "succeeded"]
         running = [(index, status) for index, status in attempts if status == "running"]
@@ -335,8 +349,7 @@ def _execute_jobs(
             skipped_completed.append(identity)
             if progress_callback is not None:
                 progress_callback(
-                    f"[{job_number}/{job_total}] skip completed "
-                    f"{job.design_id}/{job.block_id}/sample={job.sample_index}"
+                    f"[{job_number}/{job_total}] skip completed{job_label_suffix}"
                 )
             continue
         if running and failed:
@@ -345,8 +358,7 @@ def _execute_jobs(
             skipped_failed.append(identity)
             if progress_callback is not None:
                 progress_callback(
-                    f"[{job_number}/{job_total}] skip failed attempt "
-                    f"{job.design_id}/{job.block_id}/sample={job.sample_index}"
+                    f"[{job_number}/{job_total}] skip failed attempt{job_label_suffix}"
                 )
             continue
         started_monotonic = monotonic()
@@ -395,8 +407,7 @@ def _execute_jobs(
         simulation_count += 1
         job_started = monotonic()
         progress_context = (
-            f"[{job_number}/{job_total}] {action} "
-            f"{job.design_id}/{job.block_id}/sample={job.sample_index} "
+            f"[{job_number}/{job_total}] {action}{job_label_suffix} "
             f"seed={job.realization_seed}; "
             f"simulation {simulation_count}"
         )
@@ -407,16 +418,31 @@ def _execute_jobs(
             ))
             try:
                 if progress_callback is None:
-                    result = generate_and_measure(
-                        case, active_factory, job.realization_seed,
-                    )
+                    if include_face_measurements:
+                        result = generate_and_measure(
+                            case, active_factory, job.realization_seed,
+                        )
+                    else:
+                        result = generate_and_measure(
+                            case, active_factory, job.realization_seed,
+                            include_face_measurements=False,
+                        )
                 else:
-                    result = generate_and_measure(
-                        case,
-                        active_factory,
-                        job.realization_seed,
-                        progress_callback=heartbeat.update,
-                    )
+                    if include_face_measurements:
+                        result = generate_and_measure(
+                            case,
+                            active_factory,
+                            job.realization_seed,
+                            progress_callback=heartbeat.update,
+                        )
+                    else:
+                        result = generate_and_measure(
+                            case,
+                            active_factory,
+                            job.realization_seed,
+                            progress_callback=heartbeat.update,
+                            include_face_measurements=False,
+                        )
                 pending_result = _unpersisted_measurements(result, location_states)
                 heartbeat.update(ProgressUpdate(
                     "Persistence",
@@ -440,8 +466,7 @@ def _execute_jobs(
                 )
                 heartbeat.update(ProgressUpdate(
                     "Interruption",
-                    f"[{job_number}/{job_total}] {job.design_id}/"
-                    f"{job.block_id}/sample={job.sample_index}; "
+                    f"[{job_number}/{job_total}]{job_label_suffix}; "
                     "attempt checkpointed for resume",
                 ))
                 raise
@@ -462,18 +487,18 @@ def _execute_jobs(
                     )
                 heartbeat.update(ProgressUpdate(
                     "Failure",
-                    f"[{job_number}/{job_total}] "
-                    f"{job.design_id}/{job.block_id}/"
-                    f"sample={job.sample_index}: {error}",
+                    f"[{job_number}/{job_total}]{job_label_suffix}: {error}",
                 ))
                 raise
         completed.append(identity)
         if progress_callback is not None:
+            observation_label = (
+                "observations" if include_face_measurements else "BH-observations"
+            )
             progress_callback(
-                f"[{job_number}/{job_total}] complete "
-                f"{job.design_id}/{job.block_id}/sample={job.sample_index}; "
+                f"[{job_number}/{job_total}] complete{job_label_suffix}; "
                 f"elapsed={max(0.0, monotonic() - job_started):.1f}s; "
-                f"observations={len(pending_result.observations)}"
+                f"{observation_label}={len(pending_result.observations)}"
             )
 
     return FrozenJobRunSummary(
@@ -495,13 +520,17 @@ def execute_frozen_job(
     progress_callback: Callable[[str], None] | None = None,
     allow_constant_radius: bool = False,
     record_p32: bool = False,
+    include_face_measurements: bool = True,
+    progress_job_label: str | None = None,
 ) -> FrozenJobRunSummary:
     """Shared atomic one-job boundary; policy hooks run only for actual starts."""
     if len(manifest.jobs) != 1:
         raise ValueError("single-job execution requires exactly one frozen job")
     return _execute_jobs(connection, manifest, config, factory,
                          before_start=before_start, progress_callback=progress_callback,
-                         allow_constant_radius=allow_constant_radius, record_p32=record_p32)
+                         allow_constant_radius=allow_constant_radius, record_p32=record_p32,
+                         include_face_measurements=include_face_measurements,
+                         progress_job_label=progress_job_label)
 
 
 def execute_frozen_jobs(
