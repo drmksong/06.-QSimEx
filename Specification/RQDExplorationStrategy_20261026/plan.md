@@ -1,5 +1,29 @@
 # v4: RQD 중심・bin 조건부 자동 탐색 및 Q′ 조합 분석 계획
 
+**오늘 작업 요약 및 다음 작업 (2026-11-08 23:09 +09:00):**
+
+완료:
+- baseline3 raw-RQD 경로가 design별 입력 bounds를 따르도록 수정하고 초기 Jn15/Jn20
+  10-signature cohort를 검증했다.
+- review를 명시적으로 release하는 continuation, hybrid 후보 생성, response-bin/mean/
+  population-SD 보고, in-memory 회귀 테스트를 구현했다.
+- 기존 DB에서 후속 batch 1을 실행했다. Jn당 global LHS 5개 + response-gap 5개,
+  총 20개 신규 signature가 추가되어 Jn당 15개가 됐고 전체 30 attempts가 성공했다.
+- BH observation 900개를 intersection evidence로 재계산해 900/900 일치했다. 저장된
+  mean/SD/bin coverage도 독립 계산과 일치했다. 합산 coverage는 10개 bin 중 9개이며,
+  `70–80`은 Jn15/Jn20 모두 비어 있다.
+- 현재 run은 `continuation_batch_review`에서 정상 pause 중이며 batch 2는 시작하지 않았다.
+
+다음 작업은 사용자 선택 및 승인 대기:
+1. 현재 구현은 배치마다 Jn당 5 global + 5 response-gap을 유지한다. response-gap 위치는
+   최신 데이터에 따라 달라지지만 배분 비율은 자동 변경되지 않는다. batch 2도 이 비율을
+   유지할지, 아니면 두 Jn 공통 `70–80`과 각각의 추가 공백(Jn15 `10–20`, Jn20 `90–100`)에
+   더 큰 비중을 줄지 먼저 결정한다.
+2. 비율 변경을 원하면 사용자 확인 후 코드/테스트를 수정한다. 기존 비율을 유지한다면
+   동일 baseline3 config와 SQLite DB를 사용하는 batch 2 실행에 대해 별도 승인을 받는다.
+3. 승인된 경우에만 batch 2를 실행하고, 완료 결과와 evidence를 검증한 다음 다시 review
+   pause한다.
+
 **후속 batch 1 검토 완료 (2026-11-08 23:02 +09:00; review pause):** 사용자가 기존
 baseline3 DB에서 첫 continuation batch를 실행했다. Run
 `raw-rqd-698771ca0aba9d63b26c65d0032278b612d4036569fe027e7cb99a84fe12b286`는 오류 없이

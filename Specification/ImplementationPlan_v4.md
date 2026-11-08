@@ -1,5 +1,32 @@
 # Implementation Plan v4: RQD Exploration and Cumulative Batch Workflow
 
+## Today's work summary and next work (2026-11-08 23:09 +09:00)
+
+Completed today:
+
+- Fixed raw-RQD execution to honor baseline3 per-design input bounds, then validated the
+  original 10-signature Jn15/Jn20 cohort.
+- Implemented explicit review-gated continuation, deterministic hybrid candidate
+  generation, response-bin/mean/population-SD reporting, and in-memory regressions.
+- Ran follow-up batch 1 in the existing baseline3 DB: 20 new signatures (5 global LHS +
+  5 response-gap per Jn), for 15 signatures per Jn total. All 30 attempts succeeded.
+- Independently verified all 900 valid 1m BH observations against saved intersection
+  evidence (900/900 raw-RQD matches); stored mean, SD, and bin coverage also matched.
+  Combined coverage is 9/10 response bins; 70–80 is empty for both Jn values.
+- The run is safely paused at `continuation_batch_review`; no batch 2 has started.
+
+Next work, pending user direction:
+
+1. Decide whether batch 2 should keep the implemented 5 global + 5 response-gap split per
+   Jn or change the allocation to target the current gaps (70–80 for both Jn; additionally
+   10–20 for Jn15 and 90–100 for Jn20). Response-gap locations are generated from current
+   data, but the current 5/5 ratio itself is fixed.
+2. If the allocation policy is to change, confirm that choice before modifying code/tests.
+   Otherwise, obtain explicit execution approval before continuing the existing run using
+   the same baseline3 config and SQLite DB.
+3. After an approved batch 2, verify attempts, interval evidence, response statistics, and
+   pause again for review. Do not start it automatically.
+
 ## Follow-up batch 1 reviewed (2026-11-08 23:02 +09:00; completed and paused for review)
 
 The user executed the approved continuation in the existing baseline3 database. Run
