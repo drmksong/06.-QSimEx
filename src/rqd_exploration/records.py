@@ -51,6 +51,7 @@ class ExecutionJob:
     realization_seed: int
     snapshot: ExecutionSnapshot
     fingerprint: SnapshotFingerprint
+    case_id: str | None = None
 
 
 @dataclass(frozen=True)

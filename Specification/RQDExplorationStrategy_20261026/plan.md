@@ -1,5 +1,674 @@
 # v4: RQD 중심・bin 조건부 자동 탐색 및 Q′ 조합 분석 계획
 
+**후속 batch 1 검토 완료 (2026-11-08 23:02 +09:00; review pause):** 사용자가 기존
+baseline3 DB에서 첫 continuation batch를 실행했다. Run
+`raw-rqd-698771ca0aba9d63b26c65d0032278b612d4036569fe027e7cb99a84fe12b286`는 오류 없이
+`continuation_batch_review`에서 멈췄다. 기존 10개와 새 signature 20개를 포함해 총
+30개(각 Jn 15개), attempt 30개가 모두 성공했고 queue는 비었다. 신규 배분은 Jn별
+global LHS 5개 + response-gap local 5개이며 모두 unique했다.
+
+DB에는 BH interval 900개와 evidence 900개가 저장됐다. 모든 interval은 valid이고 지원 길이는
+1m다. 저장된 교차 위치로 raw RQD를 다시 계산한 결과 900/900 일치했고, signature-level
+support-weighted mean, population SD, bin counts도 저장 summary와 모두 일치했다.
+MLX `Device(gpu, 0)` runtime을 확인했다.
+
+signature 평균 raw RQD (각 Jn 오름차순):
+- Jn15: 1.179, 8.152, 21.579, 22.716, 25.722, 31.872, 33.704, 40.675, 43.002,
+  49.288, 52.527, 66.884, 88.872, 91.615, 95.581.
+- Jn20: 1.143, 1.326, 3.890, 7.249, 8.517, 16.777, 28.967, 35.373, 38.347,
+  43.467, 46.623, 56.623, 64.270, 65.812, 86.316.
+
+10-point mean-RQD bins coverage는 Jn15 8/10, Jn20 8/10, 두 Jn을 합쳐 9/10이다.
+70–80 bin은 둘 다 비었고, 추가로 Jn15는 10–20, Jn20는 90–100이 비었다. 다음 batch는
+현재 coverage를 검토한 뒤 별도 실행 승인을 받아야 하며 자동으로 실행하지 않는다.
+상세 summary: `~/QSimExOutput/raw-rqd-baseline3-20261108-2218-fixed-followup-reports/raw-rqd-698771ca0aba9d63b26c65d0032278b612d4036569fe027e7cb99a84fe12b286/event-4/summary.json`.
+
+**후속 탐색 continuation 구현 완료 (2026-11-08 22:53 +09:00; 실제 실행 승인 대기):**
+사용자가 승인한 코드 및 테스트 구현을 마쳤다. `--continue-from-review`는 저장된 run이
+`initial_cohort_review` 또는 `continuation_batch_review`에서 pause된 경우에만 이어서 실행한다.
+Jn마다 unique signature 10개를 배치로 구성하고, 첫 후보 구성은 global LHS 5개와 response-gap
+local interpolation 최대 5개다. local candidate가 부족하면 그 수만큼 fallback global LHS를
+추가하고, 배치 완료 후에는 항상 review pause를 남긴다. 입력의 log/linear/circular 좌표 및
+design별 bounds를 지키며 signature별 지원 interval RQD의 support-weighted mean과 population
+SD(ddof=0), bin coverage를 보고한다. focused raw-RQD tests 17개와 전체 RQD tests 242개 통과,
+Pylance syntax/diagnostic 및 `git diff --check`도 통과했다. 실제 DB를 열거나 DFN/simulation을
+실행하지 않았다. 다음 단계는 보고된 정책을 검토한 뒤 별도 승인을 받아 실제 follow-up batch를
+실행하는 것이다.
+
+**후속 탐색 계획 승인 (2026-11-08 22:42 +09:00; 구현 대기):** 사용자는 hybrid coverage 계획을
+승인하고 첫 batch의 후보 배분을 Jn별 global space-filling 5개 + 관측 mean raw-RQD 공백을
+보강하는 local-refinement 5개로 선택했다. 총 새 signature는 Jn당 10개이며 다음 batch는
+갱신된 signature/RQD coverage를 보고 조정한다. 이는 계획 승인일 뿐 코드 구현이나 실제 실행
+승인은 아니다.
+
+**후속 탐색 정책 결정 확인 (2026-11-08 22:40 +09:00; 계획만):** 사용자는 hybrid signature
+공간 + mean raw-RQD coverage, Jn별 10-point RQD bins, Jn당 batch 10개, 각 signature의
+30개 1m RQD 보존, support-weighted mean과 population SD(ddof=0) 보고를 확인했다.
+SD는 30m BH 내 공간 변동을 나타내는 보조 다양성/tie-break 지표이고 두 번째 bin 축이나
+run-to-run 불확실성으로 쓰지 않는다. 구현 및 실제 실행 승인은 아직 아니다.
+
+구현 순서:
+1. `initial_cohort_review`를 명시적으로 release하는 continuation을 추가하고 기존 run/DB를
+   이어 쓰되 완료된 attempt를 보존하며 duplicate signature/start를 막는다. 각 후속 batch 뒤
+   다시 review pause한다.
+2. 30개 interval raw-RQD의 support-weighted mean 및 population SD를 signature summary에
+   보고한다. 기존 observation/intersection evidence가 원본 기록으로 유지된다.
+3. 현재 main-policy step과 최저 RQD 이동 방식 대신 Jn별 hybrid coverage allocator를 구현한다.
+   mean RQD의 미충족 10-point bins와 under-sampled signature 공간을 함께 고려하고, 모든 후보는
+   baseline3 입력 bounds와 각 coordinate 의미를 따른다.
+4. Jn당 새 signature 10개를 queue해 기록하고, batch 종료 시 coverage/mean/SD 보고와 review
+   handoff를 제공한다.
+5. in-memory 테스트로 continuation safety, 완료 작업 중복 방지, 입력 경계, Jn당 10개,
+   mean/SD 계산 및 pause/report 저장을 검증한다. 비영속 preview/test까지만 수행하며 실제
+   DB/run은 별도 사용자 승인 전에는 시작하지 않는다.
+
+coverage score와 log/linear/circular parameter distance의 구체 구현은 입력 coordinate 의미를
+따라 별도로 명시하며 main-policy 고정 step을 재사용하지 않는다.
+
+**후속 탐색 구현 계획 초안 (2026-11-08 22:38 +09:00; 계획만 작성):** 사용자는 signature
+공간과 Jn별 raw-RQD coverage를 함께 보강하는 hybrid 목표, 10-point RQD bins, Jn당 새
+signature 10개씩 batch 실행, signature별 30개 1m raw-RQD를 보존하면서 평균과 표준편차를
+사용하는 방향을 선택했다. 이번 요청은 구현 계획만이며 코드를 고치거나 추가 실행하지 않는다.
+표준편차가 후보 선택에 어떤 역할을 할지는 확인 대기다.
+
+현재 controller는 `initial_cohort_review`에서 멈추며 같은 실행을 반복해도 저장된 요약만
+돌려준다. 잠재 coordinate-neighbor 코드는 main-policy `AXES`의 step을 사용하고
+support-weighted mean raw RQD를 낮추는 쪽으로 중심을 옮긴다. 이는 RQD 최소화이며 요청된
+signature–RQD coverage densification과 다르다. 초기 signature 평균은 Jn15:
+1.18, 21.58, 22.72, 88.87, 91.62; Jn20: 1.14, 1.33, 7.25, 64.27, 65.81로 응답 구간 사이
+공백이 있다.
+
+구현 단계 제안:
+
+1. `initial_cohort_review`에서 명시적으로 continuation을 승인/release하는 경로를 만들고,
+   기존 run/database를 이어 쓰되 완료된 initial attempt는 재실행하지 않고 중복 start를 막는다.
+   각 10-per-Jn batch 뒤에는 결과 검토를 위해 다시 pause한다.
+2. 현재 low-RQD coordinate walk를 대체하는 hybrid candidate allocator를 Jn별로 구현한다.
+   baseline3 입력 bounds와 parameter 의미를 따르며, signature 평균 raw RQD의 비어 있는
+   10-point bins 및 덜 표본화된 normalized signature-space를 고려한다. main-policy bounds/
+   steps를 암묵적으로 가져오지 않는다.
+3. signature별 30개 interval raw-RQD를 계속 보존하고 mean 및 standard deviation을 요약에
+   추가한다. SD의 계산 정의와 candidate-allocation 역할은 사용자 확인 후 고정한다.
+4. in-memory 테스트로 continuation/pause, 기존 결과 재실행 방지, 새 signature 정확히 Jn당
+   10개, 입력 bounds/seeds, 중복 방지, mean/SD, report 저장을 검증한다. 실제 DB나 simulation
+   실행은 이 구현 단계에 포함하지 않는다.
+
+SD는 처음에는 보조 spatial-variability descriptor 및 coverage 동점 해소용으로만 쓰는 것을
+권장한다. 30개 interval은 한 realization 내 공간 변동을 나타내며 run-to-run 불확실성이
+아니고, 현재 signature당 realization seed는 하나다. SD를 두 번째 active coverage 축으로
+쓰려면 별도 기준과 bin/resolution을 승인받아야 한다.
+
+**raw-RQD 계산 증거 대조 완료 (2026-11-08 22:31 +09:00):** 실행 경로를 확인했다.
+`generate_and_measure()`는 MLX factory로 joint array를 생성한 뒤 `measure_realization()`을
+실행한다. runtime snapshot도 MLX GPU backend를 기록한다. 각 BH interval은 실제 선-절리
+교차 위치로 분할되고, `_direct_rqd()`는 분할된 intact piece 중 **0.1 m 이상(10 cm 포함,
+수치 tolerance 적용)**인 길이의 합을 support length로 나눈다.
+
+DB에 저장된 intersection position에서 raw RQD를 독립 재계산한 결과 BH observation 300개 중
+**300개 모두 저장값과 부동소수점 허용오차 내 일치**했다. 교차 hit는 총 10,074개였고,
+300개 interval 중 299개에 하나 이상 있었다. 따라서 이 값은 mock/placeholder가 아니라
+실제 생성 geometry와 교차 evidence에서 나온 것이다. 단, 이 경로는 GPU 메모리 안에서
+geometry를 만들고 결과/evidence를 SQLite에 저장하며 별도 DFN 파일 export나 downstream
+solver 실행을 하지는 않는다. 초기 10개 cohort가 넓은 응답 범위를 보였다는 결과이지,
+탐색 공간 전체를 검증한 것은 아니다.
+
+**baseline3 초기 cohort 실행 확인 및 실패 DB 삭제 (2026-11-08 22:24 +09:00):** 사용자가 실행한
+fixed baseline3 run에서 10개 실행(Jn15 5개, Jn20 5개)과 attempt가 모두 `succeeded`였다.
+실행은 오류가 아니라 설계된 결과 검토 지점인 `phase=paused`,
+`reason=initial_cohort_review`에 도달했다. DB runtime snapshot은 MLX backend와
+`Device(gpu, 0)`, `qsimex-fixed-domain-centers-v1` generator,
+`qsimex-fixed-rqd-v1` measurement를 기록한다. 각 attempt runtime은 0.020–0.109초
+(평균 0.046초)였다.
+
+10개 signature 각각에서 BH interval 30개가 측정되어 raw-RQD observation 300개와
+measurement evidence 300개가 저장됐으며 전부 valid다. 시작 순서별 signature 평균 raw RQD:
+Jn15 = 1.1792, 21.5790, 22.7163, 88.8715, 91.6155;
+Jn20 = 1.3260, 64.2695, 1.1434, 7.2487, 65.8116. 전체 observation은 0–100,
+Jn15 평균 45.1923, Jn20 평균 27.9598이다. DB에 기록된 GPU backend와 generator/
+measurement 실행 및 전부 성공한 evidence를 볼 때 빠른 실행 자체를 오류로 볼 근거는 없다.
+
+이전 실패 DB `/Users/myungkyusong/QSimExOutput/sqlite/raw-rqd-baseline3-20261108-2201.sqlite`
+는 사용자 요청에 따라, DB와 lock을 잡은 프로세스가 없는 것을 확인한 뒤 삭제했다.
+별도 lock marker와 실패 보고서 폴더는 건드리지 않았다. 후속 탐색은 시작하지 않았으며
+초기 cohort 결과 검토를 기다린다.
+
+**초기 실행 입력 bounds 결함 수정 (2026-11-08 22:17 +09:00):** 사용자가 실행한 baseline3 run은
+simulation 시작 전에 `starts=0`, `signature_count=0`으로
+`outside bounds: set-2/p32_m2_per_m3` 오류가 났다. 첫 Jn15 LHS를 재현해 set-2 P32
+`94.15231318607258`이 입력 [1,100] 안이지만 main-policy `AXES`의 고정 상한 10을 넘어
+shared `expected_joint_counts()` 검증에서 거부됨을 확인했다. 검증은 start 예약 전에 실행됐다.
+
+`DesignInput` 기반 optional validation/counting을 추가하고 main 경로의 기본 validation은
+유지했다. controller hook으로 raw-RQD에서 normalized per-design bounds를 전달하고 raw
+coordinate candidate validation에도 같은 검증을 사용한다. in-memory regression은 실패한
+초기 LHS가 실제 `before_start` 경계를 통과함을 확인하되 generation/simulation 호출은 막는다.
+전체 RQD 테스트 240개, focused regression, Pylance 진단 및 signature compatibility가
+통과했고 `git diff --check`도 통과했다. 실패한 사용자 DB를 열거나 수정하지 않았다. 해당 DB는
+`execution_error` 상태이므로 재사용하지 말고 새 전용 DB/output 경로를 사용한다. 이번 수정
+검증에서 실제 DFN 생성이나 simulation은 없었다.
+
+**목표 재확인 및 단계 구분 (2026-11-08 21:54 +09:00):** 사용자의 실제 목표는 baseline3의
+초기 입력 10개(Jn15/Jn20 각 5개)를 실행하고, 실제 raw-RQD 응답을 검토한 뒤 그 결과를
+반영해 더 넓은 범위를 탐색하는 것이다. `initial_cohort_review`는 종료점이 아니라 결과
+검토를 위한 의도된 handoff다. 21:51의 “후속 탐색은 아직 실행 준비가 완료되지 않았다”는
+현재 구현의 미완료 상태를 가리킬 뿐, 사용자의 목표가 불가능하거나 바뀌었다는 뜻이 아니다.
+
+현재 controller는 초기 cohort 뒤 멈추며, 같은 `run`을 다시 호출해도
+`initial_cohort_review` 상태의 요약을 반환하고 후속 탐색을 해제하지 않는다. dormant
+coordinate proposal은 main-policy `AXES`에서 step size를 가져온다. 실제 10개 결과를 검토한
+뒤 사용자와 step을 합의하고, 입력을 따르는 continuation/resume 경로를 구현하는 일이
+후속 단계다. 4단계 입력 경로 검증은 이 전체 과학적 목표의 완료가 아니다. 이번 재확인은
+실제 실행이나 simulation 승인이 아니다.
+
+**4단계 입력 경로 검증 완료 (2026-11-08 21:51 +09:00):** raw-RQD/config 집중 테스트 32개가
+통과했다. 관련 Pylance 진단은 raw-RQD/input-config/design/controller/measurement/manifest-store
+및 테스트 파일에서 없었다. `runner.py`의 `_ProgressHeartbeat.__exit__` 매개변수
+`exc_type`, `exc_value`, `traceback`에 severity 4 미사용 경고가 3개 있었으나 이번 입력 경로와
+무관해 수정하지 않았다. `git diff --check`도 통과했다.
+
+baseline3 schema에는 후속 local-search step size가 없다. 기존 실행 경로는 초기 Jn15/Jn20
+cohort 뒤 `initial_cohort_review`에서 의도적으로 멈춘다. dormant coordinate-proposal 코드는
+bounds는 입력에서 읽지만 parameter 순서와 step size는 여전히 main-policy `AXES`에서 가져온다.
+이는 입력에 정의되지 않았고 승인되지 않은 값이므로 후속 탐색의 근거로 사용할 수 없다.
+CLI에는 별도 DB/output 경로와
+`--confirm-execution`을 요구하는 `raw-rqd run` 경로가 있으므로 초기 cohort 실행을 시도할
+코드는 있지만, runtime preflight나 실제 simulation은 수행하지 않아 실제 환경 준비가
+검증된 것은 아니다. 넓은 coverage를 위한 후속 탐색은 아직 실행 준비가 완료되지 않았다.
+
+**3단계 입력 회귀 테스트 완료 (2026-11-08 21:46 +09:00):** 임시 baseline3 사본에서
+geometry, BH interval, design별 sample count/seed, orientation/shape bounds, joint-set bounds와
+`design_id`/`block_id`를 변경하고, 값이 preview 후보·raw candidate 구성·execution manifest에
+반영되는 회귀 검증을 보강했다. 설정한 parameter bounds도 candidate axes가 그대로 따르는지
+확인한다. 실행: `conda run -n dlo-cq python -m unittest src.test.test_rqd_raw_search src.test.test_rqd_exploration_config`
+(32개 통과). 임시 설정/output 및 in-memory SQLite만 사용했으며 runtime preflight, 영속 pilot
+작업, simulation은 수행하지 않았다. 입력 반영 계획의 1–3단계가 완료되었고, 4단계 최종
+검증 후 중단은 대기 상태다.
+
+**RQD 테스트 오류 수정 및 재검증 (2026-11-08 21:42 +09:00):** 사용자는 오래된 테스트
+기대와 존재하지 않는 메서드 호출을 수정해야 한다고 지시했다. integrity 테스트를 현재
+verification phase/task와 baseline reference snapshot에 맞췄고, 60×30×30m 및 고정 관측
+수 기대를 입력 geometry/measurement 기반으로 변경했다. 후보 fallback 테스트는 verification
+evidence가 완료된 상태를 설정하도록 수정했다.
+
+실제 구현 결함도 수정했다. `MainController.record_p32=True`였지만
+`execute_frozen_job` 호출에 옵션을 전달하지 않아 runner 기본값 `False`가 적용되고 있었다.
+이제 controller 값을 명시적으로 전달하며, 자동 P32 workflow 테스트는 설정된 절리 set 수를
+검증한다.
+
+검증: `conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_rqd*.py'`
+전체 239개 통과, `git diff --check` 통과, 테스트 코드에서 제외된
+`rqd_exploration_jn20.yml` 및 기존 helper 참조 없음. simulation이나 영속 pilot 작업은 하지
+않았다.
+
+**RQD 테스트 재검증 (2026-11-08 21:38 +09:00):** raw-RQD/config 및 변경된 main 테스트
+집중 실행은 76개 모두 통과했다. 그러나 전체 RQD 테스트 파일 발견 실행
+(`python -m unittest discover -s src/test -p 'test_rqd*.py'`)은 239개 중 3개 실패, 1개
+오류로 전체 통과가 아니다.
+
+남은 실패:
+
+- `test_resume_stagnation_guard_does_not_cut_an_active_verification_block`: 없는
+  `MainController._plan_stability`를 호출한다.
+- `test_main_uses_fixed_domain_mode_and_nominal_p32_cost`: 현재 main 입력 30×20×20m 대신
+  과거 60×30×30m 기준 joint count를 기대한다.
+- `test_new_run_preserves_old_run_and_excludes_only_mutation_reference`: 후보 12개를
+  기대하지만 실제 0개다.
+- `test_main_automatic_measurement_and_paused_report_reuse`: 측정 P32 레코드 1개를
+  기대하지만 실제 0개다.
+
+baseline-only fixture 변경에 연동된 integrity 테스트의 빈 `initial_snapshots` 및
+고정 121개 관측값 가정은 reference snapshot과 입력 기반 관측 수로 바꿨다. 위 4개는
+이번 fixture 제외 작업에서 해결하지 않았다. 따라서 전체 RQD 테스트가 통과했다고
+보고하지 않는다. `rqd_exploration_jn20.yml` 테스트 소스 참조는 없고 simulation이나
+영속 pilot 실행은 하지 않았다.
+
+**테스트에서 legacy Jn20 fixture 사용 제거 (2026-11-08 21:30 +09:00):** 테스트가
+`config/rqd_exploration_jn20.yml`을 더 이상 읽지 않도록 helper와 legacy main-policy
+Jn20 초기화 테스트를 제거했다. main controller/design/store/workflow 테스트는
+`initial_input: null`인 현재 main baseline 설정을 사용한다. 저장된 Jn20 evidence 검증은
+raw config loader로 baseline3의 Jn20 design을 읽으며, baseline3를 main-policy loader에
+넣지 않는다.
+
+기존 별도 Jn20 입력으로 main을 초기화하는 workflow 테스트는 baseline3로 바꾸지 않고
+제거했다. 해당 경로는 현재 main 설정의 승인된 입력이 아니기 때문이다. Jn20 YAML 파일은
+config 디렉터리에 그대로 두고 테스트에서만 사용하지 않는다. 검증: 영향을 받은 main RQD
+테스트 44개 통과, `src/test/*.py`에서 기존 YAML/헬퍼 참조 없음, `git diff --check` 통과.
+프로덕션 동작 변경, 실제 simulation, 영속 pilot 작업은 하지 않았다.
+
+**정정: legacy Jn20 테스트 fixture (2026-11-08 21:19 +09:00):** 이전 답변의 “제외하기로 한
+Jn20 fixture” 표현은 부정확했다. 확장 테스트 명령은 legacy main-policy 테스트까지 실행했고,
+해당 테스트 helper가 `initial_input`을 `config/rqd_exploration_jn20.yml`로 바꾼다. 이는 현재
+raw-RQD 입력인 baseline3가 아니다. 해당 fixture는 60×30×30m이고 main의 두 baseline은
+30×20×20m이다. measurement 간격은 모두 1m이므로 실제 불일치는 geometry다. main loader가
+geometry/measurement mismatch 오류를 냈다.
+
+집중 raw-RQD 테스트는 Jn15/Jn20 design 모두 30×20×20m로 정의된
+`config/rqd_exploration_main_baseline3.yml`을 읽었고 통과했다. 입력 파일이나 코드는 변경하지
+않았으며 simulation도 실행하지 않았다. 이전 확장 테스트 기록은 baseline3/Jn20 design을
+제외했다는 뜻이 아니라, 실수로 unrelated legacy test fixture를 함께 호출했다는 뜻이다.
+
+**2단계 입력 전달 구현 완료 (2026-11-08 21:15 +09:00):** 승인된 raw-RQD 입력 반영 작업을
+구현했다.
+
+- 좌표축 bounds는 normalized per-design 입력에서 읽으며 main-policy bounds가 raw-RQD
+  입력 범위를 좁히지 않는다.
+- `bh_interval_m`는 1m 이상에서 설정값을 사용한다. 기존 raw-RQD 최소 유효 support 1m는
+  유지한다. 사용자의 설명대로 raw-RQD는 BH-only다.
+- raw-RQD manifest는 YAML `design_id`/`block_id`를 보존하고 기존 signature별 generated
+  값을 별도 `case_id`로 사용한다. 이 값은 frozen job metadata에 저장되어 runner와 P32
+  backfill에서 사용된다. main-policy ID 동작과 database schema는 유지하며 구형 manifest는
+  `case_id`가 없을 때 `design_id`로 처리한다.
+- 기존 `initial_cohort_review` handoff를 유지했다. 입력에 정의되지 않은 local-search step은
+  추가하지 않았다.
+
+검증: raw-RQD/config/manifest/store/runner 집중 테스트 72개와 P32 backfill 테스트 3개 통과.
+변경한 Python 파일 Pylance 진단 없음, `git diff --check` 통과. 115개를 묶은 확장 테스트는
+통과하지 않았다. 해당 실행에는 사용자가 제외한 legacy Jn20 fixture를 읽는 main-policy
+테스트가 포함되어, 기존에 확인한 main/baseline geometry/measurement 불일치가 발생했다.
+simulation, runtime preflight, 영속 pilot 작업은 하지 않았다.
+
+2단계 입력 전달 구현은 완료했으나, 이것은 목표한 넓은 RQD coverage를 달성했다는 의미가
+아니며 탐색 정책 변경도 포함하지 않는다.
+
+**Manifest 식별자 수정 승인 (2026-11-08 21:11 +09:00):** 사용자는 raw-RQD manifest에서
+YAML `design_id`/`block_id`를 보존하고 기존 signature별 generated ID를 별도 `case_id`로
+유지하는 방식을 승인했다. 현재 생성 ID를 그대로 재사용하며 hash를 추가하거나 이름 길이를
+늘리지 않는다. main-policy 동작은 유지한다. frozen manifest 저장, runner 복원, P32 backfill
+경로까지 전달하되 database column migration은 추가하지 않는다.
+
+**Manifest 식별자 결정 보류 (2026-11-08 20:42 +09:00):** 사용자는 YAML `design_id`와
+`block_id` 보존을 선택했지만, case 이름 길이 및 hash 사용의 영향을 우려했다. 확인 결과
+`ExecutionJob`에는 `design_id`/`block_id`만 있고 runner는 `job.design_id`를 `case_id`로
+사용한다. 따라서 YAML label을 보존하면 candidate signature들 사이에서 case_id가 반복된다.
+job 저장 식별자는 manifest ID로 구분되지만, 반복 case label은 downstream 이름/추적성에
+영향을 줄 수 있다.
+
+식별자 코드는 아직 바꾸지 않았다. 반복 case label 허용(작은 수정, hash 없음), 현재 생성
+label 유지, 또는 별도 case-ID 필드 추가와 전달을 승인할지 확인 전까지 진행하지 않는다.
+사용자 승인 없이 hash나 데이터 계약 변경을 추가하지 않는다.
+
+**Measurement 입력 명확화 및 구현 (2026-11-08 20:37 +09:00):** 사용자는 measurement가 입력
+값을 따라야 하며 raw-RQD search는 BH-only라 face RQD가 필요하지 않다고 명확히 했다.
+parser는 이제 `bh_interval_m`가 정확히 1m일 것을 강제하지 않고 입력값을 사용하되, raw-RQD
+support summary가 1m 미만 support를 제외하는 기존 동작에 맞춰 최소 1m를 유지한다.
+`face_advance_m`의 shared pilot schema상 1m 제약은 유지하며 raw BH RQD 산정에는 사용하지
+않는다. BH interval 계획 오류 메시지도 1m로 고정하지 않고 설정 interval을 참조하도록 했다.
+
+검증: raw-RQD/config 집중 테스트 32개 통과, 변경한 Python 파일 5개 Pylance 진단 없음,
+`git diff --check` 통과. runtime preflight, simulation, 영속 pilot 작업은 하지 않았다.
+
+현재 Stage 2의 입력 기반 좌표 bounds와 BH measurement interval 변경은 구현·검증됐다.
+manifest의 `design_id`/`block_id` 변환은 그대로 두었다. 이 값은 절리 생성 파라미터가 아니라
+manifest/case 식별자이며, YAML label을 보존할지는 사용자 결정이 필요하다. 입력에 정의되지
+않은 local-search step도 추가하지 않고 기존 review handoff를 유지한다.
+
+**2단계 구현 현황 (2026-11-08 20:24 +09:00):** 사용자가 2단계를 명시적으로 시작했다.
+raw-RQD 좌표축 bounds를 `main_policy.AXES` 대신 normalized per-design 입력에서 읽도록
+변경했고, 입력 mutation test에 orientation·shape·radius·axis bounds 검증을 추가했다.
+기존 `initial_cohort_review` handoff와 main-policy 동작은 유지했다. 입력 schema에
+coordinate step이 없으므로 step은 추가하지 않았다.
+
+검증: raw-RQD/config 집중 테스트 31개 통과, 변경한 Python 파일 Pylance 진단 없음,
+`git diff --check` 통과. runtime preflight, simulation, 영속 pilot 작업은 하지 않았다.
+
+이는 검증된 2단계 일부 구현이며 전체 입력 반영 작업 완료는 아니다. 앞서 확인한 measurement
+제약, BH-only adapter에서 사용되지 않는 `face_advance_m`, manifest identifier 변환은 변경하지
+않았다. 입력/데이터 계약상 의도인지 여부를 사용자와 확인하기 전까지 임의로 수정하지 않고,
+전체 입력 반영 작업을 완료로 표시하지 않는다.
+
+**계획만 수립·제시 (2026-11-08 20:11 +09:00):** 사용자는 현재 요청이 구현 착수가 아니라
+입력 반영 구현 계획을 만들고 보여주는 것이라고 명확히 했다. 직전 승인 응답을 코드 변경
+승인으로 해석하지 않는다. 이번 계획만 요청에서는 코드 변경이나 실행을 하지 않는다.
+
+**1단계 완료 — baseline3 입력 전달 경로 조사 (2026-11-08 20:15 +09:00):** 읽기 전용 조사만
+수행했다. source 수정, 테스트 실행, simulation은 하지 않았다.
+
+- raw CLI의 기본 설정과 명시적 `--config` 모두 `load_raw_rqd_config()`를 사용한다. 초기
+  LHS는 design별 `sample_count`, `design_seed`, `realization_seed`, orientation/shape bounds,
+  절리별 P32/radius bounds를 사용한다. preview와 초기 controller snapshot은 동일한 LHS
+  결과를 사용하고 geometry/measurement는 case 및 manifest 구성으로 전달된다.
+- shared parser에는 입력을 조용히 덮어쓰는 대신 값을 거부하는 제약이 있다:
+  measurement는 1m만 허용, coordinate frame은 ENU, executable Jn과 절리 set 수는 정해진
+  매핑을 사용, shape randomization은 uniform/separate RNG stream, 반경 변환은
+  `ordered_log_pair`, 각 bounds는 parser의 허용 범위 안이어야 한다. baseline3는 이 제약을
+  만족한다. raw loader는 Jn15와 Jn20 design을 각각 하나씩 요구한다.
+- 확인된 입력 경로 불일치:
+  1. `raw_rqd_search.py`가 `main_policy.AXES`를 import한다. 후속 좌표 후보에서 parameter
+     이름·step·bounds를 per-design normalized input이 아니라 global tuple에서 가져온다.
+     특히 P32는 main policy의 step/bounds를 사용한다. 현재 경로는 `initial_cohort_review`
+     에서 중단된다.
+  2. 상속된 `MainController._make_manifest()`가 YAML `block_id`를 `"main"`으로,
+     `design_id`를 입력별 생성 ID로 교체한다. 여기서 `sample_count=1`은 signature 하나당
+     manifest job 하나를 뜻하며 input design의 LHS sample_count를 대체하지 않는다.
+     identifier 교체가 runtime metadata로 필요한지 YAML 값을 보존해야 하는지 구현 전에
+     해결해야 한다.
+  3. `face_advance_m`는 parser에서 받아 fingerprint에 포함되지만 raw BH-only generation
+     adapter에서는 사용하지 않는다. raw BH 구성에는 `bh_interval_m`만 전달된다. 현재
+     parser는 두 measurement 값 모두 1m만 허용하므로 다른 값은 적용되지 않고 거부된다.
+- 기존 mutation test는 geometry, design별 sample_count/seed, P32 bounds를 변경해
+  preview/candidate/manifest 반영을 확인한다. orientation/shape/radius bounds, measurement,
+  input identifiers의 변경 반영은 테스트하지 않는다.
+
+1단계 조사를 완료했다. 2단계 구현은 시작하지 않았다. 구현 전 확인된 입력 전달 불일치와
+manifest identifier/measurement 제약을 필요한 범위에서만 다루고, objective/ranking,
+coverage policy, execution은 제외한다.
+
+**과학 목적 및 현재 구현 정합성 정정 (2026-11-08 19:53 +09:00):** 사용자가 목적을 명확히
+했다. baseline 1/2만으로는 낮은 RQD 생성에 한계가 있어 Jn15/20의 높은 밀도 절리 조합으로
+가능한 넓은 raw-RQD 범위를 커버하려는 것이다. support-weighted mean 최소화 자체를
+목표로 해석한 기존 기록은 이 목적을 대체하지 않는다.
+
+Phase 1/2의 baseline3 연결과 입력 기반 sample_count·seed·geometry·measurement·P32 bounds
+전달은 입력을 무시하던 data path 수정과 직접 관련 있다. 그러나 coverage 탐색 자체는
+아직 구현되지 않았다. 현재 controller는 Jn별 support-weighted mean이 최소인 center를
+선택하고, 이후 좌표 proposal은 main `AXES`(P32 step 0.1, bounds [0.01,10])를 읽는다.
+이는 baseline3의 P32 [1,100] 입력 기반 탐색이 아니며, 현재 review handoff가 이 경로의
+실행만 막고 coverage 알고리즘으로 대체하지는 않는다. 실제 cohort/simulation은 실행하지
+않아 관측 RQD coverage 결과도 없다.
+
+따라서 Phase 2 완료는 baseline3 기반 preview/manifest 구성과 초기 cohort handoff까지의
+기술적 완료만 뜻한다. 과학 목적 달성으로 간주하지 않는다. 최소 RQD center와 main `AXES`를
+승인된 coverage 정책으로 재사용하지 않는다. 다음 구현/실행 전 coverage metric 및 후보
+선정 전략을 새 계획으로 정리하고 사용자 승인을 받는다. 이번 정합성 확인에서는 코드를
+수정하지 않았다.
+
+**후속 상태 (2026-11-08 21:51 +09:00):** 위 내용은 19:53 당시 상태 기록이다. 이후 Stage 2에서
+raw-RQD candidate bounds의 출처를 normalized input으로 변경했다. baseline3에 local-search
+step은 추가하지 않았으며, initial-cohort review handoff와 coverage-policy 승인 경계는 유지한다.
+
+**입력 파일 우선 원칙 정정 (2026-11-08 20:07 +09:00):** 사용자는 raw-RQD 경로가 입력 파일을
+기준으로 동작하도록 하는 데 coverage metric 선택이 필요하지 않다고 명확히 했다. 입력
+파일에 정의된 값은 그 파일을 source of truth로 사용한다. 아래 coverage 기준 결정은 관측
+RQD 결과에 따라 후보 선택 정책을 바꾸는 경우에만 적용하며, 입력 경로 감사·수정·회귀
+테스트를 막지 않는다. baseline3는 실험 입력을 정의하지만 출력 RQD coverage 기준이나
+local-search step은 정의하지 않는다. 두 문제를 분리한다. 이 명확화는 이번 턴의 코드 변경
+또는 실행 승인이 아니다.
+
+**제안된 raw-RQD 구현 계획: 입력 파일을 그대로 반영 (2026-11-08 20:09 +09:00):**
+
+**목표:** baseline3 입력 파일에 정의된 값이 raw-RQD 경로에서 실제 사용되도록 하는 작업만
+한다. RQD 목표/탐색 정책 변경과 섞지 않는다. coverage metric, target bin/range, simulation,
+영속 pilot action은 이 계획의 범위가 아니다.
+
+**현재 상태:** 2단계 입력 전달 구현은 완료되었다. raw-RQD는 baseline3의 초기 sampling과
+candidate bounds를 사용하고, manifest에서 YAML design/block 식별자를 보존하며,
+`initial_cohort_review` handoff를 유지한다. 3단계 회귀 테스트는 임시 baseline3 입력을
+변경해 preview, candidate 및 manifest 전달을 검증한다. baseline3에는 local-search step이
+없으므로 새 step을 만들거나 해당 경로를 재개하지 않는다.
+
+1. **입력 필드와 남은 덮어쓰기 추적:** geometry, measurements, design identity/Jn,
+   sample_count, seed, orientation bounds, shape randomization, joint-set bounds, size
+   transform을 raw-RQD 소비 지점까지 연결한다. 이미 통과한 검증을 중복 작성하지 않는다.
+   입력값 덮어쓰기와 현재 Jn15/Jn20 범위 검사 같은 validation constraint를 구분한다.
+2. **남은 입력 정의 동작만 입력 기반으로 변경:** raw 후보의 parameter bounds/values
+   출처에서 main-policy 상수를 제거하고 normalized input에서 읽는다. step-size 입력 필드나
+   대체 step을 새로 만들지 않는다. 기존 review handoff, 후보 ranking, main-policy 및 관련
+   없는 controller 동작은 변경하지 않는다.
+3. **집중 회귀 테스트:** 임시 baseline3 사본에서 입력 정의 값을 바꾸고 raw 후보 구성,
+   preview 및 execution-manifest에 반영되는지 검사한다. 설정 bounds가 지켜지고 main 상수가
+   이를 조용히 좁히거나 대체하지 않는지 확인한다. 테스트는 in-memory로만 하며 실제 runtime
+   preflight나 pilot 데이터 저장은 하지 않는다.
+4. **검증 후 중단:** raw-RQD/config focused tests, 해당 diagnostics, `git diff --check`를
+   실행한다. 입력 schema에 없는 값 때문에 소비할 수 없는 동작은 명시적으로 보고한다.
+   별도 지시 전까지 coverage policy 설계나 simulation으로 넘어가지 않는다.
+
+**완료 기준:** raw-RQD가 사용하는 baseline3 입력 값이 코드 상수로 대체되지 않고, 입력
+변경이 후보/preview/manifest 변경으로 이어지며, 기존 main 동작은 유지되고, 정의되지 않은
+local-search step은 handoff로 계속 차단된다. 아래 범위 커버 정책 제안은 현재 작업에서
+대체되었다.
+
+**진행 상태 (2026-11-08 21:51 +09:00):** 입력 반영 계획 1–4단계를 완료했다. 집중 테스트 32개,
+관련 diagnostics, `git diff --check`를 통과/확인했다. 실제 runtime preflight와 simulation은
+별도 실행 승인이 필요한 단계이므로 수행하지 않았다.
+
+**이전 raw-RQD 범위 커버 정책 제안 (2026-11-08 19:58 +09:00, 현재 작업에는 적용 안 함):**
+
+**범위:** 합의된 baseline3 Jn15/Jn20 입력을 사용하는 raw-RQD 경로만 다룬다. 기존
+main-policy 경로는 변경하지 않는다. 이 기록은 제안이며 코드 변경이나 simulation 실행
+승인이 아니다.
+
+**Gate 0 — 탐색 정책 변경 전에 “넓은 범위”의 판정 기준 합의:** (a) 지원되는 raw-RQD
+최솟값–최댓값 span(간단하지만 극단값에 민감), (b) 사전 합의된 bin 경계를 기준으로 한
+점유 bin 수, (c) 우선순위가 명시된 결합/별도 기준 중 선택한다. 목표 RQD 범위, Jn15와
+Jn20의 개별 평가 또는 pooled 평가 방식(두 설계의 결과는 모두 별도 보존·보고), 현재
+5+5 배분이 시작 cohort만 의미하는지 및 표본 수 변경 여부도 합의한다. 이 제안은 끝점,
+bin 경계, 배분 또는 성공 임계값을 가정하지 않는다.
+
+**1단계 — 입력 출처 추적 및 테스트:** baseline3 입력이 normalized input, 초기 표본,
+후속 후보, preview, execution manifest까지 전달되는 경로를 추적한다. raw 경로의 상수를
+목록화해 의도된 범위 검증과 YAML 값을 덮어쓰는 값을 구분한다. 입력 bounds 또는 승인되지
+않은 전역 step을 위해 main-policy `AXES`를 참조하는 raw 탐색 의존성을 제거한다. 설정값을
+변경하면 후보와 manifest의 유효 값이 함께 바뀌는 mutation 테스트를 추가한다. 실행이나
+영속 pilot 데이터 저장은 하지 않는다.
+
+**2단계 — 합의된 범위 커버 후보 정책 구현:** Gate 0 승인 뒤에만 support-weighted mean
+최소 center 선택을 합의된 coverage 기준 기반 후보 선택으로 대체한다. Jn별 증거와 설정된
+bounds/sample_count/seed를 보존한다. 기존 P32 step 0.1이나 main의 고정 bounds를 적용하지
+않는다. 응답 기반 local step은 실제 관측 뒤 그 도출 방식을 사용자 승인받기 전까지 정하지
+않는다.
+
+**3단계 — 오프라인 검증:** synthetic/in-memory 응답으로 합의된 metric, 후보 순위,
+Jn별/통합 집계, 입력 bounds 준수, 재현성을 집중 테스트한다. preview까지만 수행하며 실제
+runtime preflight, DB/manifest/DFN 저장, simulation은 하지 않는다.
+
+**4단계 — 별도 승인된 초기 cohort와 결과 검토:** 사용자가 명시 승인한 뒤에만 설정된
+cohort를 실행하거나 실행 경로로 인계한다. 승인된 metric으로 Jn별 및 pooled observed
+raw-RQD coverage를 보고하며, synthetic 테스트를 실제 coverage 성과로 간주하지 않는다.
+후속 round/step 변경은 실제 응답을 근거로 제안하고 적용 전 승인을 받는다.
+
+**완료 기준:** raw 후보나 manifest 값이 main-policy 상수로 조용히 대체되지 않고, 입력
+변경이 후보/manifest에 반영되며, controller가 사용자 승인 coverage 목표를 따르고,
+오프라인 검증이 통과한다. 별도 승인 없는 실제 실행은 없다. Gate 0의 과학적 선택은
+사용자 승인 대기 상태다.
+
+**Phase 2 완료 (2026-11-08 19:49 +09:00):** raw-RQD CLI 기본 입력을 baseline3로 바꾸고,
+preview/run 모두 `load_raw_rqd_config()`의 같은 normalized input을 사용한다. LHS 및
+execution manifest 구성은 design별 `sample_count`, design seed, realization seed와 입력의
+geometry/measurement/P32 bounds를 따른다. 5+5 signature preview, 입력을 수정한 fixture를
+통한 동적 반영, preview와 실행 signature 일치 및 manifest 구성 일치를 테스트했다.
+
+Jn15/Jn20 초기 LHS가 모두 완료되면 support-weighted raw-RQD 최소값을 기준으로 Jn별
+center를 저장하고 `initial_cohort_review`에서 멈춘다. 기존 전역 P32 step을 적용한
+좌표 탐색은 자동 시작하지 않으며, 같은 실행 재호출도 자동 재개하지 않는다. cohort와
+center는 후속 탐색의 참조로 보존한다. 실제 응답 검토 후 P32 step을 합의하고 탐색을
+재개하는 기능은 이번 단계에서 구현하지 않았다.
+
+`dlo-cq` focused unittest 34개 통과, 변경 Python 파일 Pylance 진단 없음,
+`git diff --check` 통과. in-memory stub 결과만으로 handoff를 검증했다. 실제 runtime
+preflight, simulation, pilot DB/manifest/DFN 저장 또는 물리 실행은 하지 않았다.
+Phase 2는 초기 cohort handoff까지 완료했으며 다음 단계/실제 실행은 별도 사용자 지시를
+기다린다.
+
+**Main-policy 테스트 입력 정정 (2026-11-08 19:01 +09:00):** 사용자는
+`rqd_exploration_jn20.yml`을 사용하지 않고 baseline 1/2/3을 기준으로 하라고 명시했다.
+세 baseline 모두 `domain_size_m: [30, 20, 20]`이며 실제 `rqd_exploration_main.yml`은
+`initial_input: null`, baseline 1/2만 참조한다. 재현한 `test_approved_policy_and_jn20`
+오류는 실제 main 설정이 아니라 테스트 전용 helper가 임시 설정의 `initial_input`에
+별도 `rqd_exploration_jn20.yml`을 주입해 발생한다. 그 파일은 `[60, 30, 30]`이므로
+`load_main_config()`의 baseline geometry 일치 검사에서 거부된다. 따라서 baseline 1/2/3
+사이 또는 현재 기본 main 입력 경로에는 이 geometry 불일치가 없다.
+
+baseline3를 테스트 경로로 단순 대입할 수도 없다. baseline3는 Jn15/Jn20 두 design을
+포함하고 P32 [1,100]을 사용하지만, `main_policy`의 optional initial input은 단일 Jn20
+design 및 P32 [.01,10]을 요구한다. 테스트 fixture나 런타임 동작은 수정하지 않았으며,
+optional-main-Jn20 테스트를 유지할지 여부는 별도 지시가 필요하다.
+
+**Phase 2 조사 착수 (2026-11-08 19:06 +09:00):** 사용자가 1단계 결과 문서화와 2단계
+진행을 승인했다. 2단계 범위는 baseline3 normalized input을 raw-RQD preview/run이 함께
+사용하고, design별 sample_count 5·seed 36/40·realization seed 43·geometry·measurement·
+log P32 bounds를 반영해 총 10개 초기 signature만 구성하는 것이다. 이 승인으로 실제
+simulation이나 persistent pilot 실행은 허가되지 않았다.
+
+현재 CLI는 여전히 main 설정을 기본으로 읽으며, preview/controller 모두 design별 표본
+수를 10으로 덮어쓰고 기존 coordinate search로 이어진다. baseline3 연결 및 old global
+P32 step으로 자동 진입하지 않는 handoff가 필요하다. 사용자는 초기 10개가 이후 탐색의
+기준점이지 terminal 결과나 별도 실행이 아니라고 명확히 했다. 실제 응답을 보존하고,
+그 결과로 P32 step을 정·승인한 뒤 해당 기준점에서 탐색을 이어가야 한다. old global
+step을 자동 적용하거나 초기 결과를 버려서는 안 된다. 이 clarification에 따라 handoff
+방향은 정해졌으며, 실제 결과 전 P32 step 자체는 미정으로 유지한다. 현재 코드는 아직
+변경하지 않았고 실제 실행도 시작하지 않았다.
+
+**Phase 1 완료 (2026-11-08 18:54 +09:00):** 합의된 Jn15/Jn20 baseline3 입력을 추가하고,
+공통 `load_config()`를 재사용하는 `load_raw_rqd_config()`가 정확히 Jn15와 Jn20 하나씩만
+받도록 구현했다. 입력 계약과 누락/중복 Jn 검증 테스트를 추가했다. CLI/preview/run 연결,
+좌표 탐색, fingerprint는 건드리지 않았다.
+
+`dlo-cq` focused unittest 32개 통과, `git diff --check` 통과, 변경한 Python source/test의
+Pylance 진단 없음. 전체 선택 main-policy run에서 기존 `test_approved_policy_and_jn20`가
+main baseline 30×20×20m와 별도 Jn20 입력 60×30×30m의 불일치로 실패했다. `load_main_config`
+및 main 입력 파일은 변경하지 않았고, default main 및 나머지 선택 main-policy 검증은
+통과했다. 이 불일치는 Phase 1 범위 밖이며 이후 지시 전까지 수정하지 않는다.
+
+preview와 실제 실행, DB/manifest/DFN 저장, simulation은 수행하지 않았다. Phase 1을
+완료하고 Phase 2는 사용자 지시를 기다린다.
+
+**Phase 1 착수 (2026-11-08 18:53 +09:00):** 사용자가 1단계만 명시 승인했다. 현재 범위는
+합의된 baseline3 입력 작성, 기존 공통 parser를 재사용하는 raw 전용 loader 추가(Jn15/Jn20
+두 설계만 허용), loader/입력 테스트, main config 회귀 확인이다. CLI/preview/run 연결은
+Phase 2이므로 변경하지 않는다. 좌표 탐색, fingerprint, DB/manifest/DFN 저장, preview,
+simulation도 이번 단계 범위가 아니다.
+
+**현재 raw-RQD 단계별 구현 계획 (2026-11-08 18:49 +09:00):** 사용자는 set당 기대 절리
+수 300–500 기준을 명시적으로 폐기하고 구현 계획 수립을 요청했다. P32 LHS는 log 좌표를
+유지한다. P32 local-search step은 초기 실제 RQD 응답을 검토한 뒤 정하며, 폐기한 기대
+절리 수 기준이나 기존 전역 P32 step을 대신 적용하지 않는다.
+
+baseline3 제안은 Jn15/4군 및 Jn20/5군, 설계당 LHS5, design seed 36/40, realization
+seed43, 도메인 30×20×20m, P32 [1,100]/log, 반경 [1,150]m다. 기존에 확인한 baseline2의
+geometry 좌표, 1m measurement, orientation/shape bounds와 기타 미변경 값은 실험에서
+명시적으로 바꾸는 항목 외에는 보존한다.
+
+1. **Phase 1—baseline3와 raw 전용 loader:** 새 baseline3 설정 및 raw-only loader를
+   추가하고 Jn15/20·4/5 sets·bounds/seeds/sample count/geometry/measurement를 검증한다.
+   `load_main_config`, baseline2와 main Jn20 제외 동작은 유지한다. loader 테스트와 main
+   config 회귀를 확인한다.
+2. **Phase 2—입력 기반 초기 cohort (완료):** preview와 실행 구성이 같은 정규화 입력으로
+   LHS5+5, design seed36/40, realization seed43, geometry/measurement/P32 log bounds를
+   사용한다. 초기 10개와 Jn별 center를 보존하는 review handoff를 두고, 실제 응답 검토와
+   P32 step 합의 전에는 기존 전역 step으로 좌표 탐색을 자동 시작하지 않는다. 실제 응답
+   이후 재개/탐색 기능은 후속 사용자 승인 단계로 남긴다.
+3. **Phase 3—provenance/resume:** baseline3 원본과 실효 정책을 fingerprint에 포함하고
+   불일치 입력의 묵시 재개를 막는다. 테스트 DB/in-memory storage만 사용한다.
+4. **Phase 4—회귀 및 비영속 검증:** 집중 테스트, main 회귀, no-write preview에서
+   `simulation_started:false`, `database_written:false`를 확인하고 결과를 검토받는다.
+   이 단계에는 실제 DB/manifest/DFN 저장이나 simulation을 포함하지 않는다.
+5. **별도 실행 승인 gate:** 사용자 승인 이후에만 선택한 DB/output 경로에서 초기 10개를
+   실행하고 raw-RQD/support 결과를 검토한다.
+6. **P32 step 결정:** 실제 초기 응답으로 후보 step과 경계 가능성을 분석하고 사용자와
+   수치/경계 처리를 합의한다. 300–500 기준은 재사용하지 않으며, 근거가 부족하면 P32
+   좌표 탐색을 계속 보류한다.
+7. **후속 좌표 탐색 구현:** design별 입력 bounds와 승인된 P32 step, 기존 승인된 비-P32
+   정책을 사용해 후보를 생성하고 bounds·resume·fingerprint·main 회귀를 검증한다.
+
+각 phase 종료 시 실제 변경/검증/제약 및 남은 계획을 양쪽 계획에 기록하고, 과학적 의미,
+동작, 자료계약 또는 실행 범위가 달라지면 사용자 확인 전 멈춘다. 이번 지시는 계획 수립
+범위이며 코드·baseline3·preview·테스트·DB·manifest·DFN·simulation은 시작하지 않았다.
+구현 단계는 별도 승인 후 시작한다.
+
+**이전 계산의 상태:** 아래 300–500 분석은 역사 기록만 보존한다. 최신 사용자 결정으로
+해당 기준이 폐기됐으므로 현재 정책이나 구현에 사용하지 않는다.
+
+**설계별 P32 step 권고—선택/구현 보류 (2026-11-08 18:27 +09:00):** 사용자는 추가 질문과
+구현 승인을 보류하고 계산 기반 권고를 요청했다. P32 초기 LHS는 log-coordinate로
+선택했다. set당 기대 절리 수 300–500 변화는 아직 승인된 탐색 정책이 아니다.
+
+기존 deterministic LHS(seed 36/40, 5 signatures, Jn15 4 sets/Jn20 5 sets)에 대해 실제
+sample별 alpha와 radius pair, 도메인 부피 12,000m³를 써서 ΔP32를 재계산했다. 전체
+45 set-signature 경우의 pooled ΔP32 분위수:
+
+| 기대 ΔN/set | P10 | P25 | 중앙값 | P75 | P90 |
+|---:|---:|---:|---:|---:|---:|
+| 300 | 0.3828 | 0.6647 | 2.0315 | 15.4679 | 141.2769 |
+| 400 | 0.5103 | 0.8863 | 2.7086 | 20.6238 | 188.3692 |
+| 500 | 0.6379 | 1.1079 | 3.3858 | 25.7798 | 235.4615 |
+
+권고: 단일 absolute ΔP32를 두지 않는다. 사용자가 이후 300–500을 생성량 기준으로
+채택한다면 signature별 실제 alpha/radius와 도메인으로
+`ΔP32 = 목표 ΔN × expected_joint_area / domain_volume`을 적용한다. 중앙값 기준으로는
+300–500 목표가 Jn15 ΔP32 2.39–3.99, Jn20 1.80–3.00에 대응하지만, pooled 고정 중앙값
+2.7086은 45개 중 5개에서만 목표 범위에 들고, ΔN=400에 필요한 step이 [1,100] 전체
+폭을 넘는 경우가 7/45다. 불가능/경계 방향 후보를 어떻게 처리할지는 구현 전 합의가
+필요하다.
+
+이는 기대 생성 절리 수의 보정이지 RQD 개선 또는 최적 step의 근거가 아니다. RQD
+반응을 최적화하는 step은 실제 초기 관측 검토 뒤 정해야 한다. 구현은 미승인 상태이며
+코드·설정·preview·DB·manifest·DFN·simulation은 변경/실행하지 않았다.
+
+**P32 기대 절리 수 목표 검산 (2026-11-08 18:27 +09:00):** 사용자는 P32 초기 LHS는
+로그 좌표를 선택했고, set당 기대 절리 수 300–500개 변화가 합리적인지 검산을 요청했다.
+baseline2 복사 범위는 이전 답변의 기존 제안 참조로 기록한다. 300–500은 정책 승인값이
+아니며 평가 중이다.
+
+`dlo-cq`에서 기존 Jn15/Jn20 설계 정의(seed 36/40, 조건당 LHS5)의 메모리 내 결정적
+설계표본을 계산했다. P32 bound만 [1,100]/log로 메모리에서 바꾸고, 반경 [1,150],
+alpha [2.5,4], 제안 도메인 부피 12,000m³를 적용했다. 각 set의 계산식은
+`ΔP32 = 목표 기대 절리 수 변화 × expected_joint_area / 12,000`이다. 새 baseline3,
+preview 파일, DB, manifest, DFN 또는 simulation은 생성하지 않았다.
+
+| Jn | set-signature 수 | 목표 ΔN=300일 때 ΔP32 min/median/max | ΔN=400 | ΔN=500 |
+|---|---:|---:|---:|---:|
+| 15 | 20 | 0.275582 / 2.393402 / 653.868454 | 0.367442 / 3.191203 / 871.824605 | 0.459303 / 3.989004 / 1089.780756 |
+| 20 | 25 | 0.170486 / 1.797110 / 758.248275 | 0.227315 / 2.396147 / 1010.997700 | 0.284144 / 2.995183 / 1263.747125 |
+
+중앙 목표 ΔN=400에서 필요한 ΔP32가 전체 입력 폭 99보다 큰 사례는 Jn15 20개 중
+3개, Jn20 25개 중 4개다. 초기 표본값에서 양의 방향 제안이 bounds 안에 남는 경우는
+각각 16/20, 21/25이고 음의 방향은 12/20, 16/25다. pooled median 고정 step 2.708647은
+45개 경우에서 기대 ΔN 1.072–4,766.327을 만들며, [300,500]에 드는 경우는 5/45뿐이다.
+따라서 이 기준을 채택한다면 하나의 고정 absolute step이 아니라 set별 입력 기반 ΔP32가
+필요하다.
+
+이는 생성기의 기대 절리 수 변화 계산일 뿐 실제 절리 수 또는 RQD 반응을 보증하지
+않는다. 300–500이 과학적으로 최적인 값이라고 결론내리지 않는다. 해당 목표를 set별
+기대 변화 기준으로 채택할지, 실제 초기 반응 자료까지 최종 step을 보류할지, 다른
+기준을 쓸지는 사용자 결정 대기다. 이 결정과 구현 승인이 있기 전까지 좌표 탐색 코드는
+수정하지 않는다.
+
+**P32 step-size 계산 검토—선택 미결정 (2026-11-08 18:27 +09:00):** 사용자는 P32 좌표가
+로그형이 아닐 가능성과 absolute 0.1 step이 작을 가능성을 제기하며, 계산 근거를 먼저
+요청했다. baseline2 carry-over는 직전 답변의 기존 제안대로 geometry 좌표, 1m 측정 설정,
+orientation/shape bounds를 유지하는 것으로 기록하되 baseline3에서 명시적으로 바뀌는 값
+외에는 새 변경을 가정하지 않는다.
+
+현재 구현은 P32 `coordinate: log`를 필수로 하고 logarithmic LHS를 적용한다. 2026-10-28
+합의는 물리적 분포 가정이 아니라 자릿수 범위 탐색을 위한 log-coordinate였으며, 작은/큰
+P32 탐색 step은 초기 10 signatures의 관측 후 정하기로 기록돼 있다. 새 제안 범위
+[1,100]에서 linear 폭은 99이고 N=5 linear LHS 층 폭은 99/5=19.8이다. log LHS라면 층별
+곱 비율은 100^(1/5)=2.511886이다. Absolute 0.1은 전체 선형 범위의 0.101010%,
+한 linear LHS 층 폭의 0.505051%에 해당한다(범위 횡단 990 step). 이는 설계 해상도
+비교이지 RQD 최적 step의 근거는 아니다.
+
+생성기의 `E[N] = P32 * domain_volume / expected_joint_area`로 계산했다. 30×20×20m
+도메인은 12,000m³이며, 전체 반경 구간 [1,150]m와 `size_alpha` 2.5–4를 참고 입력으로
+두면 기대 면적은 14.425466–6.282906m², P32 1단위당 기대 절리 수 변화는 set당
+831.86–1,909.94개다. 따라서 0.1은 약 83.19–190.99개, 19.8은 약 16,470.87–37,816.90개
+변화에 해당한다. 이는 전체 반경 구간을 고정한 참고 산술이며, 생성 signature별 반경이
+다르므로 개별 예상값으로 해석하지 않는다.
+
+현재 `results/`와 `sqlite/`에는 raw-RQD DB/report가 없고, 보존된 11월 3일 요약의
+P32 -0.1 사례는 여러 파라미터가 동시에 바뀐 후보라 P32 단독 반응을 추정할 수 없다.
+따라서 실제 RQD 반응에 적합한 최종 step은 현재 보존된 행 수준 자료만으로 계산할 수
+없다. 이번 검토로 P32 선형/로그 LHS 또는 step 값을 변경 승인하지 않았고, preview나
+baseline3 생성·코드·DB·manifest·DFN·simulation도 수행하지 않았다. Phase 1 전에 LHS
+좌표를 유지할지 선형으로 바꿀지 확인하고, local step은 적절한 반응 근거 확보 전까지
+미결정으로 둔다.
+
+**단계별 진행 선호 (2026-11-08 18:27 +09:00):** 사용자는 기존 수정 순서를 단계별로
+진행하고, 각 단계에서 새 근거가 나오면 남은 계획을 갱신하는 방식을 선호한다.
+각 단계 종료 시 실제 결과와 변경된 가정을 두 계획에 기록하고, 과학적 의미·동작·자료
+계약·실행 승인에 영향이 있으면 진행을 멈추고 사용자와 상의한다. 단계는
+ImplementationPlan의 Phase 0 입력 계약 동결(논의만), Phase 1 raw 전용 설정/loader,
+Phase 2 입력 기반 LHS/preview, Phase 3 입력 bounds 기반 좌표 탐색, Phase 4 provenance/
+resume 안전성, Phase 5 회귀 검증 및 비영속 preview 순이다. coordinate-step 의미와
+정확한 baseline2 복사 필드는 아직 결정되지 않았다. DB/manifest/DFN 저장과 simulation은
+각각 별도 명시 승인 대상이며 이번 단계 선호만으로 승인되지 않는다.
+
+**복귀 인계—상황 파악과 계획만 (2026-11-08 18:22 +09:00):** 사용자가 복귀하여
+raw-RQD 입력 무시/하드코딩 현황과 수정 계획을 요청했다. 이번 범위는 읽기·계획으로
+한정한다. 구현, baseline3 생성, validation/preview, DB/manifest/DFN 저장, simulation은
+승인되지 않았고 시작하지 않았다. 기존 P0 순서를 제안 계획으로 유지하며, coordinate
+step의 absolute/log/relative 의미와 baseline2에서 복사할 정확한 입력 필드는 구현 전
+상의할 미결정 사항으로 남긴다.
+
 **인계/중단 (2026-11-04 09:14 +09:00):** 사용자는 출장 후 다시 보자고 확인했다.
 아래 긴급 P0 계획은 승인된 계획 단계로 보존하되, 복귀 후 지시가 있을 때까지 코드 구현,
 baseline3 생성, 검증/preview, DB/manifest/DFN 저장, simulation을 시작하지 않는다.

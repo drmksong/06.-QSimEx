@@ -284,7 +284,8 @@ def _bh_plans(case: CaseSpec) -> tuple[PlannedBHInterval, ...]:
                 end_m - start_m, borehole.interval_length,
                 rel_tol=0.0, abs_tol=1e-10,
             ):
-                raise ValueError("BH planned intervals must have full 1 m support")
+                raise ValueError(
+                    "BH planned intervals must match the configured interval length")
             start = tuple(
                 borehole.start[axis] + direction[axis] * start_m
                 for axis in range(3)

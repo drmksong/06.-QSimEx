@@ -161,6 +161,41 @@ def verify_job_rqd(connection, job, case, geometry):
         raise ValueError(f"regeneration RQD fidelity verification failed: {job.fingerprint.sha256_hex}")
 
 
+def _case_ids_for_manifest(connection, manifest_id):
+    row = connection.execute(
+        "SELECT manifest_json FROM manifest WHERE manifest_id=?", (manifest_id,)
+    ).fetchone()
+    if row is None:
+        raise ValueError(f"manifest {manifest_id!r} is not present in the database")
+    payload = json.loads(row[0])
+    if not isinstance(payload, dict) or payload.get("manifest_id") != manifest_id:
+        raise ValueError("stored manifest payload has a mismatched manifest_id")
+    jobs = payload.get("jobs")
+    if not isinstance(jobs, list):
+        raise ValueError("stored manifest jobs must be a JSON array")
+    result = {}
+    for item in jobs:
+        if not isinstance(item, dict):
+            raise ValueError("stored manifest job must be a JSON object")
+        key = (
+            item.get("manifest_id"), item.get("design_id"), item.get("block_id"),
+            item.get("sample_index"), item.get("realization_seed"),
+            item.get("execution_fingerprint_digest"),
+        )
+        design_id = item.get("design_id")
+        case_id = item.get("case_id", design_id)
+        if (
+            key[0] != manifest_id
+            or not isinstance(design_id, str)
+            or not isinstance(case_id, str)
+            or not case_id.strip()
+            or key in result
+        ):
+            raise ValueError("stored manifest job has an invalid case identifier")
+        result[key] = case_id
+    return result
+
+
 def measure_missing_p32(connection, factory_for_runtime, *, verify_job=None, progress_callback=None):
     from .main_controller import _snapshot_from_payload
     from .records import ExecutionJob
@@ -179,17 +214,25 @@ def measure_missing_p32(connection, factory_for_runtime, *, verify_job=None, pro
         rows = [row for row in rows if row[5] == verify_job]
     done = read_measured_p32(connection)
     measured, skipped, verified = 0, 0, set()
+    case_ids_by_manifest = {}
     for row in rows:
         snapshot = _snapshot_from_payload(json.loads(row[6]))
         fingerprint = fingerprint_execution_snapshot(snapshot)
         if fingerprint.sha256_hex != row[5]:
             raise ValueError("saved execution snapshot fingerprint mismatch")
-        job = ExecutionJob(*row[:5], snapshot, fingerprint)
+        manifest_id = row[0]
+        if manifest_id not in case_ids_by_manifest:
+            case_ids_by_manifest[manifest_id] = _case_ids_for_manifest(
+                connection, manifest_id)
+        case_id = case_ids_by_manifest[manifest_id].get(tuple(row[:6]))
+        if case_id is None:
+            raise ValueError("stored manifest is missing the P32 job case_id")
+        job = ExecutionJob(*row[:5], snapshot, fingerprint, case_id)
         needs_verification = row[5] == verify_job and row[5] not in verified
         if row[5] in done and not needs_verification:
             skipped += 1
             continue
-        case = case_for_snapshot(snapshot, row[1])
+        case = case_for_snapshot(snapshot, case_id)
         factory = factory_for_runtime(snapshot.runtime)
         geometry = generate_frozen_geometry(factory, case, snapshot.realization_seed,
                                              snapshot.runtime, progress_callback)

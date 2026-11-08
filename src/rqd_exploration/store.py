@@ -962,6 +962,13 @@ def store_manifest(connection: sqlite3.Connection, manifest: FrozenManifest) -> 
         if job is None or key in seen_job_keys:
             raise ValueError("manifest job key is missing, duplicated, or inconsistent")
         seen_job_keys.add(key)
+        case_id = row.get("case_id", design_id)
+        if (
+            not isinstance(case_id, str)
+            or not case_id.strip()
+            or case_id != (job.case_id or job.design_id)
+        ):
+            raise ValueError("manifest case_id does not match typed job")
         expected_snapshot = json.loads(json.dumps(
             execution_snapshot_payload(job.snapshot),
         ))

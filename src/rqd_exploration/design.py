@@ -279,6 +279,7 @@ def build_frozen_manifest(
     boundary_rules_version: str,
     planned_locations: tuple[PlannedLocation, ...],
     samples_by_design: dict[str, tuple[DesignSample, ...]] | None = None,
+    case_ids_by_design: dict[str, str] | None = None,
 ) -> FrozenManifest:
     """Build DB-ready JSON with explicit execution metadata; never infer or execute it.
 
@@ -293,6 +294,17 @@ def build_frozen_manifest(
         raise ValueError("source YAML digest does not match exact input bytes")
     if not planned_locations:
         raise ValueError("planned_locations must be explicitly supplied")
+    if case_ids_by_design is not None:
+        if not isinstance(case_ids_by_design, dict):
+            raise TypeError("case_ids_by_design must be a dict")
+        design_ids = {design.design_id for design in config.designs}
+        if set(case_ids_by_design) - design_ids:
+            raise ValueError("case_ids_by_design contains an unknown design_id")
+        if any(not isinstance(case_id, str) or not case_id.strip()
+               for case_id in case_ids_by_design.values()):
+            raise ValueError("case_ids_by_design values must be non-empty text")
+        if len(set(case_ids_by_design.values())) != len(case_ids_by_design):
+            raise ValueError("case_ids_by_design values must be unique")
     locations = [_planned_location_payload(location) for location in planned_locations]
     location_keys = [
         ("BH" if isinstance(location, PlannedBHInterval) else "face",
@@ -361,18 +373,25 @@ def build_frozen_manifest(
                 design.realization_seed, measurement, runtime,
             )
             fingerprint = fingerprint_execution_snapshot(snapshot)
+            case_id = (
+                None if case_ids_by_design is None
+                else case_ids_by_design.get(design.design_id)
+            )
             job = ExecutionJob(
                 manifest_id, design.design_id, design.block_id, sample.sample_index,
-                design.realization_seed, snapshot, fingerprint,
+                design.realization_seed, snapshot, fingerprint, case_id,
             )
             jobs.append(job)
             job_key = {
                 **key, "realization_seed": design.realization_seed,
                 "execution_fingerprint_digest": fingerprint.sha256_hex,
             }
-            jobs_payload.append({
+            job_payload = {
                 **job_key, "execution_snapshot": execution_snapshot_payload(snapshot),
-            })
+            }
+            if case_id is not None and case_id != design.design_id:
+                job_payload["case_id"] = case_id
+            jobs_payload.append(job_payload)
             all_locations.extend({**job_key, **location} for location in locations)
     payload: dict[str, JsonValue] = {
         "schema_version": 1,

@@ -8,7 +8,7 @@ from src.euler_campaign.generation import (
     FIXED_DOMAIN, LEGACY, generation_mode_for_version, radius_bin_plan,
 )
 
-from .config import EXECUTABLE_JN_SET_COUNTS
+from .config import Bounds, DesignInput, EXECUTABLE_JN_SET_COUNTS
 from .design import generate_lhs_design
 from .fingerprint import (
     ExecutionGeometry, ExecutionJointSet, ExecutionMeasurements, ExecutionRuntime,
@@ -44,29 +44,62 @@ def input_identity(snapshot):
     return fingerprint_snapshot(payload).sha256_hex
 
 
-def validate_generating_input(snapshot):
+def _is_within_bounds(value: float, bounds: Bounds) -> bool:
+    return (
+        isfinite(value)
+        and bounds.lower <= value <= bounds.upper
+        and (bounds.upper_inclusive or value < bounds.upper)
+    )
+
+
+def validate_generating_input(snapshot, design: DesignInput | None = None):
     count = EXECUTABLE_JN_SET_COUNTS.get(snapshot.fixed_jn)
     if count is None or len(snapshot.joint_sets) != count:
         raise ValueError("Jn/set count mismatch")
     if len({s.joint_set_id for s in snapshot.joint_sets}) != count:
         raise ValueError("joint-set identities must be unique")
+    if design is not None:
+        if snapshot.fixed_jn != design.fixed_jn:
+            raise ValueError("snapshot Jn does not match configured design")
+        input_joint_sets = {
+            joint_set.joint_set_id: joint_set for joint_set in design.joint_sets
+        }
+        if set(input_joint_sets) != {s.joint_set_id for s in snapshot.joint_sets}:
+            raise ValueError("snapshot joint sets do not match configured design")
     for s in snapshot.joint_sets:
-        for name, _, _, lower, upper, inclusive in AXES:
-            value = getattr(s, name)
-            if (not isfinite(value) or not lower <= value <= upper
-                or (not inclusive and value == upper)):
-                raise ValueError(f"outside bounds: {s.joint_set_id}/{name}")
+        if design is None:
+            for name, _, _, lower, upper, inclusive in AXES:
+                value = getattr(s, name)
+                if (not isfinite(value) or not lower <= value <= upper
+                    or (not inclusive and value == upper)):
+                    raise ValueError(f"outside bounds: {s.joint_set_id}/{name}")
+            alpha_valid = 2.5 <= s.size_alpha <= 4
+            kappa_valid = 0 <= s.fisher_kappa <= 50
+        else:
+            input_joint_set = input_joint_sets[s.joint_set_id]
+            input_bounds = (
+                ("p32_m2_per_m3", s.p32_m2_per_m3, input_joint_set.p32),
+                ("size_r_min_m", s.size_r_min_m, input_joint_set.size_r_min_m),
+                ("size_r_max_m", s.size_r_max_m, input_joint_set.size_r_max_m),
+                ("mean_dip_deg", s.mean_dip_deg, design.mean_dip_deg),
+                ("mean_dip_dir_deg", s.mean_dip_dir_deg, design.mean_dip_dir_deg),
+            )
+            for name, value, bounds in input_bounds:
+                if not _is_within_bounds(value, bounds):
+                    raise ValueError(f"outside bounds: {s.joint_set_id}/{name}")
+            alpha_valid = _is_within_bounds(s.size_alpha, design.size_alpha.bounds)
+            kappa_valid = _is_within_bounds(s.fisher_kappa, design.fisher_kappa.bounds)
         if s.size_r_min_m > s.size_r_max_m:
             raise ValueError(f"radius order violation: {s.joint_set_id}")
-        if (not 2.5 <= s.size_alpha <= 4 or not 0 <= s.fisher_kappa <= 50):
+        if not alpha_valid or not kappa_valid:
             raise ValueError("outside alpha/kappa bounds")
 
 
-def expected_joint_counts(snapshot):
+def expected_joint_counts(snapshot, design: DesignInput | None = None):
     from src.euler_campaign.dfn import _expected_joint_area
     mode = generation_mode_for_version(snapshot.runtime.generator_version)
     if mode != LEGACY:
-        validate_generating_input(snapshot)
+        validate_generating_input(snapshot, design)
     volume = prod(snapshot.geometry.domain_size_m)
     if not isfinite(volume) or volume <= 0:
         raise ValueError("domain volume must be positive and finite")

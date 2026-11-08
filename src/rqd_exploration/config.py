@@ -330,8 +330,8 @@ def _measurements(value: Any) -> MeasurementInput:
     root = _fields(value, "measurements", {"bh_interval_m", "face_advance_m"})
     bh_interval = _number(root["bh_interval_m"], "measurements.bh_interval_m")
     face_advance = _number(root["face_advance_m"], "measurements.face_advance_m")
-    if bh_interval != 1.0:
-        raise ValueError("measurements.bh_interval_m must be 1 m for the pilot")
+    if bh_interval < 1.0:
+        raise ValueError("measurements.bh_interval_m must be at least 1 m")
     if face_advance != 1.0:
         raise ValueError("measurements.face_advance_m must be 1 m for the pilot")
     return MeasurementInput(bh_interval, face_advance)

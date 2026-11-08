@@ -208,12 +208,30 @@ class TestRQDExplorationConfig(unittest.TestCase):
                 b"  tunnel_vertices_m: [[0, 15, 15], [0, 15, 15]]\n",
                 1,
             ))
+        with self.assertRaisesRegex(ValueError, "at least 1 m"):
+            parse_config_bytes(VALID_YAML.replace(
+                b"  bh_interval_m: 1\n",
+                b"  bh_interval_m: 0.5\n",
+                1,
+            ))
         with self.assertRaisesRegex(ValueError, "must be 1 m"):
             parse_config_bytes(VALID_YAML.replace(
                 b"  face_advance_m: 1\n",
                 b"  face_advance_m: 2\n",
                 1,
             ))
+
+    def test_accepts_input_configured_measurement_steps(self) -> None:
+        configured_steps = VALID_YAML.replace(
+            b"  bh_interval_m: 1\n",
+            b"  bh_interval_m: 2\n",
+            1,
+        )
+
+        config = parse_config_bytes(configured_steps)
+
+        self.assertEqual(config.measurements.bh_interval_m, 2.0)
+        self.assertEqual(config.measurements.face_advance_m, 1.0)
 
     def test_rejects_empty_joint_sets(self) -> None:
         data = yaml.safe_load(VALID_YAML)

@@ -6,9 +6,9 @@ import unittest
 from unittest.mock import Mock, patch
 
 from src.euler_campaign.dfn import DiskJointGeometry
-from src.rqd_exploration.main_controller import initial_manifest
+from src.rqd_exploration.main_controller import PREVIEW_RUNTIME, _input_manifest
 from src.rqd_exploration.main_design import input_identity
-from src.test.test_rqd_main_policy import load_jn20_config
+from src.test.test_rqd_main_policy import load_main_config
 from src.rqd_exploration.main_store import (
     MainPause, checkpoint, initialize_main_store, load_state, open_run,
     reconcile_starts, reserve_start, single_writer, starts_consumed,
@@ -24,11 +24,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class TestMainStore(unittest.TestCase):
     def setUp(self):
-        self.config = load_jn20_config()
+        self.config = load_main_config(ROOT / "config/rqd_exploration_main.yml")
         self.connection = sqlite3.connect(":memory:")
         initialize_store(self.connection)
         initialize_main_store(self.connection)
-        manifest = initial_manifest(self.config)
+        manifest = _input_manifest(self.config.reference_input, PREVIEW_RUNTIME)
         self.manifest = replace(manifest, jobs=(manifest.jobs[0],))
         self.job = self.manifest.jobs[0]
         store_manifest(self.connection, manifest)
@@ -122,8 +122,10 @@ class TestMainStore(unittest.TestCase):
         from src.rqd_exploration.adapter import build_generation_case
         from src.rqd_exploration.measurement import measure_realization
         from src.rqd_exploration.runner import _utc_now
-        case = build_generation_case(self.config.reference_input.geometry, self.config.reference_input.measurements,
-                                     20., self.job.snapshot.joint_sets, case_id=self.job.design_id)
+        case = build_generation_case(
+            self.config.reference_input.geometry, self.config.reference_input.measurements,
+            self.job.snapshot.fixed_jn, self.job.snapshot.joint_sets,
+            case_id=self.job.design_id)
         result = measure_realization(case, DiskJointGeometry(()))
         first = result.observations[0]
         partial = replace(result, observations=(first,), location_states=tuple(
@@ -139,7 +141,7 @@ class TestMainStore(unittest.TestCase):
         self.assertEqual(self.run_job().simulation_count, 1)
         self.assertEqual(starts_consumed(self.connection, self.run_id), 2)
         saved = self.connection.execute("SELECT * FROM observations").fetchall()
-        self.assertEqual(len(saved), 121)
+        self.assertEqual(len(saved), len(result.observations))
         self.assertTrue(all(o in saved for o in original))
         self.assertTrue(all(e in self.connection.execute(
             "SELECT * FROM measurement_evidence").fetchall() for e in evidence))

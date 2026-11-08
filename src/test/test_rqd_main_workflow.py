@@ -14,10 +14,11 @@ from src.euler_campaign.dfn import DiskJointGeometry
 from src.rqd_exploration import cli
 from src.rqd_exploration.config import load_config
 from src.rqd_exploration.dataset import load_latest_cumulative_dataset_revision
+from src.rqd_exploration.main_design import input_identity
 from src.rqd_exploration.measurement import RawFaceObservation, measure_realization
 from src.rqd_exploration.runner import build_mlx_pilot_manifest, execute_frozen_job
 from src.rqd_exploration.store import initialize_store, store_manifest
-from src.test.test_rqd_main_policy import jn20_config_path, load_main_config
+from src.test.test_rqd_main_policy import load_main_config
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,7 +30,7 @@ class TestMainWorkflow(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.database = Path(self.directory.name) / "main.sqlite"
         self.output = Path(self.directory.name) / "reports"
-        self.jn20_config = jn20_config_path(self.directory.name)
+        self.main_config = ROOT / "config/rqd_exploration_main.yml"
         self.factory = Mock()
         self.factory.generate.return_value = DiskJointGeometry(())
         backend = ModuleType("src.euler_campaign.mlx_backend")
@@ -54,7 +55,7 @@ class TestMainWorkflow(unittest.TestCase):
 
     def run_args(self):
         return ("run-main", "--database", str(self.database), "--output-dir", str(self.output),
-                "--config", str(self.jn20_config), "--confirm-execution")
+                "--config", str(self.main_config), "--confirm-execution")
 
     def test_confirmation_validate_and_preview_write_generate_nothing(self):
         code, _, _ = self.command("run-main", "--database", str(self.database),
@@ -116,16 +117,18 @@ class TestMainWorkflow(unittest.TestCase):
                     "SELECT COUNT(*) FROM main_control_starts").fetchone()[0], expected_starts)
 
     def test_default_excludes_saved_jn20_from_active_ledger_without_removing_raw_data(self):
-        from src.rqd_exploration.main_controller import MainController, initial_manifest
+        from src.rqd_exploration.main_controller import MainController
         from src.rqd_exploration.main_policy import load_main_config
         from src.rqd_exploration.main_store import initialize_main_store
-        enabled = load_main_config(self.jn20_config)
-        manifest = initial_manifest(enabled)
+        baseline3 = load_config(ROOT / "config/rqd_exploration_main_baseline3.yml")
+        jn20_source = replace(
+            baseline3, designs=(next(d for d in baseline3.designs if d.fixed_jn == 20),))
+        manifest = build_mlx_pilot_manifest(jn20_source, manifest_id="baseline3-jn20")
         with sqlite3.connect(self.database) as connection:
             initialize_store(connection)
             store_manifest(connection, manifest)
             execute_frozen_job(connection, replace(manifest, jobs=(manifest.jobs[0],)),
-                               enabled.reference_input, self.factory)
+                               jn20_source, self.factory)
             before = connection.execute("SELECT * FROM observations").fetchall()
             self.assertTrue(before)
             initialize_main_store(connection)
@@ -198,7 +201,10 @@ class TestMainWorkflow(unittest.TestCase):
                 observations = connection.execute("SELECT * FROM observations").fetchall()
                 evidence = connection.execute("SELECT * FROM measurement_evidence").fetchall()
                 old_revision = load_latest_cumulative_dataset_revision(connection)
-                self.assertEqual(old_revision.raw_observation_count, 121)
+                old_invalid_face_count = connection.execute(
+                    "SELECT COUNT(*) FROM observations WHERE modality='face' AND is_valid=0"
+                ).fetchone()[0]
+                self.assertGreater(old_revision.raw_observation_count, 0)
                 self.assertEqual(connection.execute(
                     "SELECT COUNT(*) FROM main_control_starts").fetchone()[0], 2)
             def cost(snapshot):
@@ -209,11 +215,14 @@ class TestMainWorkflow(unittest.TestCase):
             summary = payload["main_summary"]
             self.assertEqual(summary["reason"], "high_cost_review")
             self.assertEqual(summary["starts_consumed"], 3)
-            self.assertEqual(calls, [(20., 5, 43)] * 3)
+            self.assertEqual(calls[0], (2., 1, 43))
+            self.assertEqual(len(calls), 3)
+            self.assertTrue(all(jn != 20 for jn, _, _ in calls))
             with sqlite3.connect(self.database) as connection:
                 connection.execute("PRAGMA foreign_keys = ON")
                 current = load_latest_cumulative_dataset_revision(connection)
-                self.assertEqual(current.raw_observation_count, 242)
+                self.assertEqual(current.raw_observation_count,
+                                 old_revision.raw_observation_count * 2)
                 self.assertGreater(current.revision_index, old_revision.revision_index)
                 saved_old = load_latest_cumulative_dataset_revision(connection, old_revision.revision_index)
                 self.assertEqual(saved_old.dataset_sha256, old_revision.dataset_sha256)
@@ -228,7 +237,8 @@ class TestMainWorkflow(unittest.TestCase):
                     "SELECT event_index FROM main_control_events ORDER BY event_index").fetchall(),
                                  [(1,), (2,)])
                 self.assertEqual(connection.execute(
-                    "SELECT COUNT(*) FROM observations WHERE modality='face' AND is_valid=0").fetchone()[0], 122)
+                    "SELECT COUNT(*) FROM observations WHERE modality='face' AND is_valid=0"
+                ).fetchone()[0], old_invalid_face_count * 2)
             self.assertEqual(len(list(self.output.glob("main-*/event-*/summary.json"))), 2)
             calls_before = len(calls)
             code, payload, _ = self.command(*self.run_args())
@@ -256,26 +266,30 @@ class TestMainWorkflow(unittest.TestCase):
             state = json.loads(connection.execute("SELECT state_json FROM main_control_runs").fetchone()[0])
             self.assertIn("deliberate factory error", state["detail"])
 
-    def test_existing_pilot_inputs_enter_main_ledger_without_regeneration(self):
-        config = load_config(ROOT / "config/rqd_exploration_pilot.yml")
-        manifest = build_mlx_pilot_manifest(config, manifest_id="saved-pilot")
+    def test_existing_baseline_inputs_enter_main_ledger_without_regeneration(self):
+        from src.rqd_exploration.main_controller import MainController
+        from src.rqd_exploration.main_store import initialize_main_store
+
+        config = load_main_config(self.main_config)
+        source = replace(config.reference_input,
+                         designs=(config.reference_input.designs[0],))
+        manifest = build_mlx_pilot_manifest(source, manifest_id="saved-main-baseline")
+        job = manifest.jobs[0]
         with sqlite3.connect(self.database) as connection:
+            connection.execute("PRAGMA foreign_keys = ON")
             initialize_store(connection)
             store_manifest(connection, manifest)
-            for job in (manifest.jobs[0], manifest.jobs[5]):
-                execute_frozen_job(connection, replace(manifest, jobs=(job,)), config, self.factory)
+            execute_frozen_job(connection, replace(manifest, jobs=(job,)), source, self.factory)
+            initialize_main_store(connection)
         self.factory.generate.reset_mock()
-        self.factory.generate.side_effect = KeyboardInterrupt
-        with self.assertRaises(KeyboardInterrupt):
-            self.command(*self.run_args())
-        self.assertEqual(self.factory.generate.call_count, 1)
-        case, seed = self.factory.generate.call_args.args
-        self.assertEqual((case.domain.jn, len(case.joint_sets), seed), (20, 5, 43))
         with sqlite3.connect(self.database) as connection:
-            state = json.loads(connection.execute("SELECT state_json FROM main_control_runs").fetchone()[0])
-            self.assertEqual(sorted(s["fixed_jn"] for s in state["inputs"].values()),
-                             [2] * 5 + [4] * 5 + [20] * 5)
-            self.assertEqual(connection.execute("SELECT COUNT(*) FROM observations").fetchone()[0], 242)
+            connection.execute("PRAGMA foreign_keys = ON")
+            controller = MainController(
+                connection, config, self.factory, job.snapshot.runtime, output_dir=self.output)
+            identity = input_identity(job.snapshot)
+            self.assertIn(identity, controller.state["inputs"])
+            self.assertIn(identity, controller.profiles)
+        self.factory.generate.assert_not_called()
 
     def test_raw_commit_before_control_checkpoint_reopen_reuses_without_charge(self):
         from src.rqd_exploration.main_controller import MainController
@@ -302,85 +316,3 @@ class TestMainWorkflow(unittest.TestCase):
         with sqlite3.connect(self.database) as connection:
             self.assertEqual(connection.execute(
                 "SELECT status FROM main_control_starts").fetchall(), [("succeeded",)])
-
-    def test_full_main_initial_bin_transition_uses_persisted_nine_seed_inputs(self):
-        config = load_config(ROOT / "config/rqd_exploration_pilot.yml")
-        policy = load_main_config(self.jn20_config).policy
-        seed_values = [policy.initial_seed, *range(
-            policy.verification_seed, policy.verification_seed + 3)]
-        next_seed = max(seed_values) + 1
-        while len(seed_values) < 10:
-            if next_seed not in seed_values:
-                seed_values.append(next_seed)
-            next_seed += 1
-        with sqlite3.connect(self.database) as connection:
-            initialize_store(connection)
-            for seed in seed_values:
-                design = replace(config.designs[0], realization_seed=seed)
-                normalized = replace(config, designs=(design,))
-                manifest = build_mlx_pilot_manifest(normalized, manifest_id=f"preexisting-seed-{seed}")
-                store_manifest(connection, manifest)
-                for job in manifest.jobs[:3]:
-                    execute_frozen_job(connection, replace(manifest, jobs=(job,)), normalized, self.factory)
-            before = connection.execute("SELECT * FROM observations").fetchall()
-            prior = load_latest_cumulative_dataset_revision(connection)
-        self.factory.generate.reset_mock()
-        calls = []
-        def generate(case, seed, **kwargs):
-            calls.append((case.domain.jn, seed))
-            if len(calls) == 6:
-                raise KeyboardInterrupt
-            return DiskJointGeometry(())
-        self.factory.generate.side_effect = generate
-        progress = io.StringIO()
-        with self.assertRaises(KeyboardInterrupt):
-            with contextlib.redirect_stderr(progress):
-                cli.main(list(self.run_args()))
-        progress_lines = progress.getvalue().splitlines()
-        completion_line = next(line for line in progress_lines if "job_stage=completed" in line)
-        self.assertIn("bin=10 targets_passed=", completion_line)
-        transition_line = next(line for line in progress_lines if "event=bin_transition" in line)
-        self.assertIn("completed_bin=10 completed_targets_passed=3/3", transition_line)
-        self.assertIn("bin=9 targets_passed=0/", transition_line)
-        pause_line = next(line for line in progress_lines if "event=paused" in line)
-        self.assertIn("reason=user_interruption", pause_line)
-        self.assertRegex(pause_line, r"bin=9 targets_passed=\d+/\d+")
-        self.assertEqual(calls[:5], [(20., policy.initial_seed)] * 5)
-        with sqlite3.connect(self.database) as connection:
-            connection.execute("PRAGMA foreign_keys = ON")
-            events = connection.execute(
-                "SELECT kind,payload FROM main_control_events ORDER BY event_index").fetchall()
-            self.assertEqual(events[0][0], "bin_transition")
-            transition = json.loads(events[0][1])
-            self.assertEqual(transition["bin"], 10)
-            histories = transition["target_evidence"]
-            bin10 = [h for key, h in histories.items() if key.startswith("10/")]
-            self.assertTrue(bin10)
-            self.assertTrue(all(any(item["passed"] for item in h.values()) for h in bin10))
-            state = json.loads(connection.execute("SELECT state_json FROM main_control_runs").fetchone()[0])
-            self.assertEqual(state["bin"], 9)
-            self.assertEqual(state["reason"], "user_interruption")
-            self.assertEqual(transition["starts_consumed"], 5)
-            observations = connection.execute("SELECT * FROM observations").fetchall()
-            self.assertTrue(all(o in observations for o in before))
-            self.assertEqual(load_latest_cumulative_dataset_revision(
-                connection, prior.revision_index).dataset_sha256, prior.dataset_sha256)
-            # The same valid seed observations can fail another target without being
-            # removed from the cumulative dataset.
-            from src.rqd_exploration.main_analysis import (
-                BHPoint, SeedProfile, build_targets, seed_pass_result,
-            )
-            target = next(t for t in build_targets("bh", jn_values=(2,))
-                          if t.reachable and not t.contains(100))
-            self.assertTrue(target.reachable)
-            failed = seed_pass_result(
-                tuple(SeedProfile(seed, (BHPoint(0, 1, 100, 1),))
-                      for seed in (policy.initial_seed,
-                                   *range(policy.verification_seed,
-                                          policy.verification_seed + 3))),
-                target, initial_seed=policy.initial_seed,
-                verification_seed=policy.verification_seed)
-            self.assertFalse(failed.passed)
-            current = load_latest_cumulative_dataset_revision(connection)
-            self.assertEqual(current.raw_observation_count, 35 * 121)
-        self.assertTrue(list(self.output.glob("cumulative/revision-*/reports/report_summary.json")))

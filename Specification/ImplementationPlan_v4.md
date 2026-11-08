@@ -1,5 +1,889 @@
 # Implementation Plan v4: RQD Exploration and Cumulative Batch Workflow
 
+## Follow-up batch 1 reviewed (2026-11-08 23:02 +09:00; completed and paused for review)
+
+The user executed the approved continuation in the existing baseline3 database. Run
+`raw-rqd-698771ca0aba9d63b26c65d0032278b612d4036569fe027e7cb99a84fe12b286`
+finished batch 1 and paused normally at `continuation_batch_review`.
+
+- The run now has 30 signatures (15 each for Jn15/Jn20) and 30 successful attempts:
+  the original 10 plus 20 new signatures. The follow-up allocation was exactly 5 global
+  LHS and 5 response-gap candidates per Jn; all 20 new IDs are unique. The queue is empty.
+- SQLite contains 30 manifests/jobs/attempts, 900 BH observations, and 900 evidence rows.
+  Every attempt succeeded and all 900 intervals are valid with 1m support.
+- Recomputed all 900 raw-RQD values from stored intersection positions using the
+  implementation's inclusive 0.1m piece criterion; there were **0 mismatches**.
+  Independently recomputed signature means, population SDs, and 10-point bin counts also
+  matched the saved report exactly (0 summary mismatches).
+- Mean raw RQD per signature (ascending):
+  - Jn15: 1.179, 8.152, 21.579, 22.716, 25.722, 31.872, 33.704, 40.675, 43.002,
+    49.288, 52.527, 66.884, 88.872, 91.615, 95.581.
+  - Jn20: 1.143, 1.326, 3.890, 7.249, 8.517, 16.777, 28.967, 35.373, 38.347,
+    43.467, 46.623, 56.623, 64.270, 65.812, 86.316.
+- Populated response bins: 8/10 for each Jn and 9/10 across both Jn values. Jn15 has no
+  signatures in 10–20 or 70–80; Jn20 has none in 70–80 or 90–100. Thus 70–80 is the only
+  bin currently empty for both conditions.
+- The persisted runtime remains MLX on `Device(gpu, 0)`. Summary report:
+  `~/QSimExOutput/raw-rqd-baseline3-20261108-2218-fixed-followup-reports/raw-rqd-698771ca0aba9d63b26c65d0032278b612d4036569fe027e7cb99a84fe12b286/event-4/summary.json`.
+- No follow-up batch 2 was started. Next action is to review these results and obtain
+  explicit user approval before another execution.
+
+## Follow-up continuation implemented (2026-11-08 22:53 +09:00; awaiting separate run approval)
+
+The user approved implementing the hybrid continuation code and tests. The approval is
+limited to code and in-memory validation; no real database was opened, and no DFN
+generation or simulation was run.
+
+- Added `--continue-from-review`, valid only when the persisted run is paused at
+  `initial_cohort_review` or `continuation_batch_review`. It reuses that run and rejects
+  unapproved continuation states.
+- A follow-up batch creates 10 unique signatures per Jn: 5 deterministic global LHS
+  candidates and up to 5 response-gap interpolations. If fewer than 5 unique local
+  candidates are available, explicit global-LHS fallback candidates keep the batch size
+  complete. The controller pauses for review after each completed batch.
+- Interpolation uses input log/linear/circular coordinate semantics and validates all
+  candidates against the configured per-design bounds. Batch composition, completed
+  signatures, response-bin coverage, and 30-interval raw-RQD summaries are retained in
+  the pause report. Signature summaries include support-weighted mean and population SD
+  (`ddof=0`).
+- Validation: focused raw-RQD tests **17 passed**; all RQD tests **242 passed**;
+  Pylance diagnostics and syntax checks reported no issues; `git diff --check` passed.
+- Next: review the persisted policy/report. A real follow-up run still requires explicit
+  user authorization and is not included in this implementation.
+
+## Follow-up plan approved (2026-11-08 22:42 +09:00; implementation pending)
+
+The user approved the hybrid coverage plan and selected the first-batch mix: per Jn,
+10 new signatures split into 5 global space-filling candidates and 5 local candidates
+refining gaps in observed mean raw-RQD response. This confirms the plan only; code changes
+and real execution remain unapproved. Later batches will be adapted using the updated
+signature/response coverage report.
+
+## Follow-up search policy confirmed (2026-11-08 22:40 +09:00; plan only)
+
+The user confirmed: hybrid signature-space and mean-RQD coverage; 10-point RQD bins per
+Jn; 10 new signatures per Jn per batch; preserve all 30 one-metre RQD values and report
+the signature-level support-weighted mean plus population standard deviation (ddof=0).
+The SD describes spatial variability along the 30-m borehole and is a secondary
+diversity/tie-break metric, not a second binning axis or a run-to-run uncertainty estimate.
+This confirms the policy for planning only; implementation and real execution have not
+been authorized.
+
+Implementation sequence:
+
+1. Add explicit continuation release from `initial_cohort_review` using the existing
+   persisted run/database. Preserve succeeded initial attempts; reject duplicate
+   signatures/starts; pause for review after each subsequent batch.
+2. Derive and report the 30 interval values, their support-weighted mean, and population SD
+   for each signature. Keep the existing observation and intersection evidence as the
+   source of truth.
+3. Replace main-policy coordinate steps and minimum-only movement with per-Jn hybrid
+   coverage allocation: target underfilled 10-point mean-RQD bins while preferring
+   under-sampled signature-space regions, obeying the baseline3 input bounds and coordinate
+   semantics.
+4. Queue 10 new signatures per Jn, persist the batch, and emit a review summary with
+   signature/response coverage and mean/SD after completion.
+5. Add in-memory tests for resume safety, no duplicate execution, bounded candidates,
+   10-per-Jn allocation, all response statistics, and pause/report persistence. Run focused
+   tests and non-persistent preview only; any actual run remains separately gated by
+   explicit user approval.
+
+The exact coverage scoring/coordinate distance implementation is to be made explicit
+against the input's linear, log, and circular coordinates during implementation, without
+reintroducing main-policy step sizes.
+
+## Proposed follow-up search plan (2026-11-08 22:38 +09:00; planning only)
+
+The user selected a hybrid goal: improve both signature-space and per-Jn raw-RQD coverage,
+using 10-point bins on a signature-level response; retain all 30 one-metre interval
+observations and report the support-weighted mean, with standard deviation also requested.
+The user selected batches of 10 new signatures per Jn and requested a plan only. No
+implementation or further run is authorized by this entry. The role of standard deviation
+in candidate allocation is pending confirmation.
+
+The current implementation cannot continue from `initial_cohort_review`: `run()` returns
+the saved summary for that reason. Its potential coordinate-neighbor path takes steps from
+main-policy `AXES` and moves the center only toward lower support-weighted mean raw RQD,
+which is minimization rather than the requested coverage mapping. The initial means already
+show large response gaps: Jn15 = 1.18, 21.58, 22.72, 88.87, 91.62; Jn20 = 1.14, 1.33,
+7.25, 64.27, 65.81.
+
+Proposed implementation stages:
+
+1. Add an explicit continuation release from `initial_cohort_review`, reusing the existing
+   run state and database, preserving completed initial attempts and preventing duplicate
+   starts. Keep an explicit pause/review after each batch.
+2. Replace the low-RQD coordinate walk with a hybrid candidate allocator per Jn: use the
+   baseline3 input bounds and parameter coordinates, improve underfilled 10-point bins of
+   signature-level mean raw RQD, and prefer signatures in under-sampled normalized
+   signature-space regions. Do not silently use main-policy bounds or step sizes.
+3. Keep all 30 interval values for each signature and publish mean plus standard deviation
+   in the run summary/coverage report. The meaning and allocation role of standard
+   deviation still needs user confirmation.
+4. Add in-memory regression tests for explicit continuation, exactly 10 new signatures per
+   Jn, no re-execution of completed work, no duplicates, configured bounds/seeds, response
+   statistics, and pause/report persistence. Validate through focused tests and preview;
+   do not run the real database or simulation as part of implementation.
+
+Before implementation, confirm whether standard deviation should be a reported
+spatial-variability descriptor/secondary tie-breaker or an active second coverage axis.
+The recommendation is the former initially: the 30 intervals describe spatial variation
+within one 30-m realization, not run-to-run uncertainty, and only one realization seed was
+used per signature.
+
+## Raw-RQD output independently checked against intersection evidence (2026-11-08 22:31 +09:00)
+
+Confirmed the successful run's calculation path: `generate_and_measure()` calls the
+configured MLX factory to generate joint arrays, then `measure_realization()` samples the
+BH intervals from those joints. The persisted runtime identifies the MLX GPU backend.
+`sample_borehole()` uses the line intersections to split each interval; `_direct_rqd()`
+counts the resulting intact pieces that are at least 0.1 m (inclusive, with numerical
+tolerance) and divides their summed length by the support length.
+
+Independently recomputed raw RQD from the run's stored intersection positions for all 300
+BH observations: **300/300 exact matches** within floating-point tolerance, **10,074**
+intersection hits, with 299 of 300 intervals having at least one hit. This confirms the
+reported values came from generated geometry and measured intersections, not a mock or
+placeholder. The geometry is generated in GPU memory; this raw-RQD path stores observations
+and intersection evidence in SQLite rather than exporting a standalone DFN file or invoking
+a separate downstream solver. The ten initial signatures remain a small cohort, not a
+claim of exhaustive coverage.
+
+## Baseline3 initial cohort run checked; failed DB removed (2026-11-08 22:24 +09:00)
+
+The user ran the fixed baseline3 input in
+`/Users/myungkyusong/QSimExOutput/sqlite/raw-rqd-baseline3-20261108-2218-fixed.sqlite`.
+It was not an error: all 10 starts and attempts succeeded (Jn15: 5, Jn20: 5), then the
+controller paused with the designed `initial_cohort_review` reason. The persisted runtime
+snapshot identifies the MLX backend on `Device(gpu, 0)` with generator
+`qsimex-fixed-domain-centers-v1` and measurement `qsimex-fixed-rqd-v1`. Attempt runtime
+was 0.020–0.109 seconds (mean 0.046 seconds).
+
+The database contains 300 raw-RQD observations and 300 measurement-evidence rows, all
+valid: 30 borehole intervals per each of the 10 signatures. The measured raw-RQD mean per
+signature, in start order, was Jn15: 1.1792, 21.5790, 22.7163, 88.8715, 91.6155; Jn20:
+1.3260, 64.2695, 1.1434, 7.2487, 65.8116. The aggregate observation range was 0–100;
+the mean was 45.1923 for Jn15 and 27.9598 for Jn20. The quick duration is consistent with
+the recorded successful GPU generation/measurement attempts; no failure evidence was
+found.
+
+The prior failed DB
+`/Users/myungkyusong/QSimExOutput/sqlite/raw-rqd-baseline3-20261108-2201.sqlite` was
+removed at the user's request after confirming no process held the DB or its lock open.
+Its separate lock marker and report directory were left untouched. No follow-up
+exploration was started; the current run is awaiting review at `initial_cohort_review`.
+
+## Raw-RQD initial-run bounds defect fixed (2026-11-08 22:17 +09:00)
+
+The user's baseline3 run paused before starting any simulation: `starts=0`,
+`signature_count=0`, with `outside bounds: set-2/p32_m2_per_m3`. Reproducing the first
+Jn15 LHS sample gave set-2 P32 `94.15231318607258`, within baseline3's [1,100] bound but
+above main-policy `AXES`'s fixed upper bound of 10. The shared `expected_joint_counts()`
+validation used the main bounds in the raw-RQD controller's `before_start` callback, before
+start reservation.
+
+Added optional design-aware validation/counting while retaining the main validator's
+default behavior. Main-controller validation/count hooks allow raw-RQD to pass the
+normalized per-design bounds; raw coordinate candidate validation uses the same path.
+An in-memory regression test proves the offending initial LHS reaches the pre-start
+reservation boundary without invoking the generation/simulation function.
+
+Validation: all 240 RQD-focused tests passed; the targeted regression passed after its
+final update; Pylance reported no diagnostics in modified Python files; signature
+compatibility checks passed; `git diff --check` passed. The failed user DB was not opened
+or changed by the assistant. Its `execution_error` state should not be retried; use a new
+separate DB/output path. No physical job or simulation was run during the fix.
+
+## Clarification: raw-RQD end goal and staged execution (2026-11-08 21:54 +09:00)
+
+The user's goal is to execute the ten baseline3 initial signatures (five each for Jn15
+and Jn20), review their actual raw-RQD results, then use those results to guide and
+continue exploration toward broader coverage. `initial_cohort_review` is an intentional
+review gate, not the scientific endpoint. The 21:51 status that follow-up is not ready
+describes the current implementation, not an impossibility or a change to the goal.
+
+The current controller pauses after that initial cohort; another `run` returns the saved
+summary for `initial_cohort_review` rather than releasing follow-up exploration. The
+dormant coordinate proposal also still obtains step sizes from main-policy `AXES`.
+Therefore, after reviewing the actual results, the continuation/resume path and an
+input-respecting step policy still need to be implemented with the user's agreement.
+The input-only Stage 4 verified input plumbing; it did not complete this broader
+scientific workflow. This clarification does not authorize an actual run or simulation.
+
+## Stage 4 input-flow verification complete (2026-11-08 21:51 +09:00)
+
+The final focused raw-RQD/config test command passed all 32 tests. Pylance diagnostics
+reported no issues in the checked raw-RQD, input/config, design, controller, measurement,
+manifest/store, and test files. `runner.py` reported three severity-4 unused-parameter
+warnings for `exc_type`, `exc_value`, and `traceback` in `_ProgressHeartbeat.__exit__`;
+they are outside this stage's input-flow change and were not altered. `git diff --check`
+passed.
+
+The baseline3 schema defines no local-search step size. The existing run path deliberately
+pauses with `initial_cohort_review` after the initial Jn15/Jn20 cohort, so no follow-up
+search step was invented or approved. The dormant coordinate-proposal code still gets its
+parameter order and step sizes from main-policy `AXES`, although its bounds come from the
+input; those steps are not input-defined or approved. The CLI has a `raw-rqd run` path requiring explicit
+database/output paths and `--confirm-execution`, but no runtime preflight or real
+simulation was performed. Thus code for attempting the initial cohort exists; actual
+runtime readiness is unverified, and continued coverage search is not ready to run.
+
+## Stage 3 input-flow regression tests complete (2026-11-08 21:46 +09:00)
+
+Added a focused mutation to the temporary baseline3 regression fixture: it now changes
+each design's `design_id` and `block_id` as well as geometry, BH interval, sample counts,
+seeds, orientation/shape bounds, and joint-set bounds. The test verifies the changed
+identifiers appear in preview candidates and execution manifests, while the other
+input-defined values continue through candidate construction and manifest snapshots.
+The existing input bounds are checked against generated candidate axes, so main-policy
+bounds cannot silently narrow them.
+
+Verification: `conda run -n dlo-cq python -m unittest src.test.test_rqd_raw_search src.test.test_rqd_exploration_config`
+passed all 32 tests. The test uses temporary YAML/output paths and in-memory SQLite only.
+No runtime preflight, persistent pilot action, or simulation was performed. Stage 4
+verification and stop remains pending.
+
+## RQD test issues corrected and reverified (2026-11-08 21:42 +09:00)
+
+The user confirmed that stale tests and calls to nonexistent methods should be corrected.
+Updated integrity tests to use the current verification phase/task and baseline reference
+snapshots; replaced legacy 60×30×30 and fixed-observation-count expectations with values
+derived from the configured geometry and measurement plan. Updated the candidate test to
+complete its verification evidence before asserting LHS fallback.
+
+Fixed a production P32 recording defect: `MainController` declares `record_p32 = True`,
+but had omitted the option when calling `execute_frozen_job`, whose default is `False`.
+The controller now forwards its flag explicitly. The automatic P32 workflow test now
+checks the configured set count.
+
+Verification: all 239 RQD-focused tests passed with
+`conda run -n dlo-cq python -m unittest discover -s src/test -p 'test_rqd*.py'`;
+`git diff --check` passed; test-source search found no reference to the excluded
+`rqd_exploration_jn20.yml` or its former helper names. No simulation or persistent pilot
+action ran.
+
+## RQD test-suite recheck (2026-11-08 21:38 +09:00)
+
+The focused raw-RQD/config and affected main tests passed: 76 tests. Complete RQD-focused
+discovery (`python -m unittest discover -s src/test -p 'test_rqd*.py'`) is not green:
+239 tests ran, with 3 failures and 1 error. The remaining cases are:
+
+- `test_resume_stagnation_guard_does_not_cut_an_active_verification_block`: calls
+  `MainController._plan_stability`, which is not present.
+- `test_main_uses_fixed_domain_mode_and_nominal_p32_cost`: expected joint count uses the
+  old 60×30×30 domain; the current main input is 30×20×20.
+- `test_new_run_preserves_old_run_and_excludes_only_mutation_reference`: expected 12
+  candidates but got 0.
+- `test_main_automatic_measurement_and_paused_report_reuse`: expected one measured P32
+  record but got none.
+
+The dependent integrity tests were updated to use a baseline reference snapshot and an
+input-derived measurement count. The broader failures above were not resolved in this
+fixture-exclusion task; do not report the complete RQD test suite as passing. The old
+`rqd_exploration_jn20.yml` remains absent from test-source references. No simulation or
+persistent pilot action ran.
+
+## Legacy Jn20 test fixture removed from tests (2026-11-08 21:30 +09:00)
+
+The tests no longer load `config/rqd_exploration_jn20.yml`. Its test helper and the
+legacy main-policy Jn20-initialization test were removed. Main controller, design, store,
+and workflow tests now use the configured baseline-only main input (`initial_input: null`).
+The saved-Jn20 evidence test obtains its Jn20 design from raw-RQD baseline3 via the raw
+config loader; baseline3 is not passed through the main-policy loader.
+
+The legacy main workflow test whose premise was initializing main from the separate Jn20
+input was removed rather than silently redirected to baseline3. The Jn20 YAML remains
+untouched in `config/`; this change only removes its use from tests. Verification:
+44 affected main RQD tests passed, a search of `src/test/*.py` found no references to
+`rqd_exploration_jn20.yml` or its former helper names, and `git diff --check` passed.
+No production behavior changed and no real simulation or persistent pilot action ran.
+
+## Correction: legacy Jn20 test fixture (2026-11-08 21:19 +09:00)
+
+The phrase “excluded Jn20 fixture” was misleading. The broad test command did run legacy
+main-policy tests whose helper explicitly replaces `initial_input` with
+`config/rqd_exploration_jn20.yml`; this is not the current raw-RQD baseline3 input. That
+fixture is 60×30×30 m, while the two main baselines are 30×20×20 m. Their measurement
+intervals are all 1 m, so the actual mismatch is geometry. The main loader rejects the
+combination with its geometry/measurement mismatch error.
+
+The focused raw-RQD tests load `config/rqd_exploration_main_baseline3.yml`, which contains
+both Jn15 and Jn20 designs at 30×20×20 m; those tests passed. No source input or simulation
+was changed. The previous broad-suite note should be read as an accidentally invoked,
+unrelated legacy test fixture—not as excluding baseline3 or its Jn20 design.
+
+## Stage 2 input-flow implementation complete (2026-11-08 21:15 +09:00)
+
+The approved raw-RQD input-flow work is implemented:
+
+- Coordinate-axis bounds come from normalized per-design input; main-policy bounds no
+  longer narrow those raw-RQD bounds.
+- `bh_interval_m` is honored as configured for values at least 1 m. The existing minimum
+  support threshold remains 1 m. Raw-RQD remains BH-only as the user clarified.
+- Raw-RQD manifests preserve YAML `design_id`/`block_id`; a separate `case_id` reuses the
+  existing signature-specific generated value. It is persisted as an optional frozen-job
+  field and used by the runner and P32 backfill. Main-policy IDs and the database schema
+  remain unchanged; older manifests default `case_id` to `design_id`.
+- The existing `initial_cohort_review` handoff remains. No local-search step was invented
+  because the input does not define one.
+
+Verification: 72 focused raw-RQD/config/manifest/store/runner tests and 3 targeted P32
+backfill tests passed. Pylance reported no diagnostics in changed Python files and
+`git diff --check` passed. A broader 115-test combined run was not green: it included
+legacy main-policy tests that load the excluded Jn20 fixture and fail with the previously
+identified main/baseline geometry/measurement mismatch. No simulation, runtime preflight,
+or persistent pilot action was performed.
+
+Stage 2 input plumbing is complete; this does not establish that the scientific goal of
+wide RQD coverage has been achieved or change its search policy.
+
+## Approved manifest identifier implementation (2026-11-08 21:11 +09:00)
+
+The user approved preserving YAML `design_id` and `block_id` in raw-RQD manifests while
+keeping the existing signature-specific generated value as a separate `case_id`. Reuse
+the current generated value; do not add another hash or increase its length. Keep main
+policy behavior unchanged. The change must persist through frozen-manifest storage,
+runner reconstruction, and P32 backfill without adding a database-column migration.
+
+## Manifest identifier design clarification pending (2026-11-08 20:42 +09:00)
+
+The user selected preserving both YAML `design_id` and `block_id`, while raising a concern
+about long or hash-based case names. Inspection found that `ExecutionJob` stores only
+`design_id`/`block_id`, and the runner uses `job.design_id` as `case_id`. Therefore,
+preserving the YAML labels also repeats `case_id` across candidate signatures unless a
+separate case identifier is added to the execution data model. The manifest IDs still
+scope stored job identity, but the repeated case label may affect downstream naming or
+traceability.
+
+No identifier code was changed. Before proceeding, clarify whether to accept the repeated
+case label (small change, no added hash), keep generated labels, or authorize a separate
+case-ID field and its propagation. Do not silently add an ID hash or broaden the data
+contract.
+
+## Measurement-input clarification and implementation (2026-11-08 20:37 +09:00)
+
+The user clarified that configured measurements should be honored and that raw-RQD
+search is BH-only; face RQD is not needed. The parser now accepts the configured
+`bh_interval_m` value when it is at least 1 m, instead of requiring exactly 1 m. The
+existing 1 m minimum remains because raw-RQD support summaries exclude support shorter
+than 1 m. `face_advance_m` remains subject to the shared pilot-schema 1 m check and is not
+used to calculate raw BH RQD. The BH interval-planning error now describes the configured
+interval rather than assuming 1 m.
+
+Verification after this change: 32 focused raw-RQD/config tests passed; Pylance reported
+no diagnostics in the five changed Python files; `git diff --check` passed. No runtime
+preflight, simulation, or persistent pilot action was performed.
+
+Current Stage 2 code changes for input-based coordinate bounds and BH measurement interval
+are implemented and verified. Manifest `design_id`/`block_id` rewriting remains unchanged:
+these are manifest/case identifiers, not fracture-generation parameters, and the user has
+not yet decided whether configured labels must be preserved. The local-search step also
+remains unavailable from input and blocked by the existing review handoff; do not invent a
+step or resume that path.
+
+## Stage 2 implementation status (2026-11-08 20:24 +09:00)
+
+The user explicitly started Stage 2. The raw-RQD coordinate-axis bounds now come from the
+normalized per-design input instead of `main_policy.AXES`; the input-mutation test now
+covers orientation, shape, radius, and axis bounds. The existing `initial_cohort_review`
+handoff and main-policy behavior remain unchanged. No coordinate step was added because
+the input schema does not define one.
+
+Verification: 31 focused raw-RQD/config tests passed; Pylance reported no diagnostics for
+the changed Python files; `git diff --check` passed. No runtime preflight, simulation, or
+persistent pilot action was performed.
+
+This is a validated partial Stage 2 implementation, not completion of the full
+input-honoring task. The previously identified measurement restrictions, unused
+`face_advance_m` in the BH-only adapter, and manifest identifier substitutions remain
+unchanged pending resolution of their input/data-contract intent. Do not silently change
+them or report the overall input-honoring task complete.
+
+## Plan-only clarification (2026-11-08 20:11 +09:00)
+
+The user clarified that the current request is to prepare and show an implementation plan
+only, not to begin implementation. Do not interpret the prior approval response as
+authorization to change source code. No code change or execution is authorized by this
+plan-only request.
+
+## Step 1 complete: baseline3 input-flow audit (2026-11-08 20:15 +09:00)
+
+This step was read-only. No source was changed, and no tests or simulation were run.
+
+- The raw CLI's default and explicit `--config` paths both load through
+  `load_raw_rqd_config()`. Initial LHS generation uses the configured per-design
+  `sample_count`, `design_seed`, `realization_seed`, orientation/shape bounds, and per-set
+  P32/radius bounds. Preview records and initial controller snapshots use the same LHS
+  output; geometry and measurement input are passed to case/manifest construction.
+- The shared parser has explicit validation constraints, not silent substitutions:
+  measurements must equal 1 m; coordinate frame is ENU; executable Jn values map to fixed
+  set counts; shape randomization is uniform on a separate RNG stream; radius transform is
+  `ordered_log_pair`; and parameter bounds must remain within parser-defined limits.
+  Baseline3 satisfies these constraints. The raw loader additionally accepts only one
+  Jn15 and one Jn20 design.
+- Confirmed remaining input-path issues:
+  1. `raw_rqd_search.py` imports `main_policy.AXES`; its local coordinate proposals source
+     parameter names, step sizes, and bounds from that global tuple rather than the
+     per-design normalized input. P32 specifically uses the main-policy step/bounds. This
+     path is currently blocked by `initial_cohort_review`.
+  2. Inherited `MainController._make_manifest()` replaces the YAML `block_id` with `"main"`
+     and replaces `design_id` with a generated per-input ID. `sample_count=1` there is one
+     manifest job per signature; it does not replace the input design's LHS sample count.
+     Whether the identifier transformations are required runtime metadata or should
+     preserve YAML identifiers must be resolved before changing them.
+  3. `face_advance_m` is accepted and fingerprinted but is not consumed by the raw BH-only
+     generation adapter; only `bh_interval_m` is used. The parser currently requires both
+     measurement values to equal 1 m, so a changed value is rejected rather than applied.
+- Existing mutation coverage changes geometry, per-design sample counts/seeds, and P32
+  bounds and checks preview/candidate/manifest construction. It does not change-test
+  orientation/shape/radius bounds, measurement values, or input identifiers.
+
+Stage 1 is complete. Stage 2 has not started. Before implementation, address only the
+identified input-flow gaps and any required clarification on manifest identifiers and
+measurement constraints; leave objective/ranking, coverage policy, and execution out of
+scope.
+
+## Scientific objective alignment review (2026-11-08 19:53 +09:00)
+
+The user clarified the scientific purpose: baselines 1/2 have limited ability to produce
+low RQD, so use high-density Jn15/Jn20 joint combinations to cover as wide a raw-RQD range
+as possible. This supersedes any interpretation that minimizing support-weighted mean RQD
+is itself the goal.
+
+The Phase 1/2 input work is directly relevant to the data-path defect: raw-RQD preview and
+execution construction now consume baseline3 and honor its configured sample_count, seeds,
+geometry, measurements, and P32 bounds. However, this is only input plumbing, not the
+coverage-search solution. The current controller still chooses the minimum support-weighted
+mean as each Jn center; its later coordinate proposal still reads `AXES` from main policy
+(including P32 step 0.1 and bounds [0.01,10], rather than baseline3 [1,100]). The review
+handoff prevents that old coordinate path from running now, but does not replace it with a
+coverage-oriented rule. No real cohort has been run and no RQD coverage has been measured.
+
+Accordingly, Phase 2 completion means only that input-driven preview/manifest construction
+and the safe initial-cohort handoff are implemented. It must not be reported as completion
+of the user's scientific objective. Do not use the minimum-center choice or main `AXES` as
+an approved coverage policy. No source code was changed during this alignment review; a
+coverage metric and candidate-selection strategy need a revised, user-approved plan before
+further implementation or execution.
+
+**후속 상태 (2026-11-08 21:51 +09:00):** 위 내용은 19:53 당시 상태 기록이다. 이후 Stage 2에서
+raw-RQD candidate bounds가 normalized input을 따르도록 수정했다. 다만 baseline3에 local-search
+step은 여전히 정의되어 있지 않고, initial-cohort review handoff 및 과학적 coverage-policy
+승인 경계는 유지된다.
+
+## Proposed raw-RQD plan: honor the input file (2026-11-08 20:09 +09:00)
+
+**Goal:** implement only that values defined by `rqd_exploration_main_baseline3.yml` control
+the raw-RQD path; do not combine this work with changing the RQD objective or exploration
+policy. No coverage metric, target bins/range, simulation, or persistent pilot action is
+part of this plan.
+
+**Current state:** Stage 2 input plumbing is complete: raw-RQD reads baseline3 values for
+initial sampling and candidate bounds, preserves YAML design/block identifiers in
+manifests, and keeps the existing `initial_cohort_review` handoff. Stage 3 regression
+coverage now mutates a temporary baseline3 copy and verifies changed values through
+preview, candidate construction, and manifest construction. Baseline3 does not define a
+local-search step, so this plan does not invent one or resume that path.
+
+1. **Trace input fields and remaining overrides.** Map each baseline3 field—geometry,
+   measurements, design identity/Jn, sample count, seeds, orientation bounds, shape
+   randomization, joint-set bounds, and size transform—to its raw-RQD consumer. Reuse
+   existing passing coverage; add no duplicate tests. Distinguish input-value overrides
+   from validation constraints such as the current Jn15/Jn20 scope check.
+2. **Make only the remaining input-defined behavior input-driven.** Remove main-policy
+   constants as the source of raw-RQD candidate parameter bounds/values; take those from
+   the normalized input. Do not add a step-size field or derive a substitute. Keep the
+   existing review handoff, candidate ranking, main-policy behavior, and unrelated
+   controller behavior unchanged.
+3. **Add focused regression tests.** Mutate a temporary baseline3 copy and verify that
+   changed input-defined values flow into raw candidate construction, preview, and
+   execution-manifest construction. Verify configured bounds are honored and that no main
+   constant silently narrows or replaces them. Keep tests in-memory; do not run a real
+   runtime preflight or write pilot data.
+4. **Verify and stop.** Run the focused raw-RQD/config tests, applicable diagnostics, and
+   `git diff --check`. Report any field that cannot be consumed because the input schema
+   does not define the required value. Do not proceed to coverage-policy design or
+   simulation without a separate user instruction.
+
+**Completion criteria:** every baseline3 field used by the raw-RQD path comes from the
+input, input mutations produce corresponding preview/candidate/manifest changes, existing
+main behavior remains unchanged, and the handoff still prevents applying an unspecified
+local-search step. The longer coverage-policy proposal below is superseded for current work.
+
+**Progress (2026-11-08 21:51 +09:00):** Steps 1–4 are complete. The final focused raw-RQD/config
+suite passed (32 tests), applicable Pylance diagnostics were checked, and `git diff --check`
+passed. The undefined local-search step remains unimplemented; actual run/preflight was
+not authorized or performed.
+
+## Input-source clarification (2026-11-08 20:07 +09:00)
+
+The user clarified that making the raw-RQD path honor the input file does not require
+choosing a coverage metric: use the input file as the source for the values it defines.
+The coverage-measure decision in the proposal below applies only if/when changing how
+candidates are selected based on observed RQD outcomes; it must not block input-path audit,
+fixes, or regression tests. Baseline3 defines experiment inputs, not an output RQD coverage
+metric or local-search step. Keep those concerns separate. This clarification does not
+authorize source changes or execution in this turn.
+
+## Superseded raw-RQD coverage-policy proposal (2026-11-08 19:58 +09:00)
+
+**Scope:** the raw-RQD path using the agreed baseline3 Jn15/Jn20 input. Keep the existing
+main-policy path unchanged. This is a proposal only; no source implementation or simulation
+is authorized by this entry.
+
+**Gate 0 — agree what “wide coverage” means before changing the search policy.** Choose or
+define a coverage measure: (a) supported raw-RQD min-to-max span, which is simple but
+outlier-sensitive; (b) occupied RQD bins, which requires approved bin edges; or (c) a
+combined/other measure with an explicit priority rule. Also confirm the RQD target range,
+whether decisions use Jn15/Jn20 separately or pooled (both must remain reportable), and
+whether the current 5+5 allocation is only a starting cohort or should change. No endpoint,
+binning, allocation, or success threshold is assumed here.
+
+**Stage 1 — trace and test input ownership.** Trace baseline3 values through normalized
+input, initial sampling, follow-up candidate generation, preview, and execution-manifest
+construction. Inventory raw-path constants and distinguish intentional scope validation
+from values that override YAML. Remove any raw-search dependency on main-policy `AXES` for
+input bounds or an unapproved global step. Add mutation-based tests proving that changing
+the configuration changes the generated candidates and effective manifest fields, without
+starting a run or writing persistent pilot data.
+
+**Stage 2 — implement the approved coverage-oriented candidate policy.** Only after Gate 0
+is approved, replace minimum-mean center selection as the search objective with candidate
+selection driven by the agreed coverage measure. Preserve per-Jn evidence and configured
+bounds, sample counts, and seeds. Do not apply the old P32 step (0.1) or hard-coded main
+bounds; defer any response-based local step until actual observations exist and the user
+approves its derivation.
+
+**Stage 3 — offline verification.** Use synthetic/in-memory responses and focused tests to
+verify the chosen metric, candidate ranking, Jn separation/aggregation, input-bound
+compliance, and reproducibility. Preview only; no real runtime preflight, DB/manifest/DFN
+write, or simulation.
+
+**Stage 4 — separately authorized initial cohort and review.** Only after explicit user
+authorization, run or hand off the configured cohort through the approved execution path.
+Report observed supported raw-RQD coverage by Jn and pooled, with the approved measure;
+do not infer coverage success from synthetic tests. Use actual results to propose any next
+round or step-size change and obtain approval before applying it.
+
+**Acceptance:** no raw-RQD candidate or manifest field is silently replaced by a main-policy
+constant; changing an input produces the expected candidate/manifest change; the controller
+uses only the user-approved coverage objective; offline tests pass; and no real execution
+occurs without separate approval. Gate 0 choices remain open pending user approval.
+
+## Phase 2 complete (2026-11-08 19:49 +09:00)
+
+The raw-RQD CLI now defaults to `rqd_exploration_main_baseline3.yml` and loads it through
+`load_raw_rqd_config()` for both preview and run setup. Preview and execution construction
+use the same normalized input. The LHS uses each design's configured sample_count, design
+seed, realization seed, geometry, measurements, and P32 bounds instead of replacing sample
+counts with 10 per Jn or loading the main policy inputs. The preview reports the 5+5
+signatures and the effective per-Jn seeds.
+
+After both initial LHS rounds complete, the controller selects and persists one
+support-weighted raw-RQD center per Jn, then pauses with `initial_cohort_review`. The run
+does not continue into coordinate search with the old global P32 step, and re-invoking the
+same run does not silently resume. The cohort and centers are preserved for follow-up;
+resumption/search with a P32 step selected from actual responses is not implemented in
+this phase and remains for a later explicitly authorized step.
+
+Verification: 34 focused tests passed in `dlo-cq`; tests cover baseline3 default preview,
+an altered temporary input (sample counts, seeds, geometry, and P32 bounds), preview/run
+signature agreement, execution-manifest construction without running it, and the persisted
+review handoff with in-memory stub results. Pylance diagnostics for the changed Python
+source/test are empty; `git diff --check` passed.
+
+No simulation, real runtime preflight, pilot DB/manifest/DFN write, or physical execution
+was performed. Phase 2 is complete at the initial-cohort handoff; do not start the next
+phase or actual run until the user directs it.
+
+## Main-policy test input clarification (2026-11-08 19:01 +09:00)
+
+The user clarified that `config/rqd_exploration_jn20.yml` is not an input to use; baseline
+1/2/3 are the reference set. All three baseline files specify `domain_size_m: [30, 20, 20]`.
+The actual `config/rqd_exploration_main.yml` has `initial_input: null` and references only
+baseline 1/2. The reproduced `test_approved_policy_and_jn20` error is test-fixture-only:
+`src/test/test_rqd_main_policy.py`'s `jn20_config_path()` explicitly injects the standalone
+Jn20 file, whose domain is `[60, 30, 30]`; `load_main_config()` then rejects the mismatch
+against baseline 1 at its geometry/measurement equality check. Thus there is no geometry
+mismatch among baselines 1/2/3 or in the actual default main input path.
+
+Do not simply replace that test path with baseline3: baseline3 has two designs (the main
+optional initial input requires one Jn20 design) and uses P32 [1,100], while `main_policy`
+requires [.01,10]. No test fixture or runtime behavior was changed; resolving whether the
+optional-main-Jn20 test remains applicable requires separate direction.
+
+## Phase 2 analysis started (2026-11-08 19:06 +09:00)
+
+The user authorized proceeding to Phase 2 after Phase 1 documentation. Scope remains the
+baseline3-driven raw-RQD preview and execution construction: use the same normalized input,
+honor each design's sample_count=5 and design seeds 36/40, realization seed 43, geometry,
+measurements, and log P32 bounds, and stop after the resulting 10 signatures. No simulation
+or persistent pilot execution is authorized by this implementation request.
+
+Inspection found the current raw-RQD CLI still defaults to `rqd_exploration_main.yml` and
+loads `MainConfig`; its preview and controller replace each design's sample_count with 10,
+target main Jn templates, and proceed from the initial LHS into the existing coordinate
+search. Implementation must route both preview and run through baseline3 and must not
+silently continue with the old global P32 step. The user clarified that the initial 10 are
+the reference cohort for subsequent search, not a terminal result or separate-run goal.
+Preserve that cohort as the search basis; after its actual responses are available, determine
+and approve the P32 step before resuming search. The handoff must not discard the run or
+auto-apply the old global step. No code change or execution has started for Phase 2.
+
+## Phase 1 complete (2026-11-08 18:54 +09:00)
+
+Added `config/rqd_exploration_main_baseline3.yml` with the agreed Jn15/Jn20 designs,
+shared 30x20x20 m geometry, 1 m measurements, P32 [1,100] in log coordinates, radius
+[1,150], sample_count 5, design seeds 36/40, and realization seed 43. Added
+`load_raw_rqd_config()` in `src/rqd_exploration/raw_rqd_search.py`, reusing the generic
+`load_config()` parser and requiring exactly one design for each of Jn15 and Jn20.
+Focused tests cover the input contract and rejection of missing/duplicate Jn designs.
+Main loader, CLI, preview/run wiring, coordinate search, and fingerprint behavior were not
+changed.
+
+Verification: focused unittest run passed (32 tests); `git diff --check` passed; Pylance
+diagnostics for the changed Python source and test are empty. The broader main-policy run
+reported an error in the existing `test_approved_policy_and_jn20`: its standalone Jn20
+input uses 60x30x30 m while main baselines use 30x20x20 m, and `load_main_config` requires
+those geometries to match. The main loader and those main input files were not changed;
+the default-main regression and other selected main-policy tests passed. This mismatch is
+out of Phase 1 scope and remains visible for later user direction.
+
+No preview, baseline3 simulation, production DB/manifest/DFN write, or physical execution
+was performed. Phase 1 is complete; Phase 2 has not started and requires the next user
+instruction.
+
+## Phase 1 started (2026-11-08 18:53 +09:00)
+
+The user explicitly authorized Phase 1 only. Current scope: create the agreed baseline3
+input, add a raw-specific loader that reuses the validated `load_config` parser and
+requires exactly the Jn15/Jn20 design pair, add focused loader/input tests, and verify
+main-config behavior remains unchanged. Do not wire the CLI/preview/run path yet; that is
+Phase 2. No coordinate search, fingerprint changes, DB/manifest/DFN writes, preview, or
+simulation are authorized in this phase.
+
+## Current raw-RQD implementation plan (2026-11-08 18:49 +09:00)
+
+The user explicitly discarded the proposed 300–500 expected-joint-change criterion and
+asked for an implementation plan. Keep the prior confirmation that P32 LHS uses log
+coordinates. The P32 local-search step remains unset until actual initial RQD responses
+are reviewed; do not replace the discarded criterion with another generated-count target
+or silently reuse the old global P32 step.
+
+The baseline3 proposal remains: Jn15/four sets and Jn20/five sets; five LHS signatures per
+design; design seeds 36/40 and realization seed 43; domain 30x20x20 m; P32 [1,100] with
+log-coordinate LHS; radii [1,150] m. Carry forward the preceding confirmed baseline2
+scope: geometry coordinates, 1 m measurement setup, orientation/shape bounds, and other
+unchanged values, except the fields explicitly changed for this experiment.
+
+### Phased implementation
+
+1. **Phase 1 — Baseline3 input and raw-only loader**
+   - Add `config/rqd_exploration_main_baseline3.yml` and a dedicated loader for raw-RQD.
+   - Require exactly Jn15/20 with four/five sets; validate the input's domains, bounds,
+     seeds, sample count, geometry, and measurements.
+   - Keep `load_main_config`, baseline2, and main Jn20 exclusion behavior unchanged.
+   - Verify parser/loader tests and unchanged main-config validation.
+
+2. **Phase 2 — Input-driven initial cohort**
+   - Make preview and execution construction consume the same normalized raw input.
+   - Honor sample_count=5, design seeds 36/40, realization seed 43, geometry,
+     measurements, and log-coordinate P32 bounds; report the same values the run will use.
+   - Preserve the initial 10 signatures and selected centers at a review handoff. Do not
+     discard the cohort, end the search permanently, or continue with the old global P32
+     step. Select/approve P32 step from actual responses before later resuming coordinate
+     search; resumption/search behavior after that decision remains a later authorized task.
+     No real simulation is authorized here.
+   - Verify deterministic 5+5 design, seed/preview/run agreement, and the handoff state.
+
+3. **Phase 3 — Provenance and resume safety**
+   - Fingerprint the baseline3 source and all effective raw-search settings.
+   - Reject or isolate incompatible input/policy when opening an existing run; never
+     silently resume it. Preserve raw-DB separation, schema checks, explicit execution
+     confirmation, MLX enforcement, and user-selected DB/output paths.
+   - Verify changed-input fingerprint and resume-compatibility behavior with temporary
+     or in-memory test storage only.
+
+4. **Phase 4 — Focused regression and no-write review**
+   - Test bounds and generated values, set counts, sample count, all relevant seeds,
+     measurement/geometry propagation, boundary candidates, fingerprints, and main-path
+     regressions.
+   - Run focused checks only with `conda run -n dlo-cq ...`; run a no-write preview and
+     confirm `simulation_started:false` and `database_written:false`.
+   - Stop and present results/remaining issues. No production DB/manifest/DFN write or
+     simulation is part of these implementation phases.
+
+5. **Separate gate — Initial physical cohort**
+   - Run the initial 10-signature cohort only after explicit user authorization for the
+     selected DB/output paths and simulation. Review actual raw-RQD/support observations;
+     do not infer a P32 step from expected fracture-count arithmetic.
+
+6. **Follow-on plan update — P32 step decision**
+   - Use the initial response evidence to analyze candidate P32 step behavior and limits.
+     The 300–500 expected-count criterion is retired and must not be used.
+   - Discuss the evidence and obtain explicit agreement on the numeric step and boundary
+     handling before implementing/enabling P32 coordinate proposals. If evidence does not
+     support a step, keep P32 coordinate search paused.
+
+7. **Follow-on implementation — Bounded coordinate search**
+   - Derive proposal bounds from each design input; apply only the subsequently approved
+     P32 step and existing approved non-P32 search policy.
+   - Test in-bound/out-of-bound proposals, stopping/resume, fingerprints, and unchanged
+     main workflow. Revalidate and update both plans at the phase gate.
+
+### Phase-change protocol and current authorization
+
+At each phase boundary, record actual changes, verification, limitations, and the revised
+remaining plan in both active plans. Pause for user input if evidence changes scientific
+meaning, behavior, data contracts, or execution scope. This turn authorizes planning only;
+no code, baseline3, preview, test, DB, manifest, DFN, or simulation has been started.
+
+## Historical P32 step recommendation — superseded 2026-11-08 18:49 +09:00
+
+**Current status:** the 300–500 expected-joint-change criterion below has been explicitly
+discarded. Retain the calculations only as historical context; do not use the target or
+derived steps in implementation.
+
+## P32 step recommendation from design-specific calculations (2026-11-08 18:27 +09:00)
+
+The user deferred the step-policy and implementation-authorization questions and asked for
+a calculation-based recommendation. The user selected log-coordinate P32 LHS. The
+300–500 expected-joint-change target remains under consideration, not an approved policy.
+
+The deterministic calculation above was extended over the actual five LHS signatures and
+all sets for Jn15/Jn20 (20 and 25 set-signature cases). For each case, the generator's
+sampled `size_alpha` and ordered radius pair were used with the proposed volume 12,000m3.
+Pooled ΔP32 percentiles for target expected-count changes are:
+
+| Target expected ΔN per set | P10 | P25 | Median | P75 | P90 |
+|---:|---:|---:|---:|---:|---:|
+| 300 | 0.3828 | 0.6647 | 2.0315 | 15.4679 | 141.2769 |
+| 400 | 0.5103 | 0.8863 | 2.7086 | 20.6238 | 188.3692 |
+| 500 | 0.6379 | 1.1079 | 3.3858 | 25.7798 | 235.4615 |
+
+Recommendation: **do not use a single fixed absolute ΔP32**. If the user later adopts
+300–500 as a generator-scale target, calculate a per-set step from
+`ΔP32 = target_ΔN * expected_joint_area / domain_volume`, using that signature's actual
+alpha/radius pair. The median case suggests roughly ΔP32=2.0–3.4 across the 300–500
+target range (Jn15 medians 2.39–3.99; Jn20 medians 1.80–3.00), but this is not a robust
+global step: a fixed pooled median of 2.7086 lands in the 300–500 expected-count band in
+only 5/45 cases, and 7/45 cases cannot attain ΔN=400 anywhere within the [1,100] P32
+bounds. Bounds/asymmetric-direction handling for such cases must be agreed before
+implementation.
+
+This is a generator-count calibration, not evidence that the RQD response improves or
+that 300–500 is an optimal perturbation. The earlier plan to review actual initial RQD
+responses remains the correct gate for an RQD-optimal step. No implementation was
+authorized; no source/config/preview/DB/manifest/DFN/simulation was changed or run.
+
+## P32 expected-count target check (2026-11-08 18:27 +09:00)
+
+The user selected log-coordinate P32 LHS and asked whether changing expected fracture count
+by roughly 300–500 per set is reasonable. Their baseline2 carry-over response refers to the
+preceding documented scope. The 300–500 target is under evaluation, not yet an approved
+search policy.
+
+A read-only, in-memory calculation used `dlo-cq`, existing Jn15/Jn20 design definitions,
+design seeds 36/40, five LHS signatures, P32 bounds replaced in memory by [1,100] with
+log coordinates, radius bounds [1,150], alpha bounds [2.5,4], and proposed domain volume
+12,000m3. No baseline3 file, preview output, DB, manifest, DFN, or simulation was created.
+For each sampled set, the generator's expected-area formula was used to calculate
+`delta_P32 = target_delta_expected_joints * expected_joint_area / 12,000`.
+
+| Jn | Cases | ΔP32 for ΔN=300 (min/median/max) | ΔP32 for ΔN=400 (min/median/max) | ΔP32 for ΔN=500 (min/median/max) |
+|---|---:|---:|---:|---:|
+| 15 | 20 | 0.275582 / 2.393402 / 653.868454 | 0.367442 / 3.191203 / 871.824605 | 0.459303 / 3.989004 / 1089.780756 |
+| 20 | 25 | 0.170486 / 1.797110 / 758.248275 | 0.227315 / 2.396147 / 1010.997700 | 0.284144 / 2.995183 / 1263.747125 |
+
+For the midpoint target ΔN=400, the required ΔP32 exceeds the entire [1,100] width in
+3/20 Jn15 and 4/25 Jn20 set-signature cases. At the sampled starting values, a positive
+step remained in bounds in 16/20 Jn15 and 21/25 Jn20 cases; a negative step remained in
+bounds in 12/20 and 16/25 respectively. A single pooled-median absolute step of 2.708647
+would yield expected count changes from 1.072 to 4,766.327 across the 45 cases; only 5/45
+fall in [300,500]. Therefore the target cannot be represented consistently by one fixed
+absolute step; a per-set, input-derived step is needed if this criterion is chosen.
+
+This checks expected generator count only, not realized fracture counts or RQD response.
+It does not establish that 300–500 is scientifically optimal. The user must decide whether
+to retain it as a per-set expected-count target, defer final step selection until actual
+initial response observations, or use another criterion. Any local-search code remains
+blocked on that decision and separate implementation approval.
+
+## P32 step-size analysis — decision still open (2026-11-08 18:27 +09:00)
+
+The user asked for calculation-based analysis before choosing the P32 coordinate and
+step size, noting that P32 may not be logarithmic and that absolute 0.1 may be too small.
+They referred to the preceding answer for the baseline2 carry-over scope; retain the
+documented proposal (geometry coordinates, 1 m measurement setup, orientation/shape
+bounds, except fields explicitly changed for baseline3) without inventing further edits.
+
+Evidence and calculations:
+- The code currently requires `p32.coordinate: log` and applies logarithmic LHS
+  transformation. The 2026-10-28 strategy agreement selected log-coordinate LHS to cover
+  orders of magnitude, explicitly not as a physical P32 distribution assumption. Another
+  recorded agreement deferred small/large P32 search steps until after 10 initial
+  signatures.
+- For the proposed linear bounds [1,100], range width is 99. With LHS N=5, linear stratum
+  width is 99/5 = 19.8; log-coordinate stratum ratio would be 100^(1/5) = 2.511886.
+  Absolute step 0.1 is 0.101010% of the full linear range (990 increments across it) and
+  0.505051% of one linear LHS stratum. These are design-resolution comparisons, not an
+  RQD-optimal step recommendation.
+- Using the generator's expected-count relation
+  `E[N] = P32 * domain_volume / expected_joint_area`, the proposed 30x20x20 m domain has
+  volume 12,000 m3. For the reference full radius interval [1,150] m and size_alpha
+  2.5–4, expected area is 14.425466–6.282906 m2; therefore each unit of P32 changes
+  expected count by about 831.86–1,909.94 fractures per set. A 0.1 step changes expected
+  count by about 83.19–190.99 fractures per set; a 19.8 step changes it by about
+  16,470.87–37,816.90. These are reference calculations for the full radius interval,
+  not exact counts for generated signatures whose per-signature radii vary.
+- The calculations show why neither the percentage of P32 range nor LHS stratum width
+  alone determines an appropriate local-search step. No persisted raw-RQD DB/report is
+  present in the current `results/` or `sqlite/` locations. The preserved Nov-03 summary
+  includes a multi-parameter candidate with P32 -0.1, so it cannot isolate P32 response.
+  Thus an RQD-response-based optimum cannot be computed from the available row-level data.
+
+No P32 coordinate change, step size, preview, baseline3, code, DB, manifest, DFN, or
+simulation was approved or performed. Before Phase 1, confirm whether LHS should remain
+log-coordinate or change to linear; defer final local step sizing until suitable response
+evidence exists, unless the user approves a different calculation criterion.
+
+## Adaptive phased execution preference (2026-11-08 18:27 +09:00)
+
+The user prefers to follow the proposed repair order incrementally and revise later
+stages if implementation evidence reveals a need. Treat each phase below as a checkpoint:
+record its actual result in both active plans, reconcile any changed assumptions, and
+revise the remaining phase scope before proceeding. Pause for user input whenever a
+change affects scientific meaning, behavior, data contracts, or execution approval.
+This preference does not resolve the open coordinate-step or input-copy decisions.
+
+1. **Phase 0 — Freeze input contract (discussion only):** confirm the exact baseline3
+   fields/values and coordinate-step semantics. No code or config changes in this phase.
+2. **Phase 1 — Raw-only configuration path:** add the baseline3 input and a raw-specific
+   loader without weakening the main loader; test Jn/set-count and input validation.
+3. **Phase 2 — Input-driven initial design and preview:** use input geometry, measurements,
+   LHS sample count, design seeds, and realization seed consistently in preview and run
+   construction; test preview shape and seed agreement.
+4. **Phase 3 — Input-bounded coordinate search:** derive proposal bounds from each design,
+   apply only the user-confirmed step policy, reject invalid/out-of-bounds candidates, and
+   keep approved search invariants explicit.
+5. **Phase 4 — Provenance and resume safety:** fingerprint the raw input and effective
+   policy; test that incompatible settings cannot silently resume an old run.
+6. **Phase 5 — Regression and no-write handoff:** run focused raw/config/main tests, then
+   an in-memory preview and verify its values and no-write flags. Stop for user review.
+
+Persistent DB/manifest/DFN writes and simulations remain outside these phases and require
+separate explicit authorization. Use only `conda run -n dlo-cq ...` for Python checks.
+
+## Resume handoff — assessment and plan only (2026-11-08 18:22 +09:00)
+
+The user has resumed work and requested a reminder of workspace guidance plus an
+assessment and repair plan for raw-RQD input overrides. This authorization is limited
+to inspection and planning: implementation, baseline3 creation, validation/preview,
+database/manifest/DFN writes, and simulations remain unapproved and were not started.
+The existing P0 plan remains the proposed implementation sequence. Its open input
+contract decisions, especially coordinate-step semantics and exact baseline2 fields
+to carry forward, remain unresolved and must be discussed before implementation.
+
 ## Handoff / paused until user returns (2026-11-04 09:14 +09:00)
 
 The user confirmed the urgent P0 plan and will resume after travel. Work is paused here:

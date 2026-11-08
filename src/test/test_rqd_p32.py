@@ -4,7 +4,7 @@ import csv
 import io
 import json
 from hashlib import sha256
-from math import acos, pi, sqrt
+from math import acos, pi, prod, sqrt
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -132,10 +132,11 @@ class TestNewMainPolicy(unittest.TestCase):
         legacy = replace(new, runtime=replace(new.runtime, generator_version="old-generator"))
         self.assertEqual(new.runtime.generator_version, FIXED_DOMAIN_GENERATOR_VERSION)
         self.assertNotEqual(input_identity(new), input_identity(legacy))
+        expected = .2 * prod(new.geometry.domain_size_m) / pi
         self.assertAlmostEqual(expected_joint_counts(new)[joint.joint_set_id],
-                               .2 * 60 * 30 * 30 / pi)
+                               expected)
         self.assertAlmostEqual(expected_joint_counts(legacy)[joint.joint_set_id],
-                               .2 * 60 * 30 * 30 / pi)
+                               expected)
 
     def test_new_run_preserves_old_run_and_excludes_only_mutation_reference(self):
         from src.rqd_exploration.main_analysis import BHPoint, SeedProfile
@@ -171,7 +172,12 @@ class TestNewMainPolicy(unittest.TestCase):
             controller.state["inputs"][identity] = asdict(outside)
             controller.profiles[identity] = {controller.profile_id: {
                 43: SeedProfile(43, (BHPoint(0, 1, 100, 1),))}}
-            target = next(t for t in controller.targets if t.reachable and t.fixed_jn == 2)
+            verify_start = self.config.policy.verification_seed
+            for seed in range(verify_start, verify_start + 3):
+                controller.profiles[identity][controller.profile_id][seed] = SeedProfile(
+                    seed, (BHPoint(0, 1, 100, 1),))
+            target = next(t for t in controller.targets
+                          if t.reachable and t.fixed_jn == 2 and t.contains(100))
             self.assertIn(identity, controller._suitable(target))
             self.assertEqual(controller._references(target), [])
             controller._plan_round(target)
@@ -288,7 +294,9 @@ class TestP32Workflow(unittest.TestCase):
         with sqlite3.connect(fixture.database) as connection:
             records = read_measured_p32(connection)
             self.assertEqual(len(records), 1)
-            self.assertEqual(len(next(iter(records.values()))), 6)
+            main_config = load_main_config(fixture.main_config)
+            configured_set_count = len(main_config.templates[2].joint_sets)
+            self.assertEqual(len(next(iter(records.values()))), configured_set_count + 1)
             self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 4)
         path = next(fixture.output.glob("cumulative/revision-*/reports/qprime_p32.csv"))
         with path.open() as stream:

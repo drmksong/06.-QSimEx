@@ -9,16 +9,24 @@ from math import isfinite
 from pathlib import Path
 import json
 import sqlite3
+from statistics import pstdev
 import sys
 from typing import Iterable, Sequence
 
+import numpy as np
+
 from .adapter import build_generation_case
-from .config import NormalizedPilotInput
+from .config import Bounds, DesignInput, JointSetInput, NormalizedPilotInput, load_config
 from .design import generate_lhs_design
 from .fingerprint import fingerprint_snapshot
 from .main_controller import MainController, reference_snapshot
-from .main_policy import AXES, MainConfig, load_main_config
-from .main_design import input_identity, snapshot_from_dict, validate_generating_input
+from .main_policy import AXES, MainConfig
+from .main_design import (
+    expected_joint_counts,
+    input_identity,
+    snapshot_from_dict,
+    validate_generating_input,
+)
 from .main_store import (
     MainPause,
     append_event,
@@ -33,8 +41,52 @@ from .records import PlannedBHInterval
 from .runner import build_mlx_pilot_manifest
 from .store import STORE_SCHEMA_VERSION, _atomic, initialize_store
 
-RAW_RQD_INITIAL_SIGNATURES_PER_JN = 10
 RAW_RQD_COORDINATE_PARAMETERS = tuple(axis[0] for axis in AXES)
+RAW_RQD_FIXED_JN_VALUES = (15.0, 20.0)
+
+
+def load_raw_rqd_config(path: str | Path) -> NormalizedPilotInput:
+    """Load a single-file raw-RQD input containing exactly the Jn15/Jn20 designs."""
+    config = load_config(path)
+    fixed_jn_values = tuple(sorted(design.fixed_jn for design in config.designs))
+    if fixed_jn_values != RAW_RQD_FIXED_JN_VALUES:
+        raise ValueError("raw-RQD input must contain exactly one Jn15 and one Jn20 design")
+    return config
+
+
+@dataclass(frozen=True)
+class RawRqdPolicy:
+    maximum_starts: int = 20_000
+    review_checkpoint_starts: int | None = 10_000
+    maximum_expected_joints: int = 10_000_000
+
+
+@dataclass(frozen=True)
+class RawRqdRunConfig:
+    input: NormalizedPilotInput
+    policy: RawRqdPolicy
+    fingerprint: str
+    snapshot_json: str
+
+    @property
+    def initial(self) -> None:
+        return None
+
+    @property
+    def templates(self) -> dict[float, DesignInput]:
+        return {design.fixed_jn: design for design in self.input.designs}
+
+    @property
+    def reference_input(self) -> NormalizedPilotInput:
+        return self.input
+
+    @property
+    def source_yaml_bytes(self) -> bytes:
+        return self.input.source_yaml_bytes
+
+    @property
+    def source_reference(self) -> str | None:
+        return self.input.source_reference
 
 
 @dataclass(frozen=True)
@@ -100,6 +152,7 @@ class RawRqdSummary:
     raw_rqd_min: float | None
     raw_rqd_max: float | None
     support_weighted_mean_rqd: float | None
+    raw_rqd_population_sd: float | None
     seeds_with_supported_observations: tuple[int, ...]
 
 
@@ -115,13 +168,13 @@ def lhs_signature_records(
         raise TypeError("config must be a validated pilot input or main config")
     records: list[dict[str, object]] = []
     for design in designs:
-        lhs = generate_lhs_design(replace(
-            design, sample_count=RAW_RQD_INITIAL_SIGNATURES_PER_JN))
+        lhs = generate_lhs_design(design)
         for sample in lhs.samples:
             records.append({
                 "design_id": design.design_id,
                 "block_id": design.block_id,
                 "sample_index": sample.sample_index,
+                "design_seed": design.design_seed,
                 "realization_seed": design.realization_seed,
                 "fixed_jn": design.fixed_jn,
                 "joint_sets": [asdict(item) for item in sample.joint_sets],
@@ -181,6 +234,7 @@ def summarize_raw_rqd(
                 sum(item.raw_rqd * item.support_length_m for item in supported)
                 / total_support if total_support else None
             ),
+            raw_rqd_population_sd=pstdev(values) if values else None,
             seeds_with_supported_observations=tuple(sorted({
                 item.realization_seed for item in supported
             })),
@@ -188,10 +242,39 @@ def summarize_raw_rqd(
     return tuple(summaries)
 
 
-def raw_rqd_config(config: MainConfig) -> MainConfig:
+def raw_rqd_config(
+    config: NormalizedPilotInput | MainConfig | RawRqdRunConfig,
+) -> MainConfig | RawRqdRunConfig:
     """Fingerprint the continuous raw-RQD exploration contract."""
+    if isinstance(config, RawRqdRunConfig):
+        return config
+    if isinstance(config, NormalizedPilotInput):
+        policy = RawRqdPolicy()
+        payload = {
+            "schema_version": config.schema_version,
+            "implementation_version": "qsimex-raw-rqd-initial-cohort-v1",
+            "yaml_sha256": config.source_yaml_sha256,
+            "objective": "continuous-raw-bh-rqd-response",
+            "minimum_valid_support_m": 1.0,
+            "measurement_scope": "BH-only",
+            "initial_signatures_by_jn": {
+                f"{design.fixed_jn:g}": design.sample_count for design in config.designs
+            },
+            "realization_seeds_by_jn": {
+                f"{design.fixed_jn:g}": design.realization_seed for design in config.designs
+            },
+            "policy": asdict(policy),
+            "handoff": "initial-cohort-review",
+        }
+        fingerprint = fingerprint_snapshot(payload)
+        return RawRqdRunConfig(
+            config,
+            policy,
+            fingerprint.sha256_hex,
+            fingerprint.canonical_bytes.decode(),
+        )
     if not isinstance(config, MainConfig):
-        raise TypeError("config must be a validated MainConfig")
+        raise TypeError("config must be a validated pilot input, raw-RQD config, or MainConfig")
     payload = json.loads(config.snapshot_json)
     for key in ("analysis_version", "bin_catalog", "Jr_values", "Ja_values",
                 "reachability_floor"):
@@ -211,7 +294,9 @@ def raw_rqd_config(config: MainConfig) -> MainConfig:
         "verification": None,
     }
     payload["refinement_metric"] = "support_weighted_mean_raw_rqd"
-    payload["initial_signatures_per_jn"] = RAW_RQD_INITIAL_SIGNATURES_PER_JN
+    payload["initial_signatures_by_jn"] = {
+        f"{jn:g}": design.sample_count for jn, design in sorted(config.templates.items())
+    }
     payload["coordinate_parameters"] = list(RAW_RQD_COORDINATE_PARAMETERS)
     payload["measurement_scope"] = "BH-only"
     payload["update_method"] = "cyclic-coordinate-neighborhood-min-rqd"
@@ -223,11 +308,30 @@ def raw_rqd_config(config: MainConfig) -> MainConfig:
     )
 
 
+def _input_axis_bounds(
+    design: DesignInput,
+    joint_set: JointSetInput,
+    parameter: str,
+) -> Bounds:
+    if parameter == "p32_m2_per_m3":
+        return joint_set.p32
+    if parameter == "size_r_min_m":
+        return joint_set.size_r_min_m
+    if parameter == "size_r_max_m":
+        return joint_set.size_r_max_m
+    if parameter == "mean_dip_deg":
+        return design.mean_dip_deg
+    if parameter == "mean_dip_dir_deg":
+        return design.mean_dip_dir_deg
+    raise ValueError(f"unsupported raw-RQD coordinate parameter: {parameter}")
+
+
 class RawRqdController(MainController):
-    """Search one BH-RQD-driven signature center per Jn using local coordinates."""
+    """Explore raw BH-RQD response coverage for the configured Jn values."""
 
     include_face_measurements = False
     record_p32 = False
+    preserve_input_manifest_ids = True
     progress_job_label = ""
 
     def __init__(self, connection, config, factory, runtime, *, output_dir,
@@ -258,17 +362,38 @@ class RawRqdController(MainController):
         self.state.setdefault("raw_rqd_axis_cursors", {})
         self.state.setdefault("raw_rqd_axis_checks", {})
         self.state.setdefault("raw_rqd_exhausted_jn", [])
+        self.state.setdefault("followup_batch_index", 0)
+        self.state.setdefault("last_followup_batch", None)
+
+    def _validate_generating_input(self, snapshot):
+        validate_generating_input(
+            snapshot, self.config.templates[snapshot.fixed_jn])
+
+    def _expected_joint_counts(self, snapshot):
+        return expected_joint_counts(
+            snapshot, self.config.templates[snapshot.fixed_jn])
 
     def _suitable(self, target):
-        seed = self.config.policy.initial_seed
+        seed = self.config.templates[target.fixed_jn].realization_seed
         return sorted(
             identity for identity in self.profiles
             if self.state["inputs"][identity]["fixed_jn"] == target.fixed_jn
             and self._profile(identity, seed) is not None
         )
 
+    def _seed_for_identity(self, identity):
+        fixed_jn = self.state["inputs"][identity]["fixed_jn"]
+        return self.config.templates[fixed_jn].realization_seed
+
+    def _raw_rqd_population_sd(self, identity):
+        profile = self._profile(identity, self._seed_for_identity(identity))
+        values = [] if profile is None else [
+            point.raw_rqd for point in profile.points if point.support_m >= 1.0
+        ]
+        return pstdev(values) if values else None
+
     def _supported_weighted_mean_rqd(self, identity):
-        profile = self._profile(identity, self.config.policy.initial_seed)
+        profile = self._profile(identity, self._seed_for_identity(identity))
         points = [] if profile is None else [
             point for point in profile.points if point.support_m >= 1.0
         ]
@@ -276,6 +401,300 @@ class RawRqdController(MainController):
         if not support:
             return None
         return sum(point.raw_rqd * point.support_m for point in points) / support
+
+    @staticmethod
+    def _response_bin(value):
+        return min(9, max(0, int(value // 10)))
+
+    def _response_bin_coverage(self, target):
+        counts = {f"{index * 10:02d}-{(index + 1) * 10:02d}": 0
+                  for index in range(10)}
+        for identity in self._suitable(target):
+            mean = self._supported_weighted_mean_rqd(identity)
+            if mean is not None:
+                index = self._response_bin(mean)
+                counts[f"{index * 10:02d}-{(index + 1) * 10:02d}"] += 1
+        return counts
+
+    @staticmethod
+    def _stream_seed(design, batch_index, fixed_jn, stream, attempt=0):
+        sequence = np.random.SeedSequence(
+            design.design_seed,
+            spawn_key=(batch_index, int(fixed_jn), stream, attempt),
+        )
+        return int(sequence.generate_state(1, dtype=np.uint32)[0])
+
+    def _lhs_candidates(self, target, batch_index, count, stream, role, known):
+        design = self.config.templates[target.fixed_jn]
+        base = reference_snapshot(self.config, self.runtime)
+        candidates = []
+        attempt = 0
+        while len(candidates) < count and attempt < 100:
+            seed = self._stream_seed(
+                design, batch_index, target.fixed_jn, stream, attempt)
+            attempt += 1
+            lhs = generate_lhs_design(replace(
+                design, design_seed=seed, sample_count=count - len(candidates)))
+            for sample in lhs.samples:
+                snapshot = replace(
+                    base,
+                    fixed_jn=target.fixed_jn,
+                    joint_sets=sample.joint_sets,
+                    realization_seed=design.realization_seed,
+                )
+                self._validate_generating_input(snapshot)
+                identity = input_identity(snapshot)
+                if identity in known:
+                    continue
+                known.add(identity)
+                candidates.append({
+                    "input_id": identity,
+                    "snapshot": snapshot,
+                    "seed": design.realization_seed,
+                    "role": role,
+                    "design_seed": seed,
+                })
+                if len(candidates) == count:
+                    break
+        if len(candidates) != count:
+            raise ValueError(
+                f"could not generate {count} unique {role} signatures "
+                f"for Jn={target.fixed_jn:g}"
+            )
+        return candidates
+
+    def _response_gap_targets(self, target, count):
+        ranked = sorted(
+            (mean, identity)
+            for identity in self._suitable(target)
+            if (mean := self._supported_weighted_mean_rqd(identity)) is not None
+        )
+        if len(ranked) < 2:
+            return []
+        occupied_bins = {
+            self._response_bin(mean) for mean, _ in ranked
+        }
+        gaps = []
+        for (lower, lower_id), (upper, upper_id) in zip(ranked, ranked[1:]):
+            if upper <= lower:
+                continue
+            midpoint = (lower + upper) / 2.0
+            for bin_index in range(10):
+                target_mean = bin_index * 10.0 + 5.0
+                if (bin_index not in occupied_bins
+                        and lower < target_mean < upper):
+                    gaps.append((
+                        -(upper - lower), abs(target_mean - midpoint),
+                        target_mean, lower_id, upper_id,
+                    ))
+        gaps.sort()
+        selected = gaps[:count]
+        if len(selected) < count:
+            # Keep refining the widest observed response gaps after all empty bins
+            # inside the sampled response range have been proposed.
+            fractions = (0.5, 0.25, 0.75, 0.125, 0.375, 0.625, 0.875)
+            refinements = []
+            for (lower, lower_id), (upper, upper_id) in zip(ranked, ranked[1:]):
+                if upper <= lower:
+                    continue
+                for fraction in fractions:
+                    target_mean = lower + (upper - lower) * fraction
+                    refinements.append((
+                        -(upper - lower), abs(fraction - 0.5),
+                        target_mean, lower_id, upper_id,
+                    ))
+            refinements.sort()
+            used = {item[2] for item in selected}
+            for item in refinements:
+                if item[2] in used:
+                    continue
+                selected.append(item)
+                used.add(item[2])
+                if len(selected) == count:
+                    break
+        return [
+            {
+                "target_mean_rqd": item[2],
+                "lower_signature_id": item[3],
+                "upper_signature_id": item[4],
+            }
+            for item in selected
+        ]
+
+    @staticmethod
+    def _interpolate_coordinate(left, right, fraction, bounds, parameter):
+        if bounds.coordinate == "log":
+            value = np.exp(
+                (1.0 - fraction) * np.log(left) + fraction * np.log(right))
+        elif parameter == "mean_dip_dir_deg":
+            delta = (right - left + 180.0) % 360.0 - 180.0
+            value = (left + fraction * delta) % 360.0
+        elif bounds.coordinate == "linear":
+            value = left + fraction * (right - left)
+        else:
+            raise ValueError(
+                f"unsupported coordinate for {parameter}: {bounds.coordinate}")
+        if (not isfinite(float(value)) or value < bounds.lower or value > bounds.upper
+                or not bounds.upper_inclusive and value == bounds.upper):
+            raise ValueError(f"interpolated {parameter} is outside input bounds")
+        return float(value)
+
+    def _interpolated_snapshot(self, target, proposal, shape_sample):
+        lower = snapshot_from_dict(
+            self.state["inputs"][proposal["lower_signature_id"]])
+        upper = snapshot_from_dict(
+            self.state["inputs"][proposal["upper_signature_id"]])
+        target_mean = proposal["target_mean_rqd"]
+        lower_mean = self._supported_weighted_mean_rqd(
+            proposal["lower_signature_id"])
+        upper_mean = self._supported_weighted_mean_rqd(
+            proposal["upper_signature_id"])
+        if lower_mean is None or upper_mean is None or upper_mean <= lower_mean:
+            raise ValueError("response-gap refinement has invalid bracketing means")
+        fraction = (target_mean - lower_mean) / (upper_mean - lower_mean)
+        design = self.config.templates[target.fixed_jn]
+        input_joint_sets = {
+            item.joint_set_id: item for item in design.joint_sets
+        }
+        joint_sets = []
+        if not (len(lower.joint_sets) == len(upper.joint_sets)
+                == len(shape_sample.joint_sets)):
+            raise ValueError("response-gap refinement joint-set counts do not match")
+        for left, right, shape in zip(
+                lower.joint_sets, upper.joint_sets, shape_sample.joint_sets):
+            if left.joint_set_id != right.joint_set_id:
+                raise ValueError("response-gap refinement joint-set ids do not match")
+            bounds = input_joint_sets[left.joint_set_id]
+            values = {}
+            for parameter in RAW_RQD_COORDINATE_PARAMETERS:
+                input_bounds = _input_axis_bounds(design, bounds, parameter)
+                values[parameter] = self._interpolate_coordinate(
+                    getattr(left, parameter),
+                    getattr(right, parameter),
+                    fraction,
+                    input_bounds,
+                    parameter,
+                )
+            joint_sets.append(replace(
+                left,
+                p32_m2_per_m3=values["p32_m2_per_m3"],
+                size_r_min_m=values["size_r_min_m"],
+                size_r_max_m=values["size_r_max_m"],
+                mean_dip_deg=values["mean_dip_deg"],
+                mean_dip_dir_deg=values["mean_dip_dir_deg"],
+                size_alpha=shape.size_alpha,
+                fisher_kappa=shape.fisher_kappa,
+            ))
+        snapshot = replace(lower, joint_sets=tuple(joint_sets))
+        self._validate_generating_input(snapshot)
+        return snapshot, fraction
+
+    def _local_candidates(self, target, batch_index, count, known):
+        targets = self._response_gap_targets(target, count)
+        if not targets:
+            return []
+        design = self.config.templates[target.fixed_jn]
+        jitter_seed = self._stream_seed(
+            design, batch_index, target.fixed_jn, 2)
+        shape_design = generate_lhs_design(replace(
+            design, design_seed=jitter_seed, sample_count=len(targets)))
+        candidates = []
+        for proposal, shape_sample in zip(targets, shape_design.samples):
+            snapshot, fraction = self._interpolated_snapshot(
+                target, proposal, shape_sample)
+            identity = input_identity(snapshot)
+            if identity in known:
+                continue
+            known.add(identity)
+            candidates.append({
+                "input_id": identity,
+                "snapshot": snapshot,
+                "seed": design.realization_seed,
+                "role": "response_gap_refinement",
+                "target_mean_rqd": proposal["target_mean_rqd"],
+                "target_response_bin": self._response_bin(
+                    proposal["target_mean_rqd"]),
+                "lower_signature_id": proposal["lower_signature_id"],
+                "upper_signature_id": proposal["upper_signature_id"],
+                "interpolation_fraction": fraction,
+                "design_seed": jitter_seed,
+            })
+        return candidates
+
+    def _plan_followup_batch(self):
+        if self.state.get("active_followup_batch") is not None:
+            raise ValueError("a raw-RQD follow-up batch is already active")
+        batch_index = self.state["followup_batch_index"] + 1
+        known = set(self.state["inputs"])
+        candidates = []
+        candidate_ids_by_jn = {}
+        for target in self.targets:
+            key = f"{target.fixed_jn:g}"
+            batch = self._lhs_candidates(
+                target, batch_index, 5, 1, "global_space_filling", known)
+            local = self._local_candidates(target, batch_index, 5, known)
+            batch.extend(local)
+            if len(local) < 5:
+                batch.extend(self._lhs_candidates(
+                    target, batch_index, 5 - len(local), 3,
+                    "global_space_filling_fallback", known))
+            candidate_ids_by_jn[key] = [item["input_id"] for item in batch]
+            candidates.extend({**item, "fixed_jn": target.fixed_jn} for item in batch)
+        self.state["round_index"] += 1
+        self.state["followup_batch_index"] = batch_index
+        self.state["active_followup_batch"] = {
+            "batch_index": batch_index,
+            "policy": "hybrid-global-lhs-response-gap-v1",
+            "candidate_ids_by_jn": candidate_ids_by_jn,
+            "candidates": [
+                {key: value for key, value in item.items() if key != "snapshot"}
+                for item in candidates
+            ],
+        }
+        for item in candidates:
+            self.state["inputs"][item["input_id"]] = asdict(item["snapshot"])
+            self.state["queue"].append({
+                "input_id": item["input_id"],
+                "seed": item["seed"],
+                "role": item["role"],
+            })
+
+    def _complete_followup_batch(self):
+        batch = self.state.get("active_followup_batch")
+        if batch is None:
+            return
+        completed_by_jn = {}
+        for target in self.targets:
+            key = f"{target.fixed_jn:g}"
+            identities = batch["candidate_ids_by_jn"][key]
+            if len(identities) != 10 or len(set(identities)) != 10:
+                raise MainPause(
+                    "execution_error",
+                    f"follow-up batch must contain 10 unique signatures for Jn={key}",
+                )
+            completed = [
+                identity for identity in identities
+                if self._profile(identity, self._seed_for_identity(identity)) is not None
+            ]
+            if len(completed) != 10:
+                raise MainPause(
+                    "execution_error",
+                    f"follow-up batch has {len(completed)}/10 completed signatures for Jn={key}",
+                )
+            completed_by_jn[key] = completed
+        self.state["last_followup_batch"] = {
+            **deepcopy(batch),
+            "completed_signatures_by_jn": completed_by_jn,
+            "response_bin_coverage_by_jn": {
+                f"{target.fixed_jn:g}": self._response_bin_coverage(target)
+                for target in self.targets
+            },
+        }
+        self.state["active_followup_batch"] = None
+        raise MainPause(
+            "continuation_batch_review",
+            {"batch_index": batch["batch_index"], "completed_signatures_by_jn": completed_by_jn},
+        )
 
     def _signature_parameter_deltas(self, reference_id, candidate_id):
         reference_sets = {
@@ -302,11 +721,29 @@ class RawRqdController(MainController):
         return deltas
 
     def _signature_axes(self, snapshot):
-        return [
-            (set_index, axis)
-            for set_index in range(len(snapshot.joint_sets))
-            for axis in AXES
-        ]
+        design = self.config.templates[snapshot.fixed_jn]
+        input_joint_sets = {
+            joint_set.joint_set_id: joint_set for joint_set in design.joint_sets
+        }
+        axes = []
+        for set_index, snapshot_joint_set in enumerate(snapshot.joint_sets):
+            input_joint_set = input_joint_sets.get(snapshot_joint_set.joint_set_id)
+            if input_joint_set is None:
+                raise ValueError(
+                    f"unknown joint set in raw-RQD snapshot: "
+                    f"{snapshot_joint_set.joint_set_id}"
+                )
+            for parameter, small_step, large_step, *_ in AXES:
+                bounds = _input_axis_bounds(design, input_joint_set, parameter)
+                axes.append((set_index, (
+                    parameter,
+                    small_step,
+                    large_step,
+                    bounds.lower,
+                    bounds.upper,
+                    bounds.upper_inclusive,
+                )))
+        return axes
 
     def _plan_round(self, target):
         self.state["round_index"] += 1
@@ -323,18 +760,18 @@ class RawRqdController(MainController):
         }
         self.state["round"] = round_state
         center_id = self.state["raw_rqd_centers"].get(jn_key)
+        design = self.config.templates[target.fixed_jn]
+        seed = design.realization_seed
 
         if center_id is None:
-            design = self.config.templates[target.fixed_jn]
-            lhs = generate_lhs_design(replace(
-                design, sample_count=RAW_RQD_INITIAL_SIGNATURES_PER_JN))
+            lhs = generate_lhs_design(design)
             base = reference_snapshot(self.config, self.runtime)
             for sample in lhs.samples:
                 snapshot = replace(
                     base,
                     fixed_jn=target.fixed_jn,
                     joint_sets=sample.joint_sets,
-                    realization_seed=self.config.policy.initial_seed,
+                    realization_seed=seed,
                 )
                 identity = input_identity(snapshot)
                 self.state["inputs"].setdefault(identity, asdict(snapshot))
@@ -345,7 +782,7 @@ class RawRqdController(MainController):
                 })
                 self.state["queue"].append({
                     "input_id": identity,
-                    "seed": self.config.policy.initial_seed,
+                    "seed": seed,
                     "role": "initial_lhs",
                 })
             round_state["kind"] = "initial_lhs"
@@ -382,7 +819,7 @@ class RawRqdController(MainController):
                     joint_set, **{parameter: candidate_value})
                 snapshot = replace(reference, joint_sets=tuple(joint_sets))
                 try:
-                    validate_generating_input(snapshot)
+                    self._validate_generating_input(snapshot)
                 except ValueError as error:
                     proposal_records.append({
                         "parameter": parameter,
@@ -396,8 +833,7 @@ class RawRqdController(MainController):
                     continue
                 self.state["inputs"].setdefault(identity, asdict(snapshot))
                 candidate_ids.append(identity)
-                has_profile = self._profile(
-                    identity, self.config.policy.initial_seed) is not None
+                has_profile = self._profile(identity, seed) is not None
                 proposal_records.append({
                     "input_id": identity,
                     "parameter": parameter,
@@ -429,7 +865,7 @@ class RawRqdController(MainController):
             })
             self.state["queue"].extend({
                 "input_id": identity,
-                "seed": self.config.policy.initial_seed,
+                "seed": seed,
                 "role": "coordinate_neighbor",
             } for identity in queued_ids)
             return
@@ -468,7 +904,9 @@ class RawRqdController(MainController):
         del _target
         round_state = self.state["round"]
         round_state["phase"] = "round_complete"
-        round_state["realization_seed"] = self.config.policy.initial_seed
+        target = self._target(round_state["target"])
+        round_state["realization_seed"] = self.config.templates[
+            target.fixed_jn].realization_seed
         for key in ("progress", "progress_pairs", "verification_input"):
             round_state.pop(key, None)
 
@@ -477,11 +915,16 @@ class RawRqdController(MainController):
         consumed = starts_consumed(self.connection, self.run_id) if consumed is None else consumed
         signatures_by_jn = {}
         for target in self.targets:
-            signatures_by_jn[str(target.fixed_jn)] = self._suitable(target)
+            signatures_by_jn[f"{target.fixed_jn:g}"] = self._suitable(target)
         round_state = self.state.get("round")
         round_state = round_state if isinstance(round_state, dict) else {}
         queue = self.state.get("queue")
         task = queue[0] if isinstance(queue, list) and queue and isinstance(queue[0], dict) else {}
+        seeds_by_jn = {
+            f"{jn:g}": design.realization_seed
+            for jn, design in sorted(self.config.templates.items())
+        }
+        unique_seeds = set(seeds_by_jn.values())
         condition = round_state.get("target")
         if condition is None:
             target_index = self.state["target_cursor"] % len(self.targets)
@@ -491,7 +934,8 @@ class RawRqdController(MainController):
             "starts_maximum": policy.maximum_starts,
             "starts_remaining": max(0, policy.maximum_starts - consumed),
             "realization": {
-                "seed": policy.initial_seed,
+                "seed": next(iter(unique_seeds)) if len(unique_seeds) == 1 else None,
+                "seeds_by_jn": seeds_by_jn,
                 "runs_per_signature": 1,
                 "verification": None,
             },
@@ -520,7 +964,7 @@ class RawRqdController(MainController):
                 index = round_state["candidate_ids"].index(identity) + 1
             except ValueError:
                 return "initial LHS"
-            return f"LHS {index}/{RAW_RQD_INITIAL_SIGNATURES_PER_JN}"
+            return f"LHS {index}/{len(round_state['candidate_ids'])}"
         if round_state.get("kind") != "coordinate":
             return "signature"
         candidate = next(
@@ -581,7 +1025,7 @@ class RawRqdController(MainController):
             statistics = (
                 f"BH-supported={len(points)} support={total_support:.1f}m "
                 f"raw-RQD[min={min(raw_values):.2f},max={max(raw_values):.2f},"
-                f"weighted-mean={mean:.2f}]"
+                f"weighted-mean={mean:.2f},population-sd={pstdev(raw_values):.2f}]"
             )
         round_state = self.state.get("round")
         reference_id = (
@@ -613,7 +1057,7 @@ class RawRqdController(MainController):
                 {"input_id": center_id}, round_state)
             return (
                 f"{prefix}center selected from "
-                f"{RAW_RQD_INITIAL_SIGNATURES_PER_JN} LHS signatures "
+                f"{len(round_state['candidate_ids'])} LHS signatures "
                 f"({center_label}); "
                 f"weighted-mean="
                 f"{round_state['selected_center_support_weighted_mean_rqd']:.2f}"
@@ -644,7 +1088,7 @@ class RawRqdController(MainController):
                 point
                 for seed, profile in sorted(
                     profile_groups.get(self.profile_id, {}).items())
-                if seed == self.config.policy.initial_seed
+                if seed == self._seed_for_identity(identity)
                 for point in profile.points
             ]
             values = [point.raw_rqd for point in observations]
@@ -657,7 +1101,8 @@ class RawRqdController(MainController):
                     / sum(point.support_m for point in observations)
                     if observations else None
                 ),
-                "realization_seed": self.config.policy.initial_seed,
+                "raw_rqd_population_sd": pstdev(values) if values else None,
+                "realization_seed": self._seed_for_identity(identity),
             }
             raw_bh_observations_by_signature[identity] = [
                 {
@@ -673,6 +1118,7 @@ class RawRqdController(MainController):
             centers_by_jn[jn_key] = {
                 "signature_id": identity,
                 "support_weighted_mean_rqd": self._supported_weighted_mean_rqd(identity),
+                "raw_rqd_population_sd": self._raw_rqd_population_sd(identity),
             }
         return {
             "run_id": self.run_id,
@@ -695,6 +1141,15 @@ class RawRqdController(MainController):
             "exhausted_jn_values": list(self.state["raw_rqd_exhausted_jn"]),
             "raw_rqd_by_signature": raw_rqd_by_signature,
             "raw_bh_observations_by_signature": raw_bh_observations_by_signature,
+            "response_bin_coverage_by_jn": {
+                f"{target.fixed_jn:g}": self._response_bin_coverage(target)
+                for target in self.targets
+            },
+            "followup_batch_index": self.state["followup_batch_index"],
+            "active_followup_batch": deepcopy(
+                self.state.get("active_followup_batch")),
+            "last_followup_batch": deepcopy(
+                self.state.get("last_followup_batch")),
             "last_completed_round_response_deltas": (
                 self.state.get("last_round", {}).get("signature_response_deltas", [])
             ),
@@ -815,15 +1270,27 @@ class RawRqdController(MainController):
         if self.progress_callback is not None:
             self.progress_callback(self._format_round_completion(round_state))
 
-    def run(self):
+    def run(self, *, continue_from_review=False):
         reconcile_starts(self.connection, self.run_id)
         for index, payload in self.connection.execute(
             "SELECT event_index,payload FROM main_control_events WHERE run_id=? ORDER BY event_index",
             (self.run_id,),
         ).fetchall():
             self._write_event(index, json.loads(payload))
+        if continue_from_review and (
+                self.state["phase"] != "paused"
+                or self.state["reason"] not in (
+                    "initial_cohort_review", "continuation_batch_review")):
+            raise ValueError(
+                "--continue-from-review requires a paused initial-cohort or "
+                "follow-up-batch review"
+            )
         if self.state["phase"] in ("paused", "complete"):
-            if self.state["reason"] in ("user_interruption", "review_checkpoint"):
+            if continue_from_review:
+                self.state["phase"] = self.state.pop("resume_phase", "exploration")
+                self.state["reason"] = None
+                self.state.pop("detail", None)
+            elif self.state["reason"] in ("user_interruption", "review_checkpoint"):
                 if self.state["reason"] == "review_checkpoint":
                     self.state["review_checkpoint_released"] = True
                 self.state["phase"] = self.state.pop("resume_phase")
@@ -832,6 +1299,9 @@ class RawRqdController(MainController):
             else:
                 return self.summary()
         try:
+            if continue_from_review:
+                self._plan_followup_batch()
+                self._save()
             if self._initial_pause is not None:
                 raise self._initial_pause
             while True:
@@ -843,6 +1313,8 @@ class RawRqdController(MainController):
                     self.state["queue"].pop(0)
                     self._save()
                     continue
+                if self.state.get("active_followup_batch") is not None:
+                    self._complete_followup_batch()
                 if self.state["phase"] == "initial":
                     self.state["phase"] = "exploration"
                     self._save()
@@ -860,6 +1332,20 @@ class RawRqdController(MainController):
                         )
                     self._save()
                     continue
+                initial_jn_keys = {f"{target.fixed_jn:g}" for target in self.targets}
+                if initial_jn_keys.issubset(self.state["raw_rqd_centers"]):
+                    raise MainPause(
+                        "initial_cohort_review",
+                        {
+                            "signatures_by_jn": {
+                                f"{jn:g}": self._suitable(target)
+                                for jn, target in (
+                                    (target.fixed_jn, target) for target in self.targets
+                                )
+                            },
+                            "centers_by_jn": deepcopy(self.state["raw_rqd_centers"]),
+                        },
+                    )
                 available_targets = [
                     item for item in self.targets
                     if item.fixed_jn not in self.state["raw_rqd_exhausted_jn"]
@@ -905,7 +1391,7 @@ def _assert_raw_database_is_separate(connection):
 
 
 def execute_raw_rqd(connection, config, factory, runtime, *, confirmed=False,
-                    output_dir, progress_callback=None):
+                    output_dir, progress_callback=None, continue_from_review=False):
     if not confirmed:
         raise PermissionError("raw-RQD execution requires explicit confirmation")
     if runtime.backend != "mlx":
@@ -925,7 +1411,7 @@ def execute_raw_rqd(connection, config, factory, runtime, *, confirmed=False,
             connection, config, factory, runtime, output_dir=output_dir,
             progress_callback=progress_callback,
         )
-        return controller.run()
+        return controller.run(continue_from_review=continue_from_review)
 
 
 def _validate_database_path(path: Path) -> bool:
@@ -949,7 +1435,9 @@ def _print_progress(message: str) -> None:
 
 
 def _parser() -> argparse.ArgumentParser:
-    default_config = Path(__file__).resolve().parents[2] / "config/rqd_exploration_main.yml"
+    default_config = (
+        Path(__file__).resolve().parents[2] / "config/rqd_exploration_main_baseline3.yml"
+    )
     parser = argparse.ArgumentParser(
         prog="run_rqd_exploration.py raw-rqd",
         description="Explore continuous raw BH RQD responses across the main signature domain.",
@@ -966,30 +1454,45 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--database", type=Path, required=True)
     run.add_argument("--output-dir", type=Path, required=True)
     run.add_argument("--confirm-execution", action="store_true")
+    run.add_argument(
+        "--continue-from-review",
+        action="store_true",
+        help="release a paused initial-cohort or follow-up-batch review",
+    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.command == "preview":
-        config = load_main_config(args.config)
+        config = load_raw_rqd_config(args.config)
         payload = lhs_signature_records(config)
+        seeds_by_jn = {
+            f"{design.fixed_jn:g}": design.realization_seed for design in config.designs
+        }
         print(json.dumps({
             "command": "raw-rqd-preview",
             "objective": "continuous_raw_bh_rqd_response",
             "realization": {
-                "seed": config.policy.initial_seed,
+                "seed": next(iter(set(seeds_by_jn.values())))
+                if len(set(seeds_by_jn.values())) == 1 else None,
+                "seeds_by_jn": seeds_by_jn,
                 "runs_per_signature": 1,
                 "verification": None,
             },
             "refinement_metric": "support_weighted_mean_raw_rqd",
-            "initial_signatures_per_jn": RAW_RQD_INITIAL_SIGNATURES_PER_JN,
+            "initial_signatures_by_jn": {
+                f"{design.fixed_jn:g}": design.sample_count for design in config.designs
+            },
             "coordinate_parameters": list(RAW_RQD_COORDINATE_PARAMETERS),
             "measurement_scope": "BH-only",
-            "update_method": "cyclic-coordinate-neighborhood-min-rqd",
-            "fixed_jn_values": sorted(config.templates),
+            "update_method": "hybrid-global-lhs-response-gap-v1",
+            "fixed_jn_values": [design.fixed_jn for design in config.designs],
             "candidate_count": len(payload),
             "candidates": payload,
+            "geometry": asdict(config.geometry),
+            "measurements": asdict(config.measurements),
+            "handoff": "initial_cohort_review",
             "simulation_started": False,
             "database_written": False,
         }, ensure_ascii=False, indent=2, sort_keys=True))
@@ -1002,9 +1505,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 2
-        config = load_main_config(args.config)
+        config = load_raw_rqd_config(args.config)
         runtime_manifest = build_mlx_pilot_manifest(
-            config.reference_input, manifest_id="raw-rqd-runtime-preflight")
+            config, manifest_id="raw-rqd-runtime-preflight")
         runtime = runtime_manifest.jobs[0].snapshot.runtime
         from src.euler_campaign.mlx_backend import MlxCaseJointFactory
 
@@ -1020,12 +1523,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             summary = execute_raw_rqd(
                 connection, config, factory, runtime, confirmed=True,
                 output_dir=args.output_dir, progress_callback=_print_progress,
+                continue_from_review=args.continue_from_review,
             )
             print(json.dumps({
                 "command": "raw-rqd-run",
                 "summary": summary,
             }, ensure_ascii=False, indent=2, sort_keys=True))
-            return 0 if summary["reason"] in ("targets_complete", "review_checkpoint") else 1
+            return 0 if summary["reason"] in (
+                "targets_complete", "review_checkpoint", "initial_cohort_review",
+                "continuation_batch_review",
+            ) else 1
         finally:
             connection.close()
     raise ValueError(f"unsupported raw-RQD command: {args.command}")

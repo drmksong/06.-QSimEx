@@ -126,6 +126,7 @@ def preview_main(config, connection=None):
 class MainController:
     include_face_measurements = True
     record_p32 = True
+    preserve_input_manifest_ids = False
     progress_job_label = None
 
     def __init__(self, connection, config, factory, runtime, *, output_dir,
@@ -317,13 +318,20 @@ class MainController:
                 result.append(identity)
         return result
 
+    def _validate_generating_input(self, snapshot):
+        validate_generating_input(snapshot)
+
+    def _expected_joint_counts(self, snapshot):
+        return expected_joint_counts(snapshot)
+
     def _references(self, target):
         metrics = {}
         self.reference_skips = []
         for identity in sorted(self.profiles):
             if self.state["inputs"][identity]["fixed_jn"] == target.fixed_jn:
                 try:
-                    validate_generating_input(snapshot_from_dict(self.state["inputs"][identity]))
+                    self._validate_generating_input(
+                        snapshot_from_dict(self.state["inputs"][identity]))
                 except ValueError as error:
                     self.reference_skips.append({"input_id": identity, "skip_reason": str(error)})
                     continue
@@ -344,21 +352,27 @@ class MainController:
         runtime = replace(self.runtime, generator_version=snapshot.runtime.generator_version)
         snapshot = replace(snapshot, runtime=runtime)
         template = self.config.templates[snapshot.fixed_jn]
-        design_id = f"{self.run_prefix}-input-" + identity
-        design = replace(template, design_id=design_id, block_id="main",
+        case_id = f"{self.run_prefix}-input-" + identity
+        if self.preserve_input_manifest_ids:
+            design_id, block_id = template.design_id, template.block_id
+        else:
+            design_id, block_id = case_id, "main"
+        design = replace(template, design_id=design_id, block_id=block_id,
                          sample_count=1, realization_seed=seed)
         normalized = replace(
             self.config.reference_input, designs=(design,), source_yaml_bytes=self.config.source_yaml_bytes,
             source_yaml_sha256=sha256(self.config.source_yaml_bytes).hexdigest(),
             source_reference=self.config.source_reference)
         case = build_generation_case(normalized.geometry, normalized.measurements,
-                                     snapshot.fixed_jn, snapshot.joint_sets, case_id=design_id,
+                                     snapshot.fixed_jn, snapshot.joint_sets, case_id=case_id,
                                      allow_constant_radius=True)
         manifest = build_frozen_manifest(
             normalized, manifest_id=f"{self.run_id}-{identity}-{seed}", runtime=runtime,
             boundary_rules_version=FACE_BOUNDARY_RULES_VERSION,
             planned_locations=plan_measurement_locations(case),
-            samples_by_design={design_id: (DesignSample(0, (), snapshot.joint_sets),)})
+            samples_by_design={design_id: (DesignSample(0, (), snapshot.joint_sets),)},
+            case_ids_by_design={design_id: case_id},
+        )
         return manifest, normalized
 
     def _perform(self, task):
@@ -392,7 +406,7 @@ class MainController:
         def before_start(job, resuming):
             nonlocal progress_context
             self._check_review_checkpoint()
-            counts = expected_joint_counts(job.snapshot)
+            counts = self._expected_joint_counts(job.snapshot)
             index = reserve_start(self.connection, self.run_id, job, input_id=identity,
                           role=task["role"], resuming=resuming,
                           expected_counts=counts, policy=self.config.policy)
@@ -401,9 +415,7 @@ class MainController:
                 self.progress_callback(
                     f"{progress_context} job_stage=starting resuming={resuming} "
                     f"total_expected_joints={sum(counts.values()):.6g}")
-        execution_options = {}
-        if not self.record_p32:
-            execution_options["record_p32"] = False
+        execution_options = {"record_p32": self.record_p32}
         if not self.include_face_measurements:
             execution_options["include_face_measurements"] = False
         if self.progress_job_label is not None:

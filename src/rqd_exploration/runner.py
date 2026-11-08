@@ -276,7 +276,7 @@ def _case_for_job(
         config.measurements,
         job.snapshot.fixed_jn,
         job.snapshot.joint_sets,
-        case_id=job.design_id,
+        case_id=job.case_id or job.design_id,
         allow_constant_radius=allow_constant_radius,
     )
     if (

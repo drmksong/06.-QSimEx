@@ -10,8 +10,9 @@ from src.rqd_exploration.adapter import build_generation_case
 from src.rqd_exploration.main_analysis import (
     BHPoint, SeedProfile, Target, paired_progress, progress_decision,
 )
-from src.rqd_exploration.main_controller import MainController, initial_snapshots
+from src.rqd_exploration.main_controller import MainController, reference_snapshot
 from src.rqd_exploration.main_design import input_identity, propose_candidates
+from src.rqd_exploration.measurement import measure_realization
 from src.test import test_rqd_main_controller as controller_fixtures
 from src.test import test_rqd_main_workflow as workflow_fixtures
 
@@ -84,7 +85,7 @@ class TestMainIntegrity(unittest.TestCase):
     def test_five_co_best_refs_preserve_two_full_axis_step_blocks_on_reopen(self):
         fixture = self.controller_fixture()
         controller = fixture.controller
-        base = initial_snapshots(fixture.config)[0]
+        base = reference_snapshot(fixture.config)
         controller.profiles = {}
         references = []
         for index in range(5):
@@ -212,13 +213,22 @@ class TestMainIntegrity(unittest.TestCase):
     def test_resume_stagnation_guard_does_not_cut_an_active_verification_block(self):
         fixture = self.controller_fixture()
         controller = fixture.controller
-        controller._plan_round(fixture.target)
-        controller._plan_stability(fixture.target)
+        identity = fixture.identities[0]
+        controller.state["phase"] = "exploration"
         controller.state["stagnant_rounds"] = 3
+        controller.state["round"] = {
+            "round_index": 1, "target": fixture.target.key,
+            "phase": "verification", "verification_input": identity,
+        }
+        controller.state["queue"] = [{
+            "input_id": identity,
+            "seed": fixture.config.policy.verification_seed,
+            "role": "target_verification",
+        }]
         with patch.object(controller, "_perform", side_effect=SystemExit("verification continues")) as perform:
             with self.assertRaisesRegex(SystemExit, "verification continues"):
                 controller.run()
-        self.assertEqual(perform.call_args.args[0]["role"], "stability")
+        self.assertEqual(perform.call_args.args[0]["role"], "target_verification")
 
     def test_paused_reopen_reuses_reports_without_rewriting_bytes_or_mtimes(self):
         fixture = self.workflow_fixture()
@@ -256,7 +266,7 @@ class TestMainIntegrity(unittest.TestCase):
     def test_constant_radius_main_candidate_reaches_factory_measurement_and_raw_store(self):
         fixture = self.controller_fixture()
         controller = fixture.controller
-        base = initial_snapshots(fixture.config)[0]
+        base = reference_snapshot(fixture.config)
         snapshot = replace(base, fixed_jn=2, joint_sets=(replace(
             base.joint_sets[0], p32_m2_per_m3=1., size_r_min_m=1., size_r_max_m=2.),))
         batch = propose_candidates(snapshot, fixture.config.templates[2],
@@ -266,12 +276,15 @@ class TestMainIntegrity(unittest.TestCase):
         self.assertEqual((candidate.snapshot.joint_sets[0].size_r_min_m,
                           candidate.snapshot.joint_sets[0].size_r_max_m), (2., 2.))
         controller.state["inputs"][candidate.input_id] = asdict(candidate.snapshot)
-        controller.factory.generate.return_value = DiskJointGeometry(())
+        geometry = DiskJointGeometry(())
+        controller.factory.generate.return_value = geometry
         controller._perform({"input_id": candidate.input_id, "seed": 43, "role": "single_axis"})
         case = controller.factory.generate.call_args.args[0]
         self.assertEqual((case.joint_sets[0].size_r_min, case.joint_sets[0].size_r_max), (2., 2.))
         self.assertEqual(fixture.connection.execute("SELECT status FROM attempts").fetchall(), [("succeeded",)])
-        self.assertEqual(fixture.connection.execute("SELECT COUNT(*) FROM observations").fetchone()[0], 121)
+        expected_observations = len(measure_realization(case, geometry).observations)
+        self.assertEqual(fixture.connection.execute("SELECT COUNT(*) FROM observations").fetchone()[0],
+                         expected_observations)
         with self.assertRaisesRegex(ValueError, "sampled radii"):
             build_generation_case(fixture.config.reference_input.geometry, fixture.config.reference_input.measurements,
                                   2., candidate.snapshot.joint_sets, case_id="strict-pilot")

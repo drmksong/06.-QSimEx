@@ -7,10 +7,12 @@ import unittest
 from unittest.mock import Mock, patch
 
 from src.rqd_exploration.main_analysis import BHPoint, SeedProfile, Target
-from src.rqd_exploration.main_controller import MainController, initial_snapshots
+from src.rqd_exploration.main_controller import (
+    MainController, _input_manifest, reference_snapshot,
+)
 from src.rqd_exploration.main_design import input_identity
 from src.test.test_rqd_main_policy import (
-    load_jn20_config, load_main_config, main_config_with_seeds,
+    load_main_config, main_config_with_seeds,
 )
 from src.rqd_exploration.main_store import MainPause, initialize_main_store
 from src.rqd_exploration.store import initialize_store
@@ -27,8 +29,8 @@ class TestMainController(unittest.TestCase):
         self.addCleanup(self.connection.close)
         initialize_store(self.connection)
         initialize_main_store(self.connection)
-        self.config = load_jn20_config()
-        snapshot = initial_snapshots(self.config)[0]
+        self.config = load_main_config(ROOT / "config/rqd_exploration_main.yml")
+        snapshot = reference_snapshot(self.config)
         self.controller = MainController(self.connection, self.config, Mock(), snapshot.runtime,
                                          output_dir=Path(self.directory.name))
         self.controller.state["queue"] = []
@@ -342,7 +344,7 @@ class TestMainController(unittest.TestCase):
         a, b = self.controller._histories(self.target), self.controller._histories(target_b)
         self.assertEqual(sum(h.passed for h in a.values()), 3)
         self.assertEqual(sum(h.passed for h in b.values()), 3)
-        self.assertEqual(len(self.controller.state["inputs"]), 8)
+        self.assertEqual(len(self.controller.state["inputs"]), len(self.identities))
         self.controller.factory.generate.assert_not_called()
 
     def test_conditional_five_seed_progress_does_not_reset_stagnation_before_round_done(self):
@@ -387,9 +389,11 @@ class TestMainController(unittest.TestCase):
         self.controller.factory.generate.assert_not_called()
 
     def test_last_bin_completion_requires_all_reachable_targets_and_no_new_generation(self):
-        base = initial_snapshots(self.config)[0]
+        base_input = replace(self.config.baselines[1],
+                             designs=(self.config.templates[15],))
+        base = _input_manifest(base_input, self.controller.runtime).jobs[0].snapshot
         self.controller.profiles = {}
-        for jn, count in ((2, 1), (4, 2), (9, 3), (15, 4), (20, 5)):
+        for jn, count in ((2, 1), (4, 2), (9, 3), (15, 4)):
             for index in range(3):
                 snapshot = replace(base, fixed_jn=jn, joint_sets=tuple(
                     replace(s, p32_m2_per_m3=1. + index) for s in base.joint_sets[:count]))

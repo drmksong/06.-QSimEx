@@ -11,16 +11,6 @@ from src.rqd_exploration.main_controller import initial_snapshots, preview_main
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def jn20_config_path(directory):
-    payload = yaml.safe_load((ROOT / "config/rqd_exploration_main.yml").read_text())
-    payload["initial_input"] = str(ROOT / "config/rqd_exploration_jn20.yml")
-    payload["baseline_inputs"] = [str(ROOT / "config" / name)
-                                 for name in payload["baseline_inputs"]]
-    path = Path(directory) / "main-with-jn20.yml"
-    path.write_text(yaml.safe_dump(payload))
-    return path
-
-
 def main_config_with_seeds(directory, initial_seed, verification_seed):
     payload = yaml.safe_load((ROOT / "config/rqd_exploration_main.yml").read_text())
     payload["baseline_inputs"] = [
@@ -30,11 +20,6 @@ def main_config_with_seeds(directory, initial_seed, verification_seed):
     path = Path(directory) / "main-with-custom-seeds.yml"
     path.write_text(yaml.safe_dump(payload))
     return load_main_config(path)
-
-
-def load_jn20_config():
-    with tempfile.TemporaryDirectory(dir=ROOT) as directory:
-        return load_main_config(jn20_config_path(directory))
 
 
 class TestMainPolicy(unittest.TestCase):
@@ -52,23 +37,6 @@ class TestMainPolicy(unittest.TestCase):
                           if t["reachable"]}, {str(i) for i in range(1, 11)})
         self.assertFalse(preview["database_written"])
         self.assertFalse(preview["simulation_started"])
-
-    def test_approved_policy_and_jn20(self):
-        config = load_jn20_config()
-        policy = config.policy
-        self.assertEqual((policy.initial_seed, policy.verification_seed), (43, 44))
-        self.assertEqual((policy.maximum_starts, policy.review_checkpoint_starts,
-                          policy.maximum_expected_joints, policy.stagnant_rounds),
-                         (20_000, 10_000, 10_000_000, 3))
-        self.assertIsNotNone(config.initial)
-        design = config.reference_input.designs[0]
-        self.assertEqual((design.fixed_jn, len(design.joint_sets), design.sample_count,
-                          design.design_seed, design.realization_seed),
-                         (20, 5, 5, 40, 43))
-        self.assertEqual(set(config.templates), {2, 4, 9, 15, 20})
-        self.assertEqual(config.fingerprint, load_jn20_config().fingerprint)
-        self.assertNotEqual(config.fingerprint, load_main_config(
-            ROOT / "config/rqd_exploration_main.yml").fingerprint)
 
     def test_seed_values_are_parameters_and_change_the_policy_fingerprint(self):
         baseline = load_main_config(ROOT / "config/rqd_exploration_main.yml")
