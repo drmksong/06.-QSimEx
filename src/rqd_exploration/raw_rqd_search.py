@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from copy import deepcopy
 from dataclasses import asdict, dataclass, replace
-from math import isfinite
+from math import isclose, isfinite, nextafter
 from pathlib import Path
 import json
 import sqlite3
@@ -18,7 +18,7 @@ import numpy as np
 from .adapter import build_generation_case
 from .config import Bounds, DesignInput, JointSetInput, NormalizedPilotInput, load_config
 from .design import generate_lhs_design
-from .fingerprint import fingerprint_snapshot
+from .fingerprint import ExecutionSnapshot, fingerprint_snapshot
 from .main_controller import MainController, reference_snapshot
 from .main_policy import AXES, MainConfig
 from .main_design import (
@@ -43,6 +43,7 @@ from .store import STORE_SCHEMA_VERSION, _atomic, initialize_store
 
 RAW_RQD_COORDINATE_PARAMETERS = tuple(axis[0] for axis in AXES)
 RAW_RQD_FIXED_JN_VALUES = (15.0, 20.0)
+RAW_RQD_CONTINUOUS_BATCH_LIMIT = 10
 
 
 def load_raw_rqd_config(path: str | Path) -> NormalizedPilotInput:
@@ -105,6 +106,34 @@ class RawRqdCondition:
     @property
     def key(self) -> str:
         return f"raw-rqd/{self.fixed_jn:g}/{self.profile_id}"
+
+
+@dataclass(frozen=True)
+class RawRqdBinTarget:
+    bin_index: int
+    signature_count: int
+    reference_id: str | None
+    reference_mean: float | None
+
+    @property
+    def center(self) -> float:
+        return self.bin_index * 10.0 + 5.0
+
+
+@dataclass(frozen=True)
+class RawRqdProbe:
+    fixed_jn: float
+    target_bin: int
+    reference_id: str
+    joint_set_id: str
+    parameter: str
+    direction: int
+    reference_value: float
+    candidate_value: float | None
+    candidate_id: str | None
+    snapshot: ExecutionSnapshot | None
+    status: str
+    reason: str | None
 
 
 @dataclass(frozen=True)
@@ -364,6 +393,9 @@ class RawRqdController(MainController):
         self.state.setdefault("raw_rqd_exhausted_jn", [])
         self.state.setdefault("followup_batch_index", 0)
         self.state.setdefault("last_followup_batch", None)
+        self.state.setdefault("probe_axis_cursors", {})
+        self.state.setdefault("probe_response_history", [])
+        self.state.setdefault("continuous_batch_run", None)
 
     def _validate_generating_input(self, snapshot):
         validate_generating_input(
@@ -415,6 +447,121 @@ class RawRqdController(MainController):
                 index = self._response_bin(mean)
                 counts[f"{index * 10:02d}-{(index + 1) * 10:02d}"] += 1
         return counts
+
+    def _complete_response_means(self, target: RawRqdCondition) -> dict[str, float]:
+        geometry = self.config.reference_input.geometry
+        measurements = self.config.reference_input.measurements
+        if (not isclose(geometry.borehole_length_m, 30.0, rel_tol=0.0, abs_tol=1e-9)
+                or not isclose(measurements.bh_interval_m, 1.0, rel_tol=0.0, abs_tol=1e-9)):
+            raise ValueError("probe preparation requires thirty 1 m BH intervals")
+        reference = reference_snapshot(self.config, self.runtime)
+        means = {}
+        for identity in self._suitable(target):
+            snapshot = snapshot_from_dict(self.state["inputs"][identity])
+            if (snapshot.geometry != reference.geometry
+                    or snapshot.measurements != reference.measurements
+                    or snapshot.runtime != self.runtime):
+                raise ValueError(f"incompatible probe reference: {identity}")
+            self._validate_generating_input(snapshot)
+            profile = self._profile(identity, self._seed_for_identity(identity))
+            if profile is None or len(profile.points) != 30:
+                continue
+            points = sorted(profile.points, key=lambda point: point.start_m)
+            if not all(
+                isclose(point.start_m, float(index), rel_tol=0.0, abs_tol=1e-9)
+                and isclose(point.end_m, float(index + 1), rel_tol=0.0, abs_tol=1e-9)
+                and isclose(point.support_m, 1.0, rel_tol=0.0, abs_tol=1e-9)
+                for index, point in enumerate(points)
+            ):
+                continue
+            support = sum(point.support_m for point in points)
+            means[identity] = sum(
+                point.raw_rqd * point.support_m for point in points
+            ) / support
+        return means
+
+    def _probe_targets(self, target: RawRqdCondition) -> tuple[RawRqdBinTarget, ...]:
+        means = self._complete_response_means(target)
+        counts = [0] * 10
+        for mean in means.values():
+            counts[self._response_bin(mean)] += 1
+        targets = []
+        for index, count in enumerate(counts):
+            if count >= 3:
+                continue
+            center = index * 10.0 + 5.0
+            identity = min(means, key=lambda item: (abs(means[item] - center), item),
+                           default=None)
+            targets.append(RawRqdBinTarget(
+                index, count, identity, means[identity] if identity is not None else None))
+        return tuple(targets)
+
+    def _prepare_probes(
+        self, target: RawRqdCondition, bin_index: int,
+    ) -> tuple[RawRqdProbe, ...]:
+        selected = next(
+            (item for item in self._probe_targets(target) if item.bin_index == bin_index),
+            None,
+        )
+        if selected is None:
+            raise ValueError("probe target must be an underfilled RQD bin")
+        if selected.reference_id is None:
+            raise ValueError("probe target has no complete reference signature")
+        return self._probes_from_reference(target, bin_index, selected.reference_id)
+
+    def _probes_from_reference(
+        self, target: RawRqdCondition, bin_index: int, reference_id: str,
+    ) -> tuple[RawRqdProbe, ...]:
+        parent = snapshot_from_dict(self.state["inputs"][reference_id])
+        design = self.config.templates[target.fixed_jn]
+        design_sets = {joint_set.joint_set_id: joint_set for joint_set in design.joint_sets}
+        known = set(self.state["inputs"])
+        proposed = set()
+        probes = []
+        for index, joint_set in enumerate(parent.joint_sets):
+            for parameter in RAW_RQD_COORDINATE_PARAMETERS:
+                bounds = _input_axis_bounds(design, design_sets[joint_set.joint_set_id],
+                                            parameter)
+                value = getattr(joint_set, parameter)
+                for direction in (-1, 1):
+                    if bounds.coordinate == "log":
+                        candidate_value = value * 1.1 if direction == 1 else value / 1.1
+                    elif parameter in ("mean_dip_deg", "mean_dip_dir_deg"):
+                        candidate_value = value + direction * 5.0
+                    else:
+                        raise ValueError(f"unsupported probe coordinate: {parameter}")
+                    if (parameter == "mean_dip_dir_deg" and bounds.lower == 0
+                            and bounds.upper == 360 and not bounds.upper_inclusive):
+                        candidate_value %= 360.0
+                    else:
+                        upper = (bounds.upper if bounds.upper_inclusive
+                                 else nextafter(bounds.upper, bounds.lower))
+                        candidate_value = min(max(candidate_value, bounds.lower), upper)
+                    candidate_set = replace(joint_set, **{parameter: candidate_value})
+                    reason = None
+                    if candidate_value == value:
+                        reason = "unchanged_at_boundary"
+                    elif candidate_set.size_r_min_m > candidate_set.size_r_max_m:
+                        reason = "radius_order_violation"
+                    if reason is not None:
+                        probes.append(RawRqdProbe(
+                            target.fixed_jn, bin_index, reference_id,
+                            joint_set.joint_set_id, parameter, direction, value,
+                            candidate_value, None, None, "blocked", reason))
+                        continue
+                    joint_sets = list(parent.joint_sets)
+                    joint_sets[index] = candidate_set
+                    snapshot = replace(parent, joint_sets=tuple(joint_sets))
+                    self._validate_generating_input(snapshot)
+                    identity = input_identity(snapshot)
+                    status = ("existing" if identity in known else
+                              "duplicate" if identity in proposed else "new")
+                    proposed.add(identity)
+                    probes.append(RawRqdProbe(
+                        target.fixed_jn, bin_index, reference_id,
+                        joint_set.joint_set_id, parameter, direction, value,
+                        candidate_value, identity, snapshot, status, None))
+        return tuple(probes)
 
     @staticmethod
     def _stream_seed(design, batch_index, fixed_jn, stream, attempt=0):
@@ -621,6 +768,124 @@ class RawRqdController(MainController):
             })
         return candidates
 
+    def _probe_response(self, probe, means):
+        reference_mean = means.get(probe["reference_id"])
+        candidate_mean = means.get(probe["input_id"])
+        if reference_mean is None or candidate_mean is None:
+            return None
+        center = probe["target_response_bin"] * 10.0 + 5.0
+        return {
+            **probe,
+            "target_mean_rqd": center,
+            "reference_mean_rqd": reference_mean,
+            "candidate_mean_rqd": candidate_mean,
+            "response_delta": candidate_mean - reference_mean,
+            "distance_before": abs(reference_mean - center),
+            "distance_after": abs(candidate_mean - center),
+            "improved": abs(candidate_mean - center) < abs(reference_mean - center),
+        }
+
+    def _adaptive_candidates(self, target, count, known):
+        key = f"{target.fixed_jn:g}"
+        targets = sorted(
+            self._probe_targets(target), key=lambda item: (item.signature_count, item.bin_index))
+        target_map = {item.bin_index: item for item in targets}
+        means = self._complete_response_means(target)
+        evidence = []
+        prior = self.state["probe_response_history"]
+        if not prior:
+            prior = (self.state.get("last_followup_batch") or {}).get("probe_responses", [])
+        seen_evidence = set()
+        for item in prior:
+            if item["fixed_jn"] == target.fixed_jn and item["target_response_bin"] in target_map:
+                response = self._probe_response(item, means)
+                if response is None:
+                    raise MainPause(
+                        "incomparable",
+                        f"saved probe evidence lacks complete BH profile: {item['input_id']}",
+                    )
+                evidence.append(response)
+                seen_evidence.add((item["target_response_bin"], item["reference_id"], item["input_id"]))
+        prepared = {}
+        for item in targets:
+            if item.reference_id is None:
+                continue
+            probes = self._prepare_probes(target, item.bin_index)
+            prepared[item.bin_index] = probes
+            for probe in probes:
+                if probe.status != "existing" or probe.candidate_id not in means:
+                    continue
+                record = {
+                    "fixed_jn": target.fixed_jn, "input_id": probe.candidate_id,
+                    "reference_id": probe.reference_id,
+                    "target_response_bin": probe.target_bin,
+                    "joint_set_id": probe.joint_set_id, "parameter": probe.parameter,
+                    "direction": probe.direction, "reference_value": probe.reference_value,
+                    "candidate_value": probe.candidate_value, "role": "probe_reused",
+                }
+                response = self._probe_response(record, means)
+                evidence_key = (probe.target_bin, probe.reference_id, probe.candidate_id)
+                if response is not None and evidence_key not in seen_evidence:
+                    evidence.append(response)
+                    seen_evidence.add(evidence_key)
+
+        candidates = []
+        evidence.sort(key=lambda item: (
+            target_map[item["target_response_bin"]].signature_count,
+            item["target_response_bin"], item["distance_after"],
+            item["joint_set_id"], item["parameter"], item["direction"], item["input_id"]))
+        for item in evidence:
+            if not item["improved"] or item["input_id"] not in means:
+                continue
+            probes = self._probes_from_reference(
+                target, item["target_response_bin"], item["input_id"])
+            probe = next((p for p in probes if p.joint_set_id == item["joint_set_id"]
+                          and p.parameter == item["parameter"]
+                          and p.direction == item["direction"]), None)
+            if probe is None or probe.snapshot is None or probe.candidate_id in known:
+                continue
+            known.add(probe.candidate_id)
+            candidates.append({
+                "input_id": probe.candidate_id, "snapshot": probe.snapshot,
+                "seed": self.config.templates[target.fixed_jn].realization_seed,
+                "role": "response_guided", "reference_id": probe.reference_id,
+                "target_response_bin": probe.target_bin, "joint_set_id": probe.joint_set_id,
+                "parameter": probe.parameter, "direction": probe.direction,
+                "reference_value": probe.reference_value, "candidate_value": probe.candidate_value,
+            })
+            if len(candidates) == count:
+                return candidates, evidence
+
+        cursor = self.state["probe_axis_cursors"].get(key, 0)
+        for item in targets:
+            probes = prepared.get(item.bin_index, ())
+            axes = [(joint_set.joint_set_id, parameter)
+                    for joint_set in self.config.templates[target.fixed_jn].joint_sets
+                    for parameter in RAW_RQD_COORDINATE_PARAMETERS]
+            for offset in range(len(axes)):
+                axis_index = (cursor + offset) % len(axes)
+                joint_set_id, parameter = axes[axis_index]
+                for probe in probes:
+                    if (probe.joint_set_id != joint_set_id or probe.parameter != parameter
+                            or probe.snapshot is None or probe.candidate_id in known):
+                        continue
+                    known.add(probe.candidate_id)
+                    candidates.append({
+                        "input_id": probe.candidate_id, "snapshot": probe.snapshot,
+                        "seed": self.config.templates[target.fixed_jn].realization_seed,
+                        "role": "probe", "reference_id": probe.reference_id,
+                        "target_response_bin": probe.target_bin, "joint_set_id": probe.joint_set_id,
+                        "parameter": probe.parameter, "direction": probe.direction,
+                        "reference_value": probe.reference_value,
+                        "candidate_value": probe.candidate_value,
+                    })
+                    if len(candidates) == count:
+                        self.state["probe_axis_cursors"][key] = (axis_index + 1) % len(axes)
+                        return candidates, evidence
+            cursor = (cursor + 1) % len(axes)
+        self.state["probe_axis_cursors"][key] = cursor
+        return candidates, evidence
+
     def _plan_followup_batch(self):
         if self.state.get("active_followup_batch") is not None:
             raise ValueError("a raw-RQD follow-up batch is already active")
@@ -628,15 +893,17 @@ class RawRqdController(MainController):
         known = set(self.state["inputs"])
         candidates = []
         candidate_ids_by_jn = {}
+        reused_evidence = []
         for target in self.targets:
             key = f"{target.fixed_jn:g}"
             batch = self._lhs_candidates(
-                target, batch_index, 5, 1, "global_space_filling", known)
-            local = self._local_candidates(target, batch_index, 5, known)
+                target, batch_index, 4, 1, "global_space_filling", known)
+            local, evidence = self._adaptive_candidates(target, 6, known)
+            reused_evidence.extend(evidence)
             batch.extend(local)
-            if len(local) < 5:
+            if len(local) < 6:
                 batch.extend(self._lhs_candidates(
-                    target, batch_index, 5 - len(local), 3,
+                    target, batch_index, 6 - len(local), 3,
                     "global_space_filling_fallback", known))
             candidate_ids_by_jn[key] = [item["input_id"] for item in batch]
             candidates.extend({**item, "fixed_jn": target.fixed_jn} for item in batch)
@@ -644,7 +911,8 @@ class RawRqdController(MainController):
         self.state["followup_batch_index"] = batch_index
         self.state["active_followup_batch"] = {
             "batch_index": batch_index,
-            "policy": "hybrid-global-lhs-response-gap-v1",
+            "policy": "hybrid-global-lhs-probe-response-v1",
+            "reused_probe_responses": reused_evidence,
             "candidate_ids_by_jn": candidate_ids_by_jn,
             "candidates": [
                 {key: value for key, value in item.items() if key != "snapshot"}
@@ -659,11 +927,12 @@ class RawRqdController(MainController):
                 "role": item["role"],
             })
 
-    def _complete_followup_batch(self):
+    def _complete_followup_batch(self, *, continuous=False):
         batch = self.state.get("active_followup_batch")
         if batch is None:
             return
         completed_by_jn = {}
+        probe_responses = []
         for target in self.targets:
             key = f"{target.fixed_jn:g}"
             identities = batch["candidate_ids_by_jn"][key]
@@ -682,15 +951,61 @@ class RawRqdController(MainController):
                     f"follow-up batch has {len(completed)}/10 completed signatures for Jn={key}",
                 )
             completed_by_jn[key] = completed
+            means = self._complete_response_means(target)
+            for candidate in batch["candidates"]:
+                if candidate["fixed_jn"] != target.fixed_jn or candidate["role"] not in (
+                        "probe", "response_guided"):
+                    continue
+                response = self._probe_response(candidate, means)
+                if response is None:
+                    raise MainPause(
+                        "incomparable",
+                        f"probe response lacks complete BH profile: {candidate['input_id']}",
+                    )
+                probe_responses.append(response)
+        previous_state = deepcopy(self.state) if continuous else None
+        history = self.state["probe_response_history"]
+        recorded = {
+            (item["fixed_jn"], item["target_response_bin"], item["reference_id"], item["input_id"])
+            for item in history
+        }
+        for item in (*batch.get("reused_probe_responses", ()), *probe_responses):
+            key = (item["fixed_jn"], item["target_response_bin"],
+                   item["reference_id"], item["input_id"])
+            if key not in recorded:
+                history.append(item)
+                recorded.add(key)
         self.state["last_followup_batch"] = {
             **deepcopy(batch),
             "completed_signatures_by_jn": completed_by_jn,
+            "probe_responses": probe_responses,
             "response_bin_coverage_by_jn": {
                 f"{target.fixed_jn:g}": self._response_bin_coverage(target)
                 for target in self.targets
             },
         }
         self.state["active_followup_batch"] = None
+        if continuous:
+            try:
+                payload = {
+                    **self.summary(),
+                    "dataset_revision_index": None,
+                    "dataset_sha256": None,
+                }
+                with _atomic(self.connection):
+                    index = append_event(
+                        self.connection, self.run_id, "followup_batch_complete", payload)
+                    self._save()
+            except BaseException:
+                self.state = previous_state
+                raise
+            self._write_event(index, payload)
+            if self.progress_callback is not None:
+                self.progress_callback(
+                    f"raw-rqd batch={batch['batch_index']} completed; "
+                    f"continuous batches={self._continuous_completed()}"
+                    f"/{RAW_RQD_CONTINUOUS_BATCH_LIMIT}")
+            return
         raise MainPause(
             "continuation_batch_review",
             {"batch_index": batch["batch_index"], "completed_signatures_by_jn": completed_by_jn},
@@ -1150,6 +1465,8 @@ class RawRqdController(MainController):
                 self.state.get("active_followup_batch")),
             "last_followup_batch": deepcopy(
                 self.state.get("last_followup_batch")),
+            "probe_response_history": deepcopy(self.state["probe_response_history"]),
+            "continuous_batch_run": deepcopy(self.state["continuous_batch_run"]),
             "last_completed_round_response_deltas": (
                 self.state.get("last_round", {}).get("signature_response_deltas", [])
             ),
@@ -1270,7 +1587,18 @@ class RawRqdController(MainController):
         if self.progress_callback is not None:
             self.progress_callback(self._format_round_completion(round_state))
 
-    def run(self, *, continue_from_review=False):
+    def _continuous_completed(self):
+        run = self.state.get("continuous_batch_run")
+        if run is None:
+            raise ValueError("continuous batch run is not active")
+        last = self.state.get("last_followup_batch")
+        last_index = last["batch_index"] if last is not None else run["start_batch_index"]
+        completed = last_index - run["start_batch_index"]
+        if not 0 <= completed <= RAW_RQD_CONTINUOUS_BATCH_LIMIT:
+            raise ValueError("invalid continuous batch checkpoint")
+        return completed
+
+    def run(self, *, continue_from_review=False, continuous=False):
         reconcile_starts(self.connection, self.run_id)
         for index, payload in self.connection.execute(
             "SELECT event_index,payload FROM main_control_events WHERE run_id=? ORDER BY event_index",
@@ -1280,11 +1608,20 @@ class RawRqdController(MainController):
         if continue_from_review and (
                 self.state["phase"] != "paused"
                 or self.state["reason"] not in (
-                    "initial_cohort_review", "continuation_batch_review")):
+                    "initial_cohort_review", "continuation_batch_review",
+                    "continuous_batch_limit")):
             raise ValueError(
                 "--continue-from-review requires a paused initial-cohort or "
                 "follow-up-batch review"
             )
+        if continuous and not continue_from_review and self.state["continuous_batch_run"] is None:
+            raise ValueError("--continuous requires --continue-from-review for a new run")
+        if self.state["continuous_batch_run"] is not None and not continuous:
+            raise ValueError("resuming a continuous batch run requires --continuous")
+        if continue_from_review and self.state["continuous_batch_run"] is not None:
+            raise ValueError("cannot restart an active continuous batch run from review")
+        if continue_from_review and self.state["reason"] == "continuous_batch_limit" and not continuous:
+            raise ValueError("releasing a continuous batch limit requires --continuous")
         if self.state["phase"] in ("paused", "complete"):
             if continue_from_review:
                 self.state["phase"] = self.state.pop("resume_phase", "exploration")
@@ -1299,7 +1636,13 @@ class RawRqdController(MainController):
             else:
                 return self.summary()
         try:
-            if continue_from_review:
+            if continue_from_review and continuous:
+                self.state["continuous_batch_run"] = {
+                    "start_batch_index": self.state["followup_batch_index"],
+                    "maximum_batches": RAW_RQD_CONTINUOUS_BATCH_LIMIT,
+                }
+                self._save()
+            elif continue_from_review:
                 self._plan_followup_batch()
                 self._save()
             if self._initial_pause is not None:
@@ -1314,7 +1657,21 @@ class RawRqdController(MainController):
                     self._save()
                     continue
                 if self.state.get("active_followup_batch") is not None:
-                    self._complete_followup_batch()
+                    self._complete_followup_batch(continuous=continuous)
+                    if continuous:
+                        continue
+                if continuous:
+                    if all(not self._probe_targets(target) for target in self.targets):
+                        completed = self._continuous_completed()
+                        self.state["continuous_batch_run"] = None
+                        raise MainPause("raw_rqd_coverage_complete", {"completed_batches": completed})
+                    if self._continuous_completed() >= RAW_RQD_CONTINUOUS_BATCH_LIMIT:
+                        completed = self._continuous_completed()
+                        self.state["continuous_batch_run"] = None
+                        raise MainPause("continuous_batch_limit", {"completed_batches": completed})
+                    self._plan_followup_batch()
+                    self._save()
+                    continue
                 if self.state["phase"] == "initial":
                     self.state["phase"] = "exploration"
                     self._save()
@@ -1391,7 +1748,8 @@ def _assert_raw_database_is_separate(connection):
 
 
 def execute_raw_rqd(connection, config, factory, runtime, *, confirmed=False,
-                    output_dir, progress_callback=None, continue_from_review=False):
+                    output_dir, progress_callback=None, continue_from_review=False,
+                    continuous=False):
     if not confirmed:
         raise PermissionError("raw-RQD execution requires explicit confirmation")
     if runtime.backend != "mlx":
@@ -1411,7 +1769,7 @@ def execute_raw_rqd(connection, config, factory, runtime, *, confirmed=False,
             connection, config, factory, runtime, output_dir=output_dir,
             progress_callback=progress_callback,
         )
-        return controller.run(continue_from_review=continue_from_review)
+        return controller.run(continue_from_review=continue_from_review, continuous=continuous)
 
 
 def _validate_database_path(path: Path) -> bool:
@@ -1459,6 +1817,10 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="release a paused initial-cohort or follow-up-batch review",
     )
+    run.add_argument(
+        "--continuous", action="store_true",
+        help="run up to ten follow-up batches; also required when resuming an interrupted continuous run",
+    )
     return parser
 
 
@@ -1486,7 +1848,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             },
             "coordinate_parameters": list(RAW_RQD_COORDINATE_PARAMETERS),
             "measurement_scope": "BH-only",
-            "update_method": "hybrid-global-lhs-response-gap-v1",
+            "update_method": "hybrid-global-lhs-probe-response-v1",
             "fixed_jn_values": [design.fixed_jn for design in config.designs],
             "candidate_count": len(payload),
             "candidates": payload,
@@ -1524,6 +1886,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 connection, config, factory, runtime, confirmed=True,
                 output_dir=args.output_dir, progress_callback=_print_progress,
                 continue_from_review=args.continue_from_review,
+                continuous=args.continuous,
             )
             print(json.dumps({
                 "command": "raw-rqd-run",
@@ -1532,6 +1895,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0 if summary["reason"] in (
                 "targets_complete", "review_checkpoint", "initial_cohort_review",
                 "continuation_batch_review",
+                "continuous_batch_limit", "raw_rqd_coverage_complete",
             ) else 1
         finally:
             connection.close()

@@ -240,7 +240,7 @@ class TestRawRqdSearch(unittest.TestCase):
         )
         self.assertEqual(payload["measurement_scope"], "BH-only")
         self.assertEqual(
-            payload["update_method"], "hybrid-global-lhs-response-gap-v1")
+            payload["update_method"], "hybrid-global-lhs-probe-response-v1")
         self.assertEqual(payload["objective"], "continuous_raw_bh_rqd_response")
         self.assertEqual(payload["realization"]["seed"], 43)
         self.assertIsNone(payload["realization"]["verification"])
@@ -606,10 +606,10 @@ class TestRawRqdSearch(unittest.TestCase):
             self.assertEqual(len(candidates), 10)
             self.assertEqual(
                 [candidate["role"] for candidate in candidates].count(
-                    "global_space_filling"), 5)
+                    "global_space_filling"), 4)
             self.assertEqual(
                 [candidate["role"] for candidate in candidates].count(
-                    "response_gap_refinement"), 5)
+                    "probe"), 6)
             self.assertEqual(len(batch["completed_signatures_by_jn"][jn]), 10)
             for candidate in candidates:
                 controller._validate_generating_input(
@@ -642,6 +642,61 @@ class TestRawRqdSearch(unittest.TestCase):
         self.assertEqual(event_kind, "pause")
         self.assertEqual(
             json.loads(payload)["last_followup_batch"]["batch_index"], 1)
+        connection.close()
+
+    def test_probe_response_guides_next_batch_and_is_reported(self) -> None:
+        config = load_raw_rqd_config(
+            self.repo_root / "config/rqd_exploration_main_baseline3.yml")
+        connection = sqlite3.connect(":memory:")
+        initialize_store(connection)
+        initialize_main_store(connection)
+
+        class InMemoryController(RawRqdController):
+            def _perform(self, task):
+                identity, seed = task["input_id"], task["seed"]
+                value = 50.0
+                if task["role"] == "probe":
+                    candidate = next(item for item in
+                                     self.state["active_followup_batch"]["candidates"]
+                                     if item["input_id"] == identity)
+                    value = 40.0 if candidate["direction"] == -1 else 60.0
+                points = tuple(BHPoint(float(i), float(i + 1), value, 1.0)
+                               for i in range(30))
+                self.profiles[identity] = {
+                    self.profile_id: {seed: SeedProfile(seed, points)}}
+
+        with TemporaryDirectory() as output_dir:
+            controller = InMemoryController(
+                connection, config, None, PREVIEW_RUNTIME, output_dir=Path(output_dir))
+            controller.run()
+            first = controller.run(continue_from_review=True)
+            self.assertEqual(first["reason"], "continuation_batch_review")
+            responses = first["last_followup_batch"]["probe_responses"]
+            self.assertEqual(len(responses), 12)
+            self.assertEqual(sum(item["improved"] for item in responses), 6)
+            improved = {item["input_id"]: item for item in responses if item["improved"]}
+            second = controller.run(continue_from_review=True)
+
+        self.assertEqual(second["reason"], "continuation_batch_review")
+        self.assertTrue(all(item in second["probe_response_history"] for item in responses))
+        candidates = second["last_followup_batch"]["candidates"]
+        guided = [item for item in candidates if item["role"] == "response_guided"]
+        self.assertTrue(guided)
+        for item in guided:
+            evidence = improved[item["reference_id"]]
+            self.assertEqual(
+                (item["target_response_bin"], item["joint_set_id"],
+                 item["parameter"], item["direction"]),
+                (evidence["target_response_bin"], evidence["joint_set_id"],
+                 evidence["parameter"], evidence["direction"]))
+            self.assertEqual(item["reference_value"], evidence["candidate_value"])
+        self.assertEqual(len({item["input_id"] for item in candidates}), 20)
+        payload = json.loads(connection.execute(
+            "SELECT payload FROM main_control_events WHERE kind='pause' "
+            "ORDER BY event_index DESC LIMIT 1").fetchone()[0])
+        self.assertEqual(payload["last_followup_batch"]["probe_responses"],
+                         second["last_followup_batch"]["probe_responses"])
+        self.assertEqual(connection.execute("SELECT COUNT(*) FROM manifest").fetchone()[0], 0)
         connection.close()
 
     def test_raw_controller_uses_one_seed_without_pass_or_verification_state(self) -> None:

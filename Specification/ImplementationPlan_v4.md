@@ -1,5 +1,354 @@
 # Implementation Plan v4: RQD Exploration and Cumulative Batch Workflow
 
+## Session handoff: RQD and profile review (2026-11-09 23:04 +09:00)
+
+The user requested documentation and to stop for today. Consolidated the
+original PR/TR/POST expectation, current boundary agreements, RQD results,
+combined-Jn evidence, preliminary profile interpretation and ordered review
+questions in [RQD/profile review](RQDExplorationStrategy_20261026/RQD_Profile_Review_20261109.md).
+The preliminary figures remain session artifacts; no new simulation, source DB
+write, statistical boundary determination or further profile work was performed.
+Resume only on user instruction, starting with the review questions rather than
+assuming an analysis method or approval.
+
+## Preliminary profiles (2026-11-09 22:58 +09:00)
+
+The user requested preliminary plots and selected both example scenarios
+Jr4/Ja0.75 and Jr1/Ja1. Rendered two session-artifact PNGs using read-only
+observations from the three DBs identified below. Each image shows paired
+support-weighted BH/face mean Q′ per realization for main 60 m (1,078 points),
+then BH interval Q′ against total measured P32 for main 60 m (64,680 intervals),
+and against total nominal input P32 for the earlier and baseline3 30 m raw
+sources (5,400 and 5,700 intervals). Colors distinguish Jn, markers distinguish
+the raw sources; no fitted boundary or curve is implied. P32 uses a linear
+scale near zero so zero measured P32 is retained. The per-interval
+`max(raw_RQD,10)` floor precedes support-weighted Q′ averaging.
+
+The two outputs were visually inspected, include source/scenario labels, and
+show overlapping observations, not independent samples or identified PR/TR/POST
+boundaries. Input and measured P32 are separate panels; the domains and sampling
+policies differ. Database file timestamps were unchanged, no simulation was run,
+and no derived scores were saved to the DB. Figures are session artifacts, not
+stored in the repository. Next: review the preview with the user before choosing
+any profile aggregation, interpretation, or further study.
+
+## Combined-Jn profile feasibility review (2026-11-09 22:52 +09:00)
+
+The user clarified that profile evaluation must combine low and high Jn
+contributions; Jn15/20 need not individually cover high Q′. The previous
+Jn15/20-only review was scoped to the new DB and did not evaluate the combined
+corpus. The current review used source-labelled, read-only, in-memory
+calculations from the active main 60 m DB, the prior raw 30 m neighborhood DB,
+and the new raw 30 m baseline3 DB; it did not merge or modify databases.
+Archived `old_db` was inventoried but not included.
+
+- Main 60 m DB: Jn2/4/9/15 respectively 24/290/559/205 successful
+  realizations, 12/162/270/102 distinct physical input signatures; all have
+  BH and face data. It has measured P32 for all 1,078 realizations.
+  Prior raw 30 m DB: Jn2/4/9/15 respectively 27/39/40/74 complete BH
+  signatures; new raw 30 m DB: Jn15/20 95 each, BH only.
+  Same generator/measurement versions do not eliminate domain size, geometry,
+  sampling or input-bound differences; preserve source and Jn strata.
+- Applying the existing calculation floor and 66 scenario combinations to
+  measured intervals, counts of distinct input signatures contributing to
+  Q′ bins 1–10 across scenarios/Jn are
+  `612,801,905,916,915,903,887,756,240,39`. Bin 9 receives Jn2 and 4;
+  bin 10 receives Jn2. Q′ > 400 is unoccupied and is unreachable for these
+  Jn>=2 and approved scenario catalog (maximum 266.667). Union coverage does
+  not imply independent scenarios, uniform support or identified boundaries.
+- Illustrative, not a fitted model: at Jr4/Ja0.75, for main 60 m paired
+  realizations grouped by each BH support-weighted mean Q′ bin, median BH/face
+  mean Q′ and distinct signature counts are bin7 `32.355/34.348` (20),
+  bin8 `55.861/58.338` (354), bin9 `125.520/132.497` (162), bin10
+  `266.376/266.590` (12). Values are medians over jobs, not independent
+  signature-weighted estimates or matched-location comparison; groups are
+  strongly Jn-confounded. Jn2/4/9/15 BH mean raw RQD is >=90 for
+  23/24, 261/290, 521/559, 193/205 jobs respectively, limiting shape evidence.
+- Q′BH–nominal P32 and BH–face exploratory profiles are possible; measured
+  P32 is also available for the 60 m source, not the two raw 30 m sources.
+  Detection/miss, face areal density and tunnel-axis intersection remain
+  unavailable as previously recorded. A coverage union alone cannot establish
+  profile transitions or PR/TR/POST decision boundaries.
+- Source DBs were read-only and no simulation, derived-score persistence,
+  figure or code change was made. Next: discuss/approve the scope and
+  presentation of a source- and scenario-labelled exploratory profile.
+
+## Profile feasibility review (2026-11-09 22:46 +09:00; analysis only)
+
+The user requested an assessment of profile feasibility using current data.
+Read-only DB copy, current 66-scenario formula, and complete BH observations
+were used for an in-memory exploratory calculation; no results were persisted.
+The existing per-interval scoring floor is `max(raw_RQD,10)` and the existing
+Q′ catalog uses `(lower,upper]`.
+
+- Both Jn15 and Jn20 have 95 complete 30-interval BH profiles. Position-wise
+  Q′BH curves and scenario-separated Q′BH-to-nominal-set-P32 exploratory
+  profiles are feasible without further simulation. No measured-P32 table
+  exists in this DB; nominal input P32 is not measured in-domain P32.
+- Union across scenarios of distinct signatures with at least one observation
+  in Q′ bins 1–10: Jn15 `95,95,95,95,95,88,85,34,0,0`; Jn20
+  `95,95,95,95,94,89,76,0,0,0`. These are union contributions, not independent
+  scenario samples, and do not imply every scenario covers every bin. The 8th
+  bin is `(33.223,76.146]`; bins 9 and 10 are above 76.146. The Jn15 and Jn20
+  maximum possible and observed Q′ are 35.556 and 26.667 respectively.
+- Existing raw BH data alone do not provide face Q′, detection/miss, face areal
+  density, or tunnel-axis intersection rate for the agreed boundary profiles.
+  Detection ratio also lacks an approved comparison population and denominator.
+  Therefore profile inspection is feasible but PR/TR/POST boundary identification,
+  combined excavation decision limits and statistical sufficiency remain unproven.
+- All observations use seed 43; probe-derived signatures are not all independent
+  samples of the input space. Jn20 mean-RQD 60–70 contains 37 distinct signatures
+  but only 13 P32 input vectors at 6-decimal resolution, with 24 sharing one
+  vector. Across all profiles, 804/5,700 raw intervals are zero and become 10
+  for scoring only; retain raw values. Q′ union coverage must not be interpreted
+  as 66 independent datasets or used to pool scenario support.
+- No DFN, new simulation, source DB write or code change. Next proposed step is
+  user discussion/approval of a small scenario-separated Q′BH–nominal-P32
+  exploratory profile and its interpretation, before any report or execution.
+
+## Continuous raw-RQD run confirmed (2026-11-09 22:40 +09:00)
+
+The user reported the run had finished and requested a check. Read-only inspection
+of the existing DB shows `raw_rqd_coverage_complete`: eight additional batches
+(2 through 9) completed, below the ten-batch limit. The queue is empty, with no
+active batch. All 190 starts and attempts succeeded; the DB contains 5,700 valid
+BH observations, and SQLite `quick_check` returned `ok`.
+
+Independent recalculation from a read-only in-memory DB copy found 95 complete
+30-by-1m signatures for each Jn and no deficient bins. Counts for bins 0–10
+through 90–100 (100 included in the last bin) are:
+
+| Jn | Counts in ascending RQD bins |
+|---|---|
+| 15 | 12, 6, 13, 10, 6, 12, 10, 6, 12, 8 |
+| 20 | 15, 7, 4, 4, 6, 5, 37, 7, 3, 7 |
+
+Eight batch-completion events and a final pause event are present; batch 3 includes
+five response-guided candidates. No matching active exploration process was found
+at inspection. The DB was not modified and no new exploration was started. This
+confirms the agreed starting coverage criterion, not statistical sufficiency.
+Next: review the distribution and probe response history with the user before
+deciding whether further analysis or execution is needed.
+
+## Stage 3 complete (2026-11-09 22:30 +09:00; real execution not started)
+
+- Implemented opt-in `--continuous`, preserving the existing single-batch review
+  path. A session is anchored to its saved starting batch and stops after at most
+  10 additional completed batches, complete 30-interval coverage of every Jn/bin,
+  or a safety/error pause. Completion events and their state checkpoints are
+  committed together; probe-response history remains cumulative.
+- Interrupt/crash restart retains the session budget and requires `--continuous`
+  without `--continue-from-review`. A terminal batch-limit pause requires an
+  explicit new review release for a new session; error/safety pauses are not
+  automatically released. The stored runtime/config identity is unchanged.
+- Verification: `conda run -n dlo-cq python -m unittest discover -s src/test -p
+  'test_rqd*.py'` passed 257 tests. Tests cover the limit relative to an existing
+  batch, early complete coverage including RQD 100 and exclusion of partial
+  profiles, interruption, batch-boundary process exit, journal failure, existing
+  single-batch behavior, and CLI flags/status. A mocked empty-geometry generator
+  also verified SQLite-persisted observations are reused after reconstruction
+  without a second attempt. Pylance diagnostics for changed implementation and
+  new continuous test were empty; `git diff --check` passed.
+- Preflight used a read-only copy of the real database in memory, without
+  simulation: existing run remained at `continuation_batch_review`, batch 1;
+  15 complete signatures per Jn, 8/9 deficient bins for Jn15/Jn20, and batch 2
+  planned 10 candidates per Jn. Real DB timestamp remained unchanged. This
+  preflight is not a real execution or an approval to execute.
+- To begin the approved-by-user real run when separately authorized:
+
+  ```sh
+  cd "/Users/myungkyusong/Documents/Develop/09. DFN/06. QSimEx"
+  conda activate dlo-cq
+  python -u run_rqd_exploration.py raw-rqd run --config config/rqd_exploration_main_baseline3.yml --database /Users/myungkyusong/QSimExOutput/sqlite/raw-rqd-baseline3-20261108-2218-fixed.sqlite --output-dir /Users/myungkyusong/QSimExOutput/raw-rqd-baseline3-20261108-2218-fixed-followup-reports --confirm-execution --continue-from-review --continuous
+  ```
+
+  For interruption/crash restart use the same command without
+  `--continue-from-review`; do not automatically release a safety/error pause.
+
+## Stage 3 authorized (2026-11-09 22:22 +09:00; historical)
+
+The user authorized stage 3 implementation and requested a command to run it.
+Implement the agreed cumulative, at-most-ten-additional-batch loop with goal,
+limit, safety-stop and interrupted-resume verification. Do not execute real
+simulations or modify the real DB; supplying a command is not execution approval.
+
+## Stage 2 complete (2026-11-09 22:20 +09:00; historical, stage 3 was pending)
+
+The explicit review-release follow-up path now plans four global LHS and up to six
+probe/response-guided candidates per Jn, with global LHS fallback. It orders
+underfilled bins by count and index, advances a persisted axis cursor, and keeps
+paired probes where feasible. Measured complete probe responses record reference,
+candidate, target, parameter, direction, values, mean delta, distances and improvement.
+The history is retained in state and the review summary; compatible previously
+measured single-axis probes can be reused. An improving response may propose a
+same-step continuation in a later batch; incomplete evidence pauses explicitly.
+The batch policy version is recorded in its checkpoint without changing the existing
+run's immutable configuration fingerprint. Existing successful observations remain
+the source of truth. This stage does not add an automatic multi-batch loop.
+
+Verification in `dlo-cq`: 248 RQD tests passed; after final evidence-revalidation
+adjustment, 23 focused raw-RQD tests passed. Tests include two review-released in-memory
+batches, response-guided next candidates, accumulated response history and reuse
+without duplicate starts. Three changed Python files had no Pylance diagnostics;
+the implementation was checked again after the final evidence-revalidation change.
+Existing baseline3 DB read-only
+copied to memory: proposed batch 2 has four global and six probes per Jn, 20 new
+identities and all 30 preexisting attempts retained; only memory was changed.
+No real DB write, candidate persistence, DFN generation, simulation or automatic
+continuation was performed. `git diff --check` passed.
+
+Next: seek explicit approval for stage 3's bounded multi-batch loop and its
+restart/stop tests; separately obtain authorization before any real run.
+
+## Stage 2 authorized (2026-11-09 22:17 +09:00; in progress)
+
+The user approved stage 2 code and in-memory validation only. Per Jn and batch,
+use four global LHS candidates and six probes or response-guided candidates;
+prefer paired probes where possible. Prioritize underfilled bins by count then bin
+index and cycle coordinates. Continue an improving probe by one same-size step in
+the next batch; on no improvement or blocked movement try other probes, using LHS
+fallback when needed. Reuse completed identical signatures without rerunning them.
+This does not approve real execution or stage 3's continuous loop.
+
+## Stage 1 complete (2026-11-09 22:12 +09:00; stages 2–3 pending)
+
+Added in-memory preparation methods in `src/rqd_exploration/raw_rqd_search.py`:
+count only compatible, complete 30-by-1m BH profiles, identify bins with fewer
+than three signatures per Jn, select the closest mean to the bin center with
+signature-ID tie-break, and prepare one-variable bounded +/- probes with the
+approved steps. Probe records include target, reference, coordinate, direction,
+candidate snapshot/identity and explicit existing/duplicate/blocked status.
+Preparation does not queue, persist or execute candidates and does not change the
+existing follow-up batch policy. Later integration, probe-result updates and
+continuous batches remain stages 2–3, subject to their own approval.
+
+Verification in `dlo-cq`: 21 tests passed across the new probe tests and existing
+raw-RQD tests; Pylance diagnostics for both changed Python files were empty.
+The existing baseline3 DB was opened read-only and copied to memory: 15 complete
+profiles per Jn, 8 deficient bins for Jn15 and 9 for Jn20 matched the saved
+observations; 70–80 produced 40 and 50 probe records respectively. All 30 attempts
+remained present; no real DB write, candidate persistence, DFN or simulation.
+An initial test invocation from the parent directory failed to import `src`; it
+passed from the project root. The first in-memory DB attempt lacked SQLite foreign
+keys and failed before inspection; it passed after enabling them. An initial
+`conda run` heredoc produced no output; the verified run used `--no-capture-output`.
+`git diff --check` passed.
+
+## Stage 1 authorized (2026-11-09 22:09 +09:00; in progress)
+
+The user authorized stage 1 and chose probe steps: multiply/divide P32 and radii by
+1.1; dip and dip direction change by +/-5 degrees. Reference selection uses the
+complete signature closest to the bin center, breaking ties by signature ID.
+Clamp out-of-range probes, wrap full-circle dip direction, and record blocked
+directions when unchanged or physically invalid. Global/probe allocation and later
+update behavior remain undecided. Authorization covers code and in-memory tests
+only, not real DB writes, DFN generation, simulation, or stages 2–3.
+
+## Current plan: three-stage Euler-inspired continuation (2026-11-09 22:07 +09:00)
+
+The user agreed in principle to the proposed raw-RQD adaptation and requested a
+three-stage implementation plan only. The following stages are pending; no code or
+execution approval is implied.
+
+1. **Cumulative target and probe preparation.** Use the existing run's compatible
+   saved inputs and complete 30-interval BH observations to count distinct signatures
+   in each mean-RQD bin per Jn. For bins with fewer than three signatures, select a
+   nearby measured signature as a reference. Prepare bounded single-coordinate
+   plus/minus probes and retain the reference, variable, direction and target; use
+   baseline3's log/linear and angular coordinate meanings and its bounds. Test
+   counts, reference selection, distinct candidates and boundary handling in memory.
+2. **Response-guided updates and reporting.** Compare completed probe responses with
+   their reference and use movement toward the selected target to guide subsequent
+   candidates, retaining cumulative measurements and parameter/response differences
+   as understandable evidence. Keep an agreed share of global LHS candidates.
+   In-memory tests must demonstrate actual probe response changing a later proposal,
+   accurate reporting and reuse without duplicate execution. The existing single
+   realization seed remains; no Q-prime score or three-seed acceptance is imported.
+3. **Continuous batches, safety and verification.** Build on stages 1–2 to continue
+   the existing run for at most 10 additional batches per authorized execution,
+   accumulating each batch before deciding the next. Stop early when all 20 Jn/bin
+   cells meet the three-complete-signature target, or on an error/safety stop;
+   distinguish target completion from the batch limit and retain resumable state.
+   Verify multiple batches, batch limits, interruption/restart, data provenance,
+   duplicate avoidance and stopping conditions with in-memory tests. A real DB
+   continuation, DFN generation and simulation require separate explicit approval.
+
+Before implementation the user must decide probe step sizes, global/probe allocation,
+and any remaining tie, boundary, no-improvement and scheduling rules that affect
+scientific behavior. They were not specified by the user's general agreement. These
+stages preserve current results; they do not promise every bin will be filled or that
+new candidates are necessarily far from previously sampled inputs.
+
+## Euler update logic investigated (2026-11-09 21:41 +09:00; read-only investigation)
+
+At the user's request, inspected the archived Euler campaign's actual signature-update
+path. Current `src/euler_campaign/progress.py` defines progress messages only; the update
+rules are in `obsolete/src_obs/euler_campaign/euler.py`, orchestration in `campaign.py`,
+and Q-prime coverage scoring in `coverage.py`. The archived controller was intentionally
+not copied into v4, as recorded in section 3. This investigation changes neither code
+nor that architectural boundary.
+
+The legacy campaign cycles density, size, and orientation blocks. It builds bounded
+paired probes, evaluates same-seed coverage deltas and estimates finite differences;
+normalized update rules propose bounded candidates. Its configured density-exploration
+v3 instead sweeps density with a persisted direction and escalating step on rejection,
+uses seeded log-uniform size sampling, and sweeps orientation beta with persisted
+cursors. Candidate acceptance uses three paired verification seeds and a 2/3 rule;
+v2/v3 additionally require new Q-prime bin occupancy. Runs, round records and lineage
+state are persisted, with simulation reuse by signature and seed.
+
+The active raw-RQD follow-up instead uses global LHS plus response-gap interpolation;
+it does not invoke those Euler update rules. Reusing the ideas requires separate user
+decisions: the archived metric is per-profile Q-prime coverage, while the current target
+is three complete BH signatures per mean raw-RQD bin; the current one-seed policy differs
+from three-seed verification; legacy orientation beta and its size sampling cap of 100 m
+do not directly match baseline3 dip/direction and 150 m radius bounds. Do not copy
+legacy scoring, thresholds, or bounds as if already approved. Next discuss the smallest
+adaptation of probe/sensitivity or sweep ideas, including how existing saved results can
+support it. No simulation, execution preview, tests, DB mutation, or code changes.
+
+## Current handoff: cumulative search diagnosis (2026-11-09 21:36 +09:00)
+
+The user chose a maximum of 10 subsequent batches for one continuous exploration,
+subject to the previously discussed target and safety stops. This is a policy choice,
+not approval to implement or execute. Candidate allocation remains to be discussed.
+
+Read-only inspection of the existing baseline3 database confirms the initial 10 and
+first follow-up 20 succeeded, with 30 stored input snapshots and 30 complete 30-interval
+BH profiles. Event 4 contains all 30 inputs, summaries and profiles plus 20 candidate
+records. The saved first follow-up includes 10 local proposals based on earlier response
+brackets. For example, Jn15 target 75 produced mean 66.884; interpolation is a proposal,
+not an outcome guarantee. The records contain parameters and responses but are not yet
+a concise parameter-to-response guidance report.
+
+The controller reloads cumulative observations on initialization and after jobs, checks
+exact input identities against existing inputs, and uses existing response means to select
+local proposals. Global LHS is generated independently apart from exact-identity checking;
+there is no distance-based prioritization of undersampled input space. Current bin targeting
+prioritizes empty bins rather than the agreed count of three. Existing tests cover one
+follow-up in memory, not multiple automatic batches or restart of that loop. The code
+pauses after each batch, so the 10-batch loop and its stops remain unimplemented.
+Changing config changes run identity and may affect data reuse; do not assume that editing
+bounds and resuming the same run is safe without examining the resulting provenance.
+No simulation, execution preview, database mutation, or code change was performed.
+
+## Current agreement: provisional coverage target (2026-11-09 21:29 +09:00)
+
+The user agreed to a provisional continuous-exploration target: for each of Jn15 and
+Jn20 separately, each 10-point bin of signature-level support-weighted mean raw BH RQD
+must contain at least three distinct signatures, each with all 30 valid 1 m interval
+values. Bins are lower-inclusive and upper-exclusive, except that the final bin includes
+100. The interval values remain available for subsequent profile comparison; three
+signatures are a starting target, not a statistical sufficiency claim. This criterion
+concerns raw RQD, not a definition of a Q-prime profile.
+
+The previously reviewed batch-1 data have a minimum deficit of 15 signatures per Jn,
+30 total, if each new signature lands in a deficient bin. More may be needed. The current
+response-gap selection prioritizes empty bins, so it does not yet implement this target
+for bins with one or two signatures; coverage is not guaranteed. The next discussion
+must address a bounded stopping/safety condition and the candidate-allocation policy.
+This agreement does not authorize implementation, database writes, or execution.
+
 ## Today's work summary and next work (2026-11-08 23:09 +09:00)
 
 Completed today:

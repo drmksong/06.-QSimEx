@@ -114,6 +114,24 @@ python -u run_rqd_exploration.py report-cumulative --database <approved-db> --ou
 선택할 수 있으며 생략하면 최신 것을 사용합니다. 누적 분석/보고의 `--jr-values`와
 `--ja-values`는 후처리 시나리오 부분집합을 선택하며 원관측을 바꾸거나 DFN을 재생성하지 않습니다.
 
+## Raw BH RQD 연속 탐색
+
+초기 cohort 또는 후속 batch의 review에서 연속 탐색을 시작하려면 같은 설정·DB·보고
+디렉터리와 실행 환경을 사용합니다. 아래는 형식 안내이며 실행 승인이 아닙니다.
+
+```text
+python -u run_rqd_exploration.py raw-rqd run --config <config> --database <db> --output-dir <reports> --confirm-execution --continue-from-review --continuous
+```
+
+각 Jn의 10점 RQD 구간마다 완전한 30개 1 m BH 관측을 가진 시그니처 3개가
+확보되거나, 시작 시점 이후 추가 10 batch를 완료하거나, 안전 조건/오류가 발생하면
+중지합니다. 마지막 구간에는 RQD 100이 포함됩니다. batch 결과와 한도는 저장되며
+Ctrl+C 또는 프로세스 중단 후에는 같은 명령에서 `--continue-from-review`만 빼고
+`--continuous`는 유지해 기존 한도 내에서 재개합니다. 오류나 안전 중단은 자동으로
+해제하지 않습니다. 10 batch 한도 이후 새 연속 실행을 시작하려면 별도 실행 승인을
+확인한 뒤 `--continue-from-review --continuous`를 다시 지정합니다. 기존의 단일 후속
+batch review 방식은 `--continuous` 없이 `--continue-from-review`를 사용합니다.
+
 ## 메인 탐색 사용
 
 ```sh
